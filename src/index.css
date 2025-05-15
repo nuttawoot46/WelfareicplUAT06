@@ -1,92 +1,81 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 226 100% 99%;
+    --foreground: 224 71% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 224 71% 4%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 225 96% 59%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 292 75% 38%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 199 90% 62%;
+    --accent-foreground: 220 100% 10%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 225 96% 59%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 225 96% 59%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 225 96% 59%;
+    --sidebar-accent: 225 70% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 225 70% 65%;
+    --sidebar-ring: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 224 71% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 71% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 225 96% 59%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 292 75% 38%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 223 47% 15%;
+    --muted-foreground: 220 8% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 199 90% 62%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 225 96% 59%;
   }
 }
 
@@ -96,6 +85,95 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-kanit;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-kanit font-medium;
+  }
+
+  input, textarea, select {
+    @apply font-sarabun;
+  }
+}
+
+/* Custom Classes */
+@layer components {
+  .welfare-card {
+    @apply bg-white rounded-2xl p-5 shadow-lg border-l-4 border-welfare-blue hover:shadow-xl transition-all duration-300 hover:-translate-y-1;
+  }
+  
+  .welfare-card-pending {
+    @apply border-welfare-yellow;
+  }
+  
+  .welfare-card-approved {
+    @apply border-welfare-green;
+  }
+  
+  .welfare-card-rejected {
+    @apply border-welfare-red;
+  }
+  
+  .nav-link {
+    @apply flex items-center gap-2 py-2 px-4 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all;
+  }
+  
+  .nav-link-active {
+    @apply bg-white/20 text-white;
+  }
+  
+  .btn-hover-effect {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+  
+  .btn-hover-effect::after {
+    @apply content-[''] absolute inset-0 bg-white/20 scale-x-0 origin-left transition-transform duration-300;
+  }
+  
+  .btn-hover-effect:hover::after {
+    @apply scale-x-100;
+  }
+  
+  .form-container {
+    @apply bg-white rounded-2xl p-6 shadow-lg border border-border animate-fade-in;
+  }
+  
+  .form-input {
+    @apply rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-welfare-blue focus:ring-2 focus:ring-welfare-blue/20;
+  }
+
+  .form-label {
+    @apply text-sm font-medium text-gray-700 mb-1 block;
+  }
+
+  .loading-spinner {
+    @apply h-7 w-7 animate-spin-slow text-welfare-blue;
+  }
+
+  .java-card {
+    @apply relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl border border-gray-100;
+  }
+
+  .java-card::before {
+    @apply content-[''] absolute -inset-1 bg-gradient-primary opacity-30 blur transition-all duration-1000;
+  }
+
+  .java-card:hover::before {
+    @apply opacity-70;
+  }
+
+  .java-effect {
+    @apply relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-conic before:from-welfare-purple/20 before:via-welfare-blue/20 before:to-welfare-teal/20 before:animate-spin-slow;
+  }
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+}
+
+@font-face {
+  font-family: 'Sarabun';
+  src: url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
 }

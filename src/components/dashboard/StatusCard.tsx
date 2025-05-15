@@ -1,0 +1,67 @@
+
+import { cn } from "@/lib/utils";
+import { StatusType } from "@/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface StatusCardProps {
+  title: string;
+  count: number;
+  status: StatusType;
+  icon: React.ReactNode;
+}
+
+export function StatusCard({ title, count, status, icon }: StatusCardProps) {
+  const getColorsByStatus = (): { bg: string; text: string; border: string; iconBg: string } => {
+    switch (status) {
+      case 'pending':
+        return {
+          bg: 'bg-amber-50',
+          text: 'text-amber-800',
+          border: 'border-amber-200',
+          iconBg: 'bg-amber-100'
+        };
+      case 'approved':
+        return {
+          bg: 'bg-green-50',
+          text: 'text-green-800',
+          border: 'border-green-200',
+          iconBg: 'bg-green-100'
+        };
+      case 'rejected':
+        return {
+          bg: 'bg-red-50',
+          text: 'text-red-800',
+          border: 'border-red-200',
+          iconBg: 'bg-red-100'
+        };
+      default:
+        return {
+          bg: 'bg-blue-50',
+          text: 'text-blue-800',
+          border: 'border-blue-200',
+          iconBg: 'bg-blue-100'
+        };
+    }
+  };
+
+  const colors = getColorsByStatus();
+
+  return (
+    <Card className={cn("java-card overflow-hidden", colors.bg, colors.border)}>
+      <CardHeader className="pb-2">
+        <CardTitle className={cn("text-lg font-medium flex items-center gap-2", colors.text)}>
+          <div className={cn("p-2 rounded-md", colors.iconBg)}>
+            {icon}
+          </div>
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-baseline">
+          <p className={cn("text-3xl font-bold", colors.text)}>{count}</p>
+          <p className={cn("ml-2 text-sm", colors.text)}>รายการ</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
