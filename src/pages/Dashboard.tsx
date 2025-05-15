@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
 import { StatusCard } from '@/components/dashboard/StatusCard';
 import { WelfareTypeChart } from '@/components/dashboard/WelfareTypeChart';
-import { WelfareStatusChart } from '@/components/dashboard/WelfareStatusChart';
+import WelfareStatusChart from '@/components/dashboard/WelfareStatusChart';
 import { RecentRequestsTable } from '@/components/dashboard/RecentRequestsTable';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
