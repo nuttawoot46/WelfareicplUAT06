@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { WelfareRequest } from '@/types';
+import { useWelfare } from '@/context/WelfareContext';
 
 interface RemainingBudgetCardProps {
   requests: WelfareRequest[];
@@ -15,6 +16,8 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
   userId,
   maxBudget = 10000 
 }) => {
+  const { getWelfareLimit } = useWelfare();
+  
   // Calculate used budget (only count approved requests)
   const usedBudget = requests
     .filter(req => req.userId === userId && req.status === 'approved')
@@ -25,6 +28,13 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
   
   // Calculate percentage used
   const percentageUsed = (usedBudget / maxBudget) * 100;
+  
+  // Get welfare-specific limits for the detail section
+  const dentalGlassesLimit = getWelfareLimit('dental').amount;
+  const weddingLimit = getWelfareLimit('wedding').amount;
+  const trainingLimit = getWelfareLimit('training').amount;
+  const fitnessMonthlyLimit = getWelfareLimit('fitness').amount;
+  const fitnessYearlyLimit = getWelfareLimit('fitness').yearlyTotal;
   
   return (
     <Card className="java-card">
@@ -53,6 +63,18 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
           <div className="flex justify-between text-sm">
             <span>0 บาท</span>
             <span>{maxBudget.toLocaleString()} บาท</span>
+          </div>
+          
+          {/* Welfare limits information */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <h4 className="text-sm font-medium mb-2">รายละเอียดวงเงินสวัสดิการ</h4>
+            <ul className="text-xs space-y-1 text-gray-600">
+              <li>• ค่ารักษาทางทันตกรรมและตัดแว่น: สูงสุด {dentalGlassesLimit?.toLocaleString()} บาท/ปี (หลังทำงานครบ 180 วัน)</li>
+              <li>• เงินช่วยเหลือคลอดบุตร: คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</li>
+              <li>• ค่าอบรม: สูงสุด {trainingLimit?.toLocaleString()} บาท/ปี</li>
+              <li>• เงินช่วยเหลือกรณีแต่งงาน: {weddingLimit?.toLocaleString()} บาท</li>
+              <li>• ค่าออกกำลังกาย: {fitnessMonthlyLimit} บาท/เดือน หรือ {fitnessYearlyLimit} บาท/ปี</li>
+            </ul>
           </div>
         </div>
       </CardContent>

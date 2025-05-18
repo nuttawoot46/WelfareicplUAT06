@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { WelfareRequest, WelfareType, StatusType } from '@/types';
 import { useAuth } from './AuthContext';
@@ -10,6 +9,21 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 // Get current date in ISO format
 const getCurrentDate = () => new Date().toISOString();
 
+// Welfare benefit limitations
+export const WELFARE_LIMITS = {
+  dental: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
+  glasses: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
+  childbirth: { 
+    natural: 4000, 
+    caesarean: 6000, 
+    condition: "จำกัด 3 คนต่อครอบครัว" 
+  },
+  training: { amount: 10000 },
+  wedding: { amount: 3000 },
+  fitness: { amount: 300, monthly: true, yearlyTotal: 3600 },
+  funeral: { amount: null } // No specific limit mentioned for funeral
+};
+
 interface WelfareContextType {
   welfareRequests: WelfareRequest[];
   getRequestsByUser: (userId: string) => WelfareRequest[];
@@ -18,6 +32,8 @@ interface WelfareContextType {
   submitRequest: (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => void;
   updateRequestStatus: (id: string, status: StatusType, notes?: string) => void;
   isLoading: boolean;
+  getWelfareLimit: (type: WelfareType) => { amount: number | null, condition?: string, monthly?: boolean };
+  getRemainingBudget: (userId: string, type?: WelfareType) => number;
 }
 
 // Mock data
@@ -84,6 +100,56 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return welfareRequests.filter(request => request.type === type);
   };
 
+  const getWelfareLimit = (type: WelfareType) => {
+    switch (type) {
+      case 'dental':
+      case 'glasses':
+        return { 
+          amount: WELFARE_LIMITS.dental.amount,
+          condition: WELFARE_LIMITS.dental.condition
+        };
+      case 'childbirth':
+        return { 
+          amount: WELFARE_LIMITS.childbirth.natural, 
+          caesarean: WELFARE_LIMITS.childbirth.caesarean,
+          condition: WELFARE_LIMITS.childbirth.condition
+        };
+      case 'training':
+        return { amount: WELFARE_LIMITS.training.amount };
+      case 'wedding':
+        return { amount: WELFARE_LIMITS.wedding.amount };
+      case 'fitness':
+        return { 
+          amount: WELFARE_LIMITS.fitness.amount,
+          monthly: WELFARE_LIMITS.fitness.monthly,
+          yearlyTotal: WELFARE_LIMITS.fitness.yearlyTotal
+        };
+      case 'funeral':
+        return { amount: null }; // No specific limit
+      default:
+        return { amount: 10000 }; // Default limit
+    }
+  };
+
+  const getRemainingBudget = (userId: string, type?: WelfareType) => {
+    // If type is specified, calculate remaining budget for that specific welfare type
+    if (type) {
+      const limit = getWelfareLimit(type);
+      const usedBudget = welfareRequests
+        .filter(req => req.userId === userId && req.type === type && req.status === 'approved')
+        .reduce((sum, req) => sum + req.amount, 0);
+      
+      return Math.max(0, (limit.amount || 10000) - usedBudget);
+    }
+    
+    // Otherwise calculate total remaining budget across all welfare types
+    const usedBudget = welfareRequests
+      .filter(req => req.userId === userId && req.status === 'approved')
+      .reduce((sum, req) => sum + req.amount, 0);
+      
+    return Math.max(0, 10000 - usedBudget);
+  };
+
   const submitRequest = (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     setIsLoading(true);
     
@@ -143,7 +209,9 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     getRequestsByType,
     submitRequest,
     updateRequestStatus,
-    isLoading
+    isLoading,
+    getWelfareLimit,
+    getRemainingBudget
   };
 
   return <WelfareContext.Provider value={value}>{children}</WelfareContext.Provider>;

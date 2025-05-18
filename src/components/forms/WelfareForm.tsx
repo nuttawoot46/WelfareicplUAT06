@@ -1,14 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WelfareType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface WelfareFormProps {
   type: WelfareType;
@@ -19,6 +21,7 @@ interface FormValues {
   date: string;
   amount: number;
   details: string;
+  birthType?: 'natural' | 'caesarean'; 
   attachments?: FileList;
 }
 
@@ -39,16 +42,51 @@ const getFormTitle = (type: WelfareType): string => {
 
 export function WelfareForm({ type, onBack }: WelfareFormProps) {
   const { user } = useAuth();
-  const { submitRequest, isLoading } = useWelfare();
+  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget } = useWelfare();
   const [files, setFiles] = useState<string[]>([]);
   const { toast } = useToast();
+  const [maxAmount, setMaxAmount] = useState<number | null>(null);
+  const [condition, setCondition] = useState<string | undefined>();
+  const [isMonthly, setIsMonthly] = useState(false);
   
   const { 
     register, 
     handleSubmit, 
     reset,
+    watch,
+    setValue,
     formState: { errors } 
   } = useForm<FormValues>();
+
+  // For childbirth form
+  const birthType = watch('birthType');
+  
+  useEffect(() => {
+    if (!user) return;
+    
+    const limit = getWelfareLimit(type);
+    setMaxAmount(limit.amount);
+    setCondition(limit.condition);
+    setIsMonthly(!!limit.monthly);
+    
+    // Set default values for specific welfare types
+    if (type === 'wedding') {
+      setValue('amount', 3000);
+    } else if (type === 'fitness') {
+      setValue('amount', 300);
+    } else if (type === 'childbirth') {
+      setValue('birthType', 'natural');
+      setValue('amount', 4000);
+    }
+  }, [type, user, getWelfareLimit, setValue]);
+  
+  // Update amount when birth type changes
+  useEffect(() => {
+    if (type === 'childbirth' && birthType) {
+      const amount = birthType === 'natural' ? 4000 : 6000;
+      setValue('amount', amount);
+    }
+  }, [birthType, type, setValue]);
 
   // For demo purposes, we'll simulate file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +125,8 @@ export function WelfareForm({ type, onBack }: WelfareFormProps) {
     setTimeout(onBack, 2000);
   };
 
+  const remainingBudget = user ? getRemainingBudget(user.id, type) : 0;
+
   return (
     <div className="animate-fade-in">
       <Button 
@@ -100,6 +140,32 @@ export function WelfareForm({ type, onBack }: WelfareFormProps) {
       
       <div className="form-container">
         <h1 className="text-2xl font-bold mb-6">{getFormTitle(type)}</h1>
+        
+        {/* Display welfare limits */}
+        {maxAmount !== null && (
+          <div className="mb-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                {type === 'childbirth' ? (
+                  <>คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</>
+                ) : (
+                  <>วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString()} บาท/ปี`}</>
+                )}
+                {condition && <> ({condition})</>}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        
+        {/* Display remaining budget */}
+        {user && (
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-700">
+              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString()} บาท</span>
+            </p>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Date Field */}
@@ -116,6 +182,25 @@ export function WelfareForm({ type, onBack }: WelfareFormProps) {
             )}
           </div>
           
+          {/* Birth Type Field for Childbirth */}
+          {type === 'childbirth' && (
+            <div className="space-y-2">
+              <label htmlFor="birthType" className="form-label">ประเภทการคลอด</label>
+              <Select
+                defaultValue="natural"
+                onValueChange={(value) => setValue('birthType', value as 'natural' | 'caesarean')}
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="เลือกประเภทการคลอด" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="natural">คลอดธรรมชาติ (4,000 บาท)</SelectItem>
+                  <SelectItem value="caesarean">ผ่าคลอด (6,000 บาท)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           {/* Amount Field */}
           <div className="space-y-2">
             <label htmlFor="amount" className="form-label">จำนวนเงิน (บาท)</label>
@@ -129,8 +214,17 @@ export function WelfareForm({ type, onBack }: WelfareFormProps) {
                 min: {
                   value: 1,
                   message: 'จำนวนเงินต้องมากกว่า 0'
+                },
+                max: {
+                  value: maxAmount || 100000,
+                  message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
+                },
+                validate: {
+                  notMoreThanRemaining: value => 
+                    Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
                 }
               })}
+              readOnly={['wedding', 'childbirth', 'fitness'].includes(type)}
             />
             {errors.amount && (
               <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
