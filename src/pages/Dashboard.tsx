@@ -7,6 +7,7 @@ import { StatusCard } from '@/components/dashboard/StatusCard';
 import { WelfareTypeChart } from '@/components/dashboard/WelfareTypeChart';
 import WelfareStatusChart from '@/components/dashboard/WelfareStatusChart';
 import { RecentRequestsTable } from '@/components/dashboard/RecentRequestsTable';
+import { RemainingBudgetCard } from '@/components/dashboard/RemainingBudgetCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { File, ClipboardCheck, ClipboardX, Clipboard } from 'lucide-react';
@@ -31,6 +32,17 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold">สวัสดี, {user?.name || 'ผู้ใช้'}</h1>
         <p className="text-gray-600">ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน</p>
       </div>
+      
+      {/* Employee's Remaining Budget Card - Only show for employees */}
+      {user?.role === 'employee' && (
+        <div className="mb-8">
+          <RemainingBudgetCard 
+            requests={welfareRequests} 
+            userId={user.id} 
+            maxBudget={10000}
+          />
+        </div>
+      )}
       
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface WelfareRequest {
   id: string;
   status: 'pending' | 'approved' | 'rejected';
+  userId: string;
+  amount: number;
   [key: string]: any;
 }
 
