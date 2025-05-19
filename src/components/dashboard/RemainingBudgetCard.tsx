@@ -34,7 +34,8 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
   const weddingLimit = getWelfareLimit('wedding').amount;
   const trainingLimit = getWelfareLimit('training').amount;
   const fitnessMonthlyLimit = getWelfareLimit('fitness').amount;
-  const fitnessYearlyLimit = getWelfareLimit('fitness').yearlyTotal;
+  // Fix: Access monthly limit properly - this was causing the TypeScript error
+  const fitnessYearlyLimit = getWelfareLimit('fitness').amount * 12; // Calculate yearly total from monthly amount
   
   return (
     <Card className="java-card">
