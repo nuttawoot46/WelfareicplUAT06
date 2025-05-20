@@ -16,7 +16,7 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
   userId,
   maxBudget = 10000 
 }) => {
-  const { getWelfareLimit } = useWelfare();
+  const { getWelfareLimit, getRemainingBudget } = useWelfare();
   
   // Calculate used budget (only count approved requests)
   const usedBudget = requests
@@ -29,13 +29,25 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
   // Calculate percentage used
   const percentageUsed = (usedBudget / maxBudget) * 100;
   
-  // Get welfare-specific limits for the detail section
+  // Get welfare-specific limits and remaining amounts
   const dentalGlassesLimit = getWelfareLimit('dental').amount;
+  const dentalGlassesRemaining = getRemainingBudget(userId, 'dental');
+  
   const weddingLimit = getWelfareLimit('wedding').amount;
+  const weddingRemaining = getRemainingBudget(userId, 'wedding');
+  
   const trainingLimit = getWelfareLimit('training').amount;
+  const trainingRemaining = getRemainingBudget(userId, 'training');
+  
   const fitnessMonthlyLimit = getWelfareLimit('fitness').amount;
-  // Fix: Access monthly limit properly - this was causing the TypeScript error
-  const fitnessYearlyLimit = getWelfareLimit('fitness').amount * 12; // Calculate yearly total from monthly amount
+  const fitnessYearlyLimit = fitnessMonthlyLimit * 12;
+  const fitnessRemaining = getRemainingBudget(userId, 'fitness');
+  
+  // Calculate percentage for each welfare type 
+  const dentalGlassesPercentage = dentalGlassesLimit ? ((dentalGlassesLimit - dentalGlassesRemaining) / dentalGlassesLimit) * 100 : 0;
+  const weddingPercentage = weddingLimit ? ((weddingLimit - weddingRemaining) / weddingLimit) * 100 : 0;
+  const trainingPercentage = trainingLimit ? ((trainingLimit - trainingRemaining) / trainingLimit) * 100 : 0;
+  const fitnessPercentage = fitnessYearlyLimit ? ((fitnessYearlyLimit - fitnessRemaining) / fitnessYearlyLimit) * 100 : 0;
   
   return (
     <Card className="java-card">
@@ -66,16 +78,50 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
             <span>{maxBudget.toLocaleString()} บาท</span>
           </div>
           
-          {/* Welfare limits information */}
+          {/* Welfare limits information with remaining amounts */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <h4 className="text-sm font-medium mb-2">รายละเอียดวงเงินสวัสดิการ</h4>
-            <ul className="text-xs space-y-1 text-gray-600">
-              <li>• ค่ารักษาทางทันตกรรมและตัดแว่น: สูงสุด {dentalGlassesLimit?.toLocaleString()} บาท/ปี (หลังทำงานครบ 180 วัน)</li>
-              <li>• เงินช่วยเหลือคลอดบุตร: คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</li>
-              <li>• ค่าอบรม: สูงสุด {trainingLimit?.toLocaleString()} บาท/ปี</li>
-              <li>• เงินช่วยเหลือกรณีแต่งงาน: {weddingLimit?.toLocaleString()} บาท</li>
-              <li>• ค่าออกกำลังกาย: {fitnessMonthlyLimit} บาท/เดือน หรือ {fitnessYearlyLimit} บาท/ปี</li>
-            </ul>
+            <h4 className="text-sm font-medium mb-3">รายละเอียดวงเงินสวัสดิการ</h4>
+            
+            <div className="space-y-3">
+              <div className="text-xs">
+                <div className="flex justify-between mb-1">
+                  <span>ค่ารักษาทางทันตกรรมและตัดแว่น: สูงสุด {dentalGlassesLimit?.toLocaleString()} บาท/ปี (หลังทำงานครบ 180 วัน)</span>
+                  <span className="font-medium text-welfare-blue">คงเหลือ {dentalGlassesRemaining.toLocaleString()} บาท</span>
+                </div>
+                <Progress value={dentalGlassesPercentage} className="h-1" />
+              </div>
+              
+              <div className="text-xs">
+                <div className="flex justify-between mb-1">
+                  <span>เงินช่วยเหลือคลอดบุตร: คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท (จำกัด 3 คนต่อครอบครัว)</span>
+                  <span className="font-medium text-welfare-blue">คงเหลือตามสิทธิ</span>
+                </div>
+              </div>
+              
+              <div className="text-xs">
+                <div className="flex justify-between mb-1">
+                  <span>ค่าอบรม: สูงสุด {trainingLimit?.toLocaleString()} บาท/ปี</span>
+                  <span className="font-medium text-welfare-blue">คงเหลือ {trainingRemaining.toLocaleString()} บาท</span>
+                </div>
+                <Progress value={trainingPercentage} className="h-1" />
+              </div>
+              
+              <div className="text-xs">
+                <div className="flex justify-between mb-1">
+                  <span>เงินช่วยเหลือกรณีแต่งงาน: {weddingLimit?.toLocaleString()} บาท</span>
+                  <span className="font-medium text-welfare-blue">คงเหลือ {weddingRemaining.toLocaleString()} บาท</span>
+                </div>
+                <Progress value={weddingPercentage} className="h-1" />
+              </div>
+              
+              <div className="text-xs">
+                <div className="flex justify-between mb-1">
+                  <span>ค่าออกกำลังกาย: {fitnessMonthlyLimit} บาท/เดือน หรือ {fitnessYearlyLimit} บาท/ปี</span>
+                  <span className="font-medium text-welfare-blue">คงเหลือ {fitnessRemaining.toLocaleString()} บาท</span>
+                </div>
+                <Progress value={fitnessPercentage} className="h-1" />
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
