@@ -1,92 +1,19 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   ChartBar, 
   File, 
-  LogIn, 
   LogOut, 
   Settings, 
   CheckSquare, 
   Bell,
   Menu,
   X,
-  Users,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-// Define team data
-const teams = [
-  { id: 'all', name: 'ทุกทีม' },
-  { id: 'strategy', name: 'Strategy' },
-  { id: 'inspiration', name: 'Inspiration' },
-  { id: 'registration', name: 'Registration/Procurement' },
-  { id: 'marketing', name: 'Marketing' },
-  { id: 'finance', name: 'Accounting & Finance' }
-];
-
-// Define mock employee data - restructured to avoid circular dependency
-const employeesData = {
-  strategy: [
-    { id: 'all-strategy', name: 'ทุกคนในทีม Strategy', team: 'strategy' },
-    { id: 's1', name: 'สมชาย ใจดี', team: 'strategy' },
-    { id: 's2', name: 'ณัฐพร รักษ์ไทย', team: 'strategy' },
-    { id: 's3', name: 'วิชัย พัฒนา', team: 'strategy' }
-  ],
-  inspiration: [
-    { id: 'all-inspiration', name: 'ทุกคนในทีม Inspiration', team: 'inspiration' },
-    { id: 'i1', name: 'มานี มีหัวใจ', team: 'inspiration' },
-    { id: 'i2', name: 'สุชาติ สร้างสรรค์', team: 'inspiration' },
-    { id: 'i3', name: 'นภาพร ดาวเด่น', team: 'inspiration' }
-  ],
-  registration: [
-    { id: 'all-registration', name: 'ทุกคนในทีม Registration/Procurement', team: 'registration' },
-    { id: 'r1', name: 'รัชนี จัดซื้อ', team: 'registration' },
-    { id: 'r2', name: 'พรชัย เอกสาร', team: 'registration' },
-    { id: 'r3', name: 'อนุสรณ์ พัสดุ', team: 'registration' }
-  ],
-  marketing: [
-    { id: 'all-marketing', name: 'ทุกคนในทีม Marketing', team: 'marketing' },
-    { id: 'm1', name: 'กัญญา โฆษณา', team: 'marketing' },
-    { id: 'm2', name: 'ไพศาล ขายเก่ง', team: 'marketing' },
-    { id: 'm3', name: 'ศิริลักษณ์ สื่อสาร', team: 'marketing' }
-  ],
-  finance: [
-    { id: 'all-finance', name: 'ทุกคนในทีม Accounting & Finance', team: 'finance' },
-    { id: 'f1', name: 'กนกวรรณ บัญชี', team: 'finance' },
-    { id: 'f2', name: 'ประเสริฐ การเงิน', team: 'finance' },
-    { id: 'f3', name: 'จิตรา ภาษี', team: 'finance' }
-  ]
-};
-
-// Helper function to get employees by team
-function getEmployeesByTeam(teamId) {
-  if (teamId === 'all') return [];
-  return employeesData[teamId].filter(emp => emp.id !== `all-${teamId}`);
-}
-
-// Create combined employee list
-const allEmployees = [
-  { id: 'all', name: 'ทุกคน' },
-  ...Object.keys(employeesData).flatMap(teamId => 
-    getEmployeesByTeam(teamId)
-  )
-];
-
-// Define complete employees object
-const employees = {
-  all: allEmployees,
-  strategy: employeesData.strategy,
-  inspiration: employeesData.inspiration,
-  registration: employeesData.registration,
-  marketing: employeesData.marketing,
-  finance: employeesData.finance
-};
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -95,22 +22,6 @@ export function Sidebar() {
   
   // Mobile responsive management
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  
-  // Team and employee filters
-  const [selectedTeam, setSelectedTeam] = useState('all');
-  const [selectedEmployee, setSelectedEmployee] = useState('all');
-  const [filteredEmployees, setFilteredEmployees] = useState(employees.all);
-  
-  // Handle team selection change
-  useEffect(() => {
-    if (selectedTeam === 'all') {
-      setFilteredEmployees(employees.all);
-    } else {
-      setFilteredEmployees(employees[selectedTeam]);
-    }
-    // Reset employee selection when team changes
-    setSelectedEmployee('all');
-  }, [selectedTeam]);
   
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -171,43 +82,6 @@ export function Sidebar() {
           </Button>
         </div>
         
-        {/* Team and Employee Selection */}
-        {isOpen && (
-          <div className="p-4 space-y-4 border-b border-white/20">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-white/70">เลือกทีม</label>
-              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="เลือกทีม" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-white/70">เลือกพนักงาน</label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="เลือกพนักงาน" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredEmployees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-        
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {/* Dashboard */}
@@ -220,48 +94,6 @@ export function Sidebar() {
               <span className="transition-all duration-300">แดชบอร์ด</span>
             )}
           </Link>
-          
-          {/* Team filter shortcut */}
-          {!isOpen && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className={cn(
-                  "nav-link group w-full",
-                  selectedTeam !== 'all' && "nav-link-active"
-                )}>
-                  <Users className="h-5 w-5 flex-shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="right">
-                {teams.map((team) => (
-                  <DropdownMenuItem key={team.id} onClick={() => setSelectedTeam(team.id)}>
-                    {team.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          
-          {/* Employee filter shortcut */}
-          {!isOpen && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className={cn(
-                  "nav-link group w-full",
-                  selectedEmployee !== 'all' && "nav-link-active"
-                )}>
-                  <User className="h-5 w-5 flex-shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="right">
-                {filteredEmployees.map((employee) => (
-                  <DropdownMenuItem key={employee.id} onClick={() => setSelectedEmployee(employee.id)}>
-                    {employee.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           
           {/* Welfare Forms */}
           <Link to="/forms" className={cn(
