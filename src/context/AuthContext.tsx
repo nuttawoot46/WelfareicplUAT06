@@ -4,7 +4,7 @@ import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  selectUser: (teamId: string, employeeId: string, email: string) => void;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -13,23 +13,114 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demo purposes
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'employee@example.com',
+// Mock user data structure - Now used for selection rather than login
+const MOCK_USERS: Record<string, User> = {
+  's1': {
+    id: 's1',
+    email: '',
     name: 'สมชาย ใจดี',
     role: 'employee',
-    department: 'การตลาด'
+    department: 'Strategy'
   },
-  {
-    id: '2',
-    email: 'admin@example.com',
-    name: 'อภิชาติ เจริญสุข',
+  's2': {
+    id: 's2',
+    email: '',
+    name: 'ณัฐพร รักษ์ไทย',
+    role: 'employee',
+    department: 'Strategy'
+  },
+  's3': {
+    id: 's3',
+    email: '',
+    name: 'วิชัย พัฒนา',
+    role: 'employee',
+    department: 'Strategy'
+  },
+  'i1': {
+    id: 'i1',
+    email: '',
+    name: 'มานี มีหัวใจ',
+    role: 'employee',
+    department: 'Inspiration'
+  },
+  'i2': {
+    id: 'i2',
+    email: '',
+    name: 'สุชาติ สร้างสรรค์',
+    role: 'employee',
+    department: 'Inspiration'
+  },
+  'i3': {
+    id: 'i3',
+    email: '',
+    name: 'นภาพร ดาวเด่น',
+    role: 'employee',
+    department: 'Inspiration'
+  },
+  'r1': {
+    id: 'r1',
+    email: '',
+    name: 'รัชนี จัดซื้อ',
+    role: 'employee',
+    department: 'Registration/Procurement'
+  },
+  'r2': {
+    id: 'r2',
+    email: '',
+    name: 'พรชัย เอกสาร',
+    role: 'employee',
+    department: 'Registration/Procurement'
+  },
+  'r3': {
+    id: 'r3',
+    email: '',
+    name: 'อนุสรณ์ พัสดุ',
+    role: 'employee',
+    department: 'Registration/Procurement'
+  },
+  'm1': {
+    id: 'm1',
+    email: '',
+    name: 'กัญญา โฆษณา',
+    role: 'employee',
+    department: 'Marketing'
+  },
+  'm2': {
+    id: 'm2',
+    email: '',
+    name: 'ไพศาล ขายเก่ง',
+    role: 'employee',
+    department: 'Marketing'
+  },
+  'm3': {
+    id: 'm3',
+    email: '',
+    name: 'ศิริลักษณ์ สื่อสาร',
+    role: 'employee',
+    department: 'Marketing'
+  },
+  'f1': {
+    id: 'f1',
+    email: '',
+    name: 'กนกวรรณ บัญชี',
+    role: 'employee',
+    department: 'Accounting & Finance'
+  },
+  'f2': {
+    id: 'f2',
+    email: '',
+    name: 'ประเสริฐ การเงิน',
     role: 'admin',
-    department: 'ทรัพยากรบุคคล'
-  }
-];
+    department: 'Accounting & Finance'
+  },
+  'f3': {
+    id: 'f3',
+    email: '',
+    name: 'จิตรา ภาษี',
+    role: 'employee',
+    department: 'Accounting & Finance'
+  },
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -49,20 +140,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const selectUser = (teamId: string, employeeId: string, email: string): void => {
     setIsLoading(true);
     setError(null);
     
-    // Simulating API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const foundUser = MOCK_USERS.find(u => u.email === email);
-    
-    if (foundUser && password === 'password') {
-      setUser(foundUser);
-      localStorage.setItem('welfareUser', JSON.stringify(foundUser));
-    } else {
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    try {
+      if (employeeId === 'all' || employeeId.startsWith('all-')) {
+        setError('กรุณาเลือกพนักงาน');
+        setIsLoading(false);
+        return;
+      }
+
+      const selectedUser = MOCK_USERS[employeeId];
+      
+      if (selectedUser) {
+        // Set the provided email
+        const userWithEmail = { ...selectedUser, email };
+        setUser(userWithEmail);
+        localStorage.setItem('welfareUser', JSON.stringify(userWithEmail));
+      } else {
+        setError('ไม่พบข้อมูลพนักงาน');
+      }
+    } catch (err) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
     
     setIsLoading(false);
@@ -75,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
-    login,
+    selectUser,
     logout,
     isLoading,
     isAuthenticated: !!user,

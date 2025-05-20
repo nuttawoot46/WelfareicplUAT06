@@ -1,6 +1,6 @@
 
 import { useAuth } from '@/context/AuthContext';
-import LoginPage from './LoginPage';
+import TeamSelectionPage from './TeamSelectionPage';
 import Dashboard from './Dashboard';
 
 const Index = () => {
@@ -15,7 +15,7 @@ const Index = () => {
   }
 
   // Redirect based on authentication status
-  return isAuthenticated ? <Dashboard /> : <LoginPage />;
+  return isAuthenticated ? <Dashboard /> : <TeamSelectionPage />;
 };
 
 export default Index;
