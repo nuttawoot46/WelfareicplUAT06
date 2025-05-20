@@ -5,27 +5,91 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Define team data
+const teams = [
+  { id: 'strategy', name: 'Strategy' },
+  { id: 'inspiration', name: 'Inspiration' },
+  { id: 'registration', name: 'Registration/Procurement' },
+  { id: 'marketing', name: 'Marketing' },
+  { id: 'finance', name: 'Accounting & Finance' }
+];
+
+// Define mock employee data by team
+const employeesData = {
+  strategy: [
+    { id: 's1', name: 'สมชาย ใจดี', team: 'strategy' },
+    { id: 's2', name: 'ณัฐพร รักษ์ไทย', team: 'strategy' },
+    { id: 's3', name: 'วิชัย พัฒนา', team: 'strategy' }
+  ],
+  inspiration: [
+    { id: 'i1', name: 'มานี มีหัวใจ', team: 'inspiration' },
+    { id: 'i2', name: 'สุชาติ สร้างสรรค์', team: 'inspiration' },
+    { id: 'i3', name: 'นภาพร ดาวเด่น', team: 'inspiration' }
+  ],
+  registration: [
+    { id: 'r1', name: 'รัชนี จัดซื้อ', team: 'registration' },
+    { id: 'r2', name: 'พรชัย เอกสาร', team: 'registration' },
+    { id: 'r3', name: 'อนุสรณ์ พัสดุ', team: 'registration' }
+  ],
+  marketing: [
+    { id: 'm1', name: 'กัญญา โฆษณา', team: 'marketing' },
+    { id: 'm2', name: 'ไพศาล ขายเก่ง', team: 'marketing' },
+    { id: 'm3', name: 'ศิริลักษณ์ สื่อสาร', team: 'marketing' }
+  ],
+  finance: [
+    { id: 'f1', name: 'กนกวรรณ บัญชี', team: 'finance' },
+    { id: 'f2', name: 'ประเสริฐ การเงิน', team: 'finance' },
+    { id: 'f3', name: 'จิตรา ภาษี', team: 'finance' }
+  ]
+};
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuth();
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [filteredEmployees, setFilteredEmployees] = useState<Array<{id: string, name: string}>>([]);
+  
+  const { selectUser, isLoading, error } = useAuth();
   const { toast } = useToast();
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Update filtered employees when team changes
+  const handleTeamChange = (value: string) => {
+    setSelectedTeam(value);
+    setSelectedEmployee('');
+    setFilteredEmployees(employeesData[value] || []);
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      await login(email, password);
-      
+    if (!selectedTeam || !selectedEmployee || !email) {
       toast({
-        title: "เข้าสู่ระบบสำเร็จ",
-        description: "ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน",
-        variant: "default",
+        title: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        description: "กรุณาเลือกทีม พนักงาน และกรอกอีเมล",
+        variant: "destructive",
       });
-    } catch (error) {
-      // Error is handled within the auth context
+      return;
     }
+    
+    if (!email.includes('@')) {
+      toast({
+        title: "รูปแบบอีเมลไม่ถูกต้อง",
+        description: "กรุณาตรวจสอบอีเมลอีกครั้ง",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Use the selectUser method
+    selectUser(selectedTeam, selectedEmployee, email);
+    
+    toast({
+      title: "เข้าสู่ระบบสำเร็จ",
+      description: "ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน",
+      variant: "default",
+    });
   };
 
   return (
@@ -42,12 +106,52 @@ const LoginPage = () => {
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Show any login errors */}
+            {/* Show any errors */}
             {error && (
               <div className="bg-red-50 text-red-800 p-3 rounded-md text-sm">
                 {error}
               </div>
             )}
+
+            <div className="space-y-2">
+              <label htmlFor="team" className="block text-sm font-medium text-gray-700">
+                เลือกทีม
+              </label>
+              <Select value={selectedTeam} onValueChange={handleTeamChange}>
+                <SelectTrigger id="team" className="w-full">
+                  <SelectValue placeholder="เลือกทีม" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="employee" className="block text-sm font-medium text-gray-700">
+                เลือกพนักงาน
+              </label>
+              <Select 
+                value={selectedEmployee} 
+                onValueChange={setSelectedEmployee}
+                disabled={!selectedTeam}
+              >
+                <SelectTrigger id="employee" className="w-full">
+                  <SelectValue placeholder="เลือกพนักงาน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredEmployees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -64,26 +168,6 @@ const LoginPage = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                รหัสผ่าน
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="form-input"
-              />
-              <div className="text-right">
-                <a href="#" className="text-sm text-welfare-blue hover:underline">
-                  ลืมรหัสผ่าน?
-                </a>
-              </div>
-            </div>
-
             <Button type="submit" className="w-full btn-hover-effect" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -97,16 +181,6 @@ const LoginPage = () => {
                 </>
               )}
             </Button>
-            
-            <div className="text-center text-sm text-gray-500 mt-4">
-              <p className="mb-2">
-                สำหรับการทดสอบ:
-              </p>
-              <p className="font-mono bg-gray-100 p-2 rounded text-xs">
-                Employee: employee@example.com / password<br />
-                Admin: admin@example.com / password
-              </p>
-            </div>
           </form>
         </div>
       </div>
@@ -150,3 +224,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
