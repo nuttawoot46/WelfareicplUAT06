@@ -30,48 +30,63 @@ const teams = [
   { id: 'finance', name: 'Accounting & Finance' }
 ];
 
-// Define mock employee data
-const employees = {
-  all: [
-    { id: 'all', name: 'ทุกคน' },
-    ...Object.values(teams).slice(1).flatMap(team => getEmployeesByTeam(team.id))
-  ],
+// Define mock employee data - restructured to avoid circular dependency
+const employeesData = {
   strategy: [
-    { id: 'all-strategy', name: 'ทุกคนในทีม Strategy' },
+    { id: 'all-strategy', name: 'ทุกคนในทีม Strategy', team: 'strategy' },
     { id: 's1', name: 'สมชาย ใจดี', team: 'strategy' },
     { id: 's2', name: 'ณัฐพร รักษ์ไทย', team: 'strategy' },
     { id: 's3', name: 'วิชัย พัฒนา', team: 'strategy' }
   ],
   inspiration: [
-    { id: 'all-inspiration', name: 'ทุกคนในทีม Inspiration' },
+    { id: 'all-inspiration', name: 'ทุกคนในทีม Inspiration', team: 'inspiration' },
     { id: 'i1', name: 'มานี มีหัวใจ', team: 'inspiration' },
     { id: 'i2', name: 'สุชาติ สร้างสรรค์', team: 'inspiration' },
     { id: 'i3', name: 'นภาพร ดาวเด่น', team: 'inspiration' }
   ],
   registration: [
-    { id: 'all-registration', name: 'ทุกคนในทีม Registration/Procurement' },
+    { id: 'all-registration', name: 'ทุกคนในทีม Registration/Procurement', team: 'registration' },
     { id: 'r1', name: 'รัชนี จัดซื้อ', team: 'registration' },
     { id: 'r2', name: 'พรชัย เอกสาร', team: 'registration' },
     { id: 'r3', name: 'อนุสรณ์ พัสดุ', team: 'registration' }
   ],
   marketing: [
-    { id: 'all-marketing', name: 'ทุกคนในทีม Marketing' },
+    { id: 'all-marketing', name: 'ทุกคนในทีม Marketing', team: 'marketing' },
     { id: 'm1', name: 'กัญญา โฆษณา', team: 'marketing' },
     { id: 'm2', name: 'ไพศาล ขายเก่ง', team: 'marketing' },
     { id: 'm3', name: 'ศิริลักษณ์ สื่อสาร', team: 'marketing' }
   ],
   finance: [
-    { id: 'all-finance', name: 'ทุกคนในทีม Accounting & Finance' },
+    { id: 'all-finance', name: 'ทุกคนในทีม Accounting & Finance', team: 'finance' },
     { id: 'f1', name: 'กนกวรรณ บัญชี', team: 'finance' },
     { id: 'f2', name: 'ประเสริฐ การเงิน', team: 'finance' },
     { id: 'f3', name: 'จิตรา ภาษี', team: 'finance' }
   ]
 };
 
+// Helper function to get employees by team
 function getEmployeesByTeam(teamId) {
   if (teamId === 'all') return [];
-  return employees[teamId].filter(emp => emp.id !== `all-${teamId}`);
+  return employeesData[teamId].filter(emp => emp.id !== `all-${teamId}`);
 }
+
+// Create combined employee list
+const allEmployees = [
+  { id: 'all', name: 'ทุกคน' },
+  ...Object.keys(employeesData).flatMap(teamId => 
+    getEmployeesByTeam(teamId)
+  )
+];
+
+// Define complete employees object
+const employees = {
+  all: allEmployees,
+  strategy: employeesData.strategy,
+  inspiration: employeesData.inspiration,
+  registration: employeesData.registration,
+  marketing: employeesData.marketing,
+  finance: employeesData.finance
+};
 
 export function Sidebar() {
   const { user, logout } = useAuth();
