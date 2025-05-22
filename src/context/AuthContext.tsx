@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: employeeData.id,
           name: employeeData.name,
           email: email, // Use the provided email
-          department: employeeData.department,
+          department: employeeData.department || '',
           role: employeeData.role === 'admin' ? 'admin' : 'employee',
         };
         

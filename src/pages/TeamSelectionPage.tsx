@@ -43,16 +43,18 @@ const TeamSelectionPage = () => {
         // Fetch unique teams from the Employee table
         const { data: teamsData, error: teamsError } = await supabase
           .from('Employee')
-          .select('team, department')
-          .order('team')
-          .distinct();
+          .select('team')
+          .order('team');
         
         if (teamsError) throw teamsError;
         
+        // Get unique team values
+        const uniqueTeams = [...new Set(teamsData.map(item => item.team))];
+        
         // Transform the team data into the format we need
-        const formattedTeams = teamsData.map((item, index) => ({
-          id: item.team,
-          name: item.team
+        const formattedTeams = uniqueTeams.map(teamName => ({
+          id: teamName,
+          name: teamName
         }));
         
         setTeams(formattedTeams);
@@ -82,7 +84,7 @@ const TeamSelectionPage = () => {
     setSelectedEmployee('');
     
     // Filter employees by the selected team
-    const filtered = employees.filter(emp => emp.team_id === value);
+    const filtered = employees.filter(emp => emp.team === value);
     setFilteredEmployees(filtered);
   };
   
