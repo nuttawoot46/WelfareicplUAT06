@@ -16,8 +16,9 @@ interface Team {
 interface Employee {
   id: string;
   name: string;
-  team_id: string;
+  team: string; // Updated to match Supabase structure
   department: string;
+  role?: string;
 }
 
 const TeamSelectionPage = () => {
