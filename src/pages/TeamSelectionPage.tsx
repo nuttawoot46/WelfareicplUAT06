@@ -1,63 +1,89 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 
-// Define team data
-const teams = [
-  { id: 'strategy', name: 'Strategy' },
-  { id: 'inspiration', name: 'Inspiration' },
-  { id: 'registration', name: 'Registration/Procurement' },
-  { id: 'marketing', name: 'Marketing' },
-  { id: 'finance', name: 'Accounting & Finance' }
-];
+// Define types for the data we'll fetch
+interface Team {
+  id: string;
+  name: string;
+}
 
-// Define mock employee data by team
-const employeesData = {
-  strategy: [
-    { id: 's1', name: 'สมชาย ใจดี', team: 'strategy' },
-    { id: 's2', name: 'ณัฐพร รักษ์ไทย', team: 'strategy' },
-    { id: 's3', name: 'วิชัย พัฒนา', team: 'strategy' }
-  ],
-  inspiration: [
-    { id: 'i1', name: 'มานี มีหัวใจ', team: 'inspiration' },
-    { id: 'i2', name: 'สุชาติ สร้างสรรค์', team: 'inspiration' },
-    { id: 'i3', name: 'นภาพร ดาวเด่น', team: 'inspiration' }
-  ],
-  registration: [
-    { id: 'r1', name: 'รัชนี จัดซื้อ', team: 'registration' },
-    { id: 'r2', name: 'พรชัย เอกสาร', team: 'registration' },
-    { id: 'r3', name: 'อนุสรณ์ พัสดุ', team: 'registration' }
-  ],
-  marketing: [
-    { id: 'm1', name: 'กัญญา โฆษณา', team: 'marketing' },
-    { id: 'm2', name: 'ไพศาล ขายเก่ง', team: 'marketing' },
-    { id: 'm3', name: 'ศิริลักษณ์ สื่อสาร', team: 'marketing' }
-  ],
-  finance: [
-    { id: 'f1', name: 'กนกวรรณ บัญชี', team: 'finance' },
-    { id: 'f2', name: 'ประเสริฐ การเงิน', team: 'finance' },
-    { id: 'f3', name: 'จิตรา ภาษี', team: 'finance' }
-  ]
-};
+interface Employee {
+  id: string;
+  name: string;
+  team_id: string;
+  department: string;
+}
 
 const TeamSelectionPage = () => {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-  const [filteredEmployees, setFilteredEmployees] = useState<Array<{id: string, name: string}>>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const { selectUser, isLoading, error } = useAuth();
+  const { selectUser, isLoading: authLoading, error: authError } = useAuth();
   const { toast } = useToast();
+  
+  // Fetch teams and employees from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch unique teams from the Employee table
+        const { data: teamsData, error: teamsError } = await supabase
+          .from('Employee')
+          .select('team, department')
+          .order('team')
+          .distinct();
+        
+        if (teamsError) throw teamsError;
+        
+        // Transform the team data into the format we need
+        const formattedTeams = teamsData.map((item, index) => ({
+          id: item.team,
+          name: item.team
+        }));
+        
+        setTeams(formattedTeams);
+        
+        // Fetch all employees
+        const { data: employeesData, error: employeesError } = await supabase
+          .from('Employee')
+          .select('*');
+        
+        if (employeesError) throw employeesError;
+        
+        setEmployees(employeesData);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Update filtered employees when team changes
   const handleTeamChange = (value: string) => {
     setSelectedTeam(value);
     setSelectedEmployee('');
-    setFilteredEmployees(employeesData[value] || []);
+    
+    // Filter employees by the selected team
+    const filtered = employees.filter(emp => emp.team_id === value);
+    setFilteredEmployees(filtered);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,14 +107,25 @@ const TeamSelectionPage = () => {
       return;
     }
     
-    // Use the new selectUser method
-    selectUser(selectedTeam, selectedEmployee, email);
+    // Find the selected employee
+    const employee = employees.find(emp => emp.id === selectedEmployee);
     
-    toast({
-      title: "เข้าสู่ระบบสำเร็จ",
-      description: "ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน",
-      variant: "default",
-    });
+    if (employee) {
+      // Use the selectUser method with employee data
+      selectUser(selectedTeam, selectedEmployee, email);
+      
+      toast({
+        title: "เข้าสู่ระบบสำเร็จ",
+        description: "ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่พบข้อมูลพนักงาน",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -106,9 +143,9 @@ const TeamSelectionPage = () => {
           
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Show any errors */}
-            {error && (
+            {(error || authError) && (
               <div className="bg-red-50 text-red-800 p-3 rounded-md text-sm">
-                {error}
+                {error || authError}
               </div>
             )}
 
@@ -121,11 +158,17 @@ const TeamSelectionPage = () => {
                   <SelectValue placeholder="เลือกทีม" />
                 </SelectTrigger>
                 <SelectContent>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>
+                  ) : teams.length > 0 ? (
+                    teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="empty" disabled>ไม่พบข้อมูลทีม</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -137,17 +180,23 @@ const TeamSelectionPage = () => {
               <Select 
                 value={selectedEmployee} 
                 onValueChange={setSelectedEmployee}
-                disabled={!selectedTeam}
+                disabled={!selectedTeam || isLoading}
               >
                 <SelectTrigger id="employee" className="w-full">
                   <SelectValue placeholder="เลือกพนักงาน" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredEmployees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>
+                  ) : filteredEmployees.length > 0 ? (
+                    filteredEmployees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="empty" disabled>ไม่พบพนักงานในทีมที่เลือก</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -167,8 +216,8 @@ const TeamSelectionPage = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full btn-hover-effect" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" className="w-full btn-hover-effect" disabled={authLoading || isLoading}>
+              {authLoading ? (
                 <>
                   <span className="animate-spin inline-block h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
                   กำลังเข้าสู่ระบบ...
@@ -183,7 +232,7 @@ const TeamSelectionPage = () => {
         </div>
       </div>
       
-      {/* Right side - Decorative Java-inspired Background */}
+      {/* Right side - Decorative Background */}
       <div className="hidden md:block md:w-1/2 bg-gradient-primary relative overflow-hidden java-effect">
         <div className="absolute inset-0 flex items-center justify-center p-8">
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-lg text-white shadow-lg border border-white/20">
