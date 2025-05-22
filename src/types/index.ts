@@ -8,6 +8,14 @@ export interface User {
   avatar?: string;
 }
 
+export interface Employee {
+  id: string;
+  name: string;
+  Team: string;  // Capital T based on Supabase column name
+  department?: string;
+  role?: 'employee' | 'admin';
+}
+
 export type StatusType = 'pending' | 'approved' | 'rejected';
 
 export type WelfareType = 

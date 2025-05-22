@@ -27,8 +27,8 @@ export const TeamSelectionForm = ({ teams, employees, isLoading }: TeamSelection
     setSelectedTeam(value);
     setSelectedEmployee('');
     
-    // Filter employees by the selected team
-    const filtered = employees.filter(emp => emp.team === value);
+    // Filter employees by the selected team (using Team with capital T)
+    const filtered = employees.filter(emp => emp.Team === value);
     setFilteredEmployees(filtered);
   };
   

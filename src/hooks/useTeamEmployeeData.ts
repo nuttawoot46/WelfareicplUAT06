@@ -18,13 +18,13 @@ export const useTeamEmployeeData = () => {
         // Fetch unique teams from the Employee table
         const { data: teamsData, error: teamsError } = await supabase
           .from('Employee')
-          .select('team')
-          .order('team');
+          .select('Team')
+          .order('Team');
         
         if (teamsError) throw teamsError;
         
         // Get unique team values
-        const uniqueTeams = [...new Set(teamsData.map(item => item.team))];
+        const uniqueTeams = [...new Set(teamsData.map(item => item.Team))];
         setTeams(uniqueTeams);
         
         // Fetch all employees
