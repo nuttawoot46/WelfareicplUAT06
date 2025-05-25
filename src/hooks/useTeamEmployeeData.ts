@@ -36,9 +36,9 @@ export const useTeamEmployeeData = () => {
             .map(item => item.Team) || []
         )];
         
-        // กรองพนักงานที่มีชื่อ
+        // กรองพนักงานที่มีชื่อ (ใช้ column Name แทน ชื่อพนักงาน)
         const validEmployees = employeesData?.filter(emp => 
-          emp.ชื่อพนักงาน && emp.ชื่อพนักงาน.trim() !== ''
+          emp.Name && emp.Name.trim() !== ''
         ) || [];
         
         console.log('ทีมที่พบ:', uniqueTeams);

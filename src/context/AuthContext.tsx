@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: employeeData, error: fetchError } = await supabase
         .from('Employee')
         .select('*')
-        .eq('ชื่อพนักงาน', employeeName)
+        .eq('Name', employeeName)
         .single();
       
       if (fetchError) {
@@ -52,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (employeeData) {
         // Map employee data from Supabase to our User type
         const userData: User = {
-          id: employeeData.ชื่อพนักงาน || '',
-          name: employeeData.ชื่อพนักงาน || '',
+          id: employeeData.Name || '',
+          name: employeeData.Name || '',
           email: email, // Use the provided email
           department: teamId, // Use team as department
           role: 'employee',

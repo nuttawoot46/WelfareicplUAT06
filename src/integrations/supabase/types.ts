@@ -11,18 +11,18 @@ export type Database = {
     Tables: {
       Employee: {
         Row: {
+          Name: string | null
           Team: string | null
-          ชื่อพนักงาน: string | null
           อีเมล: string | null
         }
         Insert: {
+          Name?: string | null
           Team?: string | null
-          ชื่อพนักงาน?: string | null
           อีเมล?: string | null
         }
         Update: {
+          Name?: string | null
           Team?: string | null
-          ชื่อพนักงาน?: string | null
           อีเมล?: string | null
         }
         Relationships: []

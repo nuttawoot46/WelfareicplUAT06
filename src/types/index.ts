@@ -10,7 +10,7 @@ export interface User {
 
 export interface Employee {
   Team: string | null;
-  ชื่อพนักงาน: string | null;
+  Name: string | null;
   อีเมล: string | null;
 }
 

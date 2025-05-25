@@ -53,8 +53,8 @@ export const TeamSelectionForm = ({ teams, employees, isLoading }: TeamSelection
       return;
     }
     
-    // หาพนักงานที่เลือก
-    const employee = employees.find(emp => emp.ชื่อพนักงาน === selectedEmployee);
+    // หาพนักงานที่เลือก (ใช้ Name แทน ชื่อพนักงาน)
+    const employee = employees.find(emp => emp.Name === selectedEmployee);
     
     if (employee) {
       // ใช้ selectUser method กับข้อมูลพนักงาน
