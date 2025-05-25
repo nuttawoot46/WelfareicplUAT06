@@ -2,11 +2,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
-  selectUser: (teamId: string, employeeId: string, email: string) => void;
+  selectUser: (teamId: string, employeeName: string, email: string) => void;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const selectUser = async (teamId: string, employeeId: string, email: string): Promise<void> => {
+  const selectUser = async (teamId: string, employeeName: string, email: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
     
@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: employeeData, error: fetchError } = await supabase
         .from('Employee')
         .select('*')
-        .eq('id', employeeId)
+        .eq('ชื่อพนักงาน', employeeName)
         .single();
       
       if (fetchError) {
@@ -52,11 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (employeeData) {
         // Map employee data from Supabase to our User type
         const userData: User = {
-          id: employeeData.id,
-          name: employeeData.name,
+          id: employeeData.ชื่อพนักงาน || '',
+          name: employeeData.ชื่อพนักงาน || '',
           email: email, // Use the provided email
-          department: employeeData.department || '',
-          role: employeeData.role === 'admin' ? 'admin' : 'employee',
+          department: teamId, // Use team as department
+          role: 'employee',
         };
         
         setUser(userData);

@@ -27,7 +27,7 @@ export const TeamSelectionForm = ({ teams, employees, isLoading }: TeamSelection
     setSelectedTeam(value);
     setSelectedEmployee('');
     
-    // Filter employees by the selected team (using Team with capital T)
+    // กรองพนักงานตามทีมที่เลือก
     const filtered = employees.filter(emp => emp.Team === value);
     setFilteredEmployees(filtered);
   };
@@ -53,11 +53,11 @@ export const TeamSelectionForm = ({ teams, employees, isLoading }: TeamSelection
       return;
     }
     
-    // Find the selected employee
-    const employee = employees.find(emp => emp.id === selectedEmployee);
+    // หาพนักงานที่เลือก
+    const employee = employees.find(emp => emp.ชื่อพนักงาน === selectedEmployee);
     
     if (employee) {
-      // Use the selectUser method with employee data
+      // ใช้ selectUser method กับข้อมูลพนักงาน
       selectUser(selectedTeam, selectedEmployee, email);
       
       toast({

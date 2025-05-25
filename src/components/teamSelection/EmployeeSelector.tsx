@@ -30,9 +30,9 @@ export const EmployeeSelector = ({
         {isLoading ? (
           <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>
         ) : employees.length > 0 ? (
-          employees.map((employee) => (
-            <SelectItem key={employee.id} value={employee.id}>
-              {employee.name}
+          employees.map((employee, index) => (
+            <SelectItem key={`${employee.ชื่อพนักงาน}-${index}`} value={employee.ชื่อพนักงาน || ''}>
+              {employee.ชื่อพนักงาน}
             </SelectItem>
           ))
         ) : (

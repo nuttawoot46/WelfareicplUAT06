@@ -9,11 +9,9 @@ export interface User {
 }
 
 export interface Employee {
-  id: string;
-  name: string;
-  Team: string;  // Capital T based on Supabase column name
-  department?: string;
-  role?: 'employee' | 'admin';
+  Team: string | null;
+  ชื่อพนักงาน: string | null;
+  อีเมล: string | null;
 }
 
 export type StatusType = 'pending' | 'approved' | 'rejected';
