@@ -17,36 +17,35 @@ export const useTeamEmployeeData = () => {
       try {
         console.log('เริ่มดึงข้อมูลจาก Supabase');
         
-        // ดึงข้อมูลทีมจาก column Team
-        const { data: teamsData, error: teamsError } = await supabase
-          .from('Employee')
-          .select('Team')
-          .not('Team', 'is', null);
-        
-        if (teamsError) {
-          console.error('Error fetching teams:', teamsError);
-          throw teamsError;
-        }
-        
-        // ดึงข้อมูลพนักงานทั้งหมด
+        // ดึงข้อมูลพนักงานทั้งหมดก่อน
         const { data: employeesData, error: employeesError } = await supabase
           .from('Employee')
-          .select('*')
-          .not('ชื่อพนักงาน', 'is', null);
+          .select('*');
         
         if (employeesError) {
           console.error('Error fetching employees:', employeesError);
           throw employeesError;
         }
         
-        console.log('ข้อมูลทีม:', teamsData);
-        console.log('ข้อมูลพนักงาน:', employeesData);
+        console.log('ข้อมูลพนักงานทั้งหมด:', employeesData);
         
-        // สร้างรายการทีมที่ไม่ซ้ำกัน
-        const uniqueTeams = [...new Set(teamsData?.map(item => item.Team).filter(Boolean) || [])];
+        // กรองและสร้างรายการทีมจากข้อมูลที่ได้
+        const uniqueTeams = [...new Set(
+          employeesData
+            ?.filter(item => item.Team && item.Team.trim() !== '')
+            .map(item => item.Team) || []
+        )];
+        
+        // กรองพนักงานที่มีชื่อ
+        const validEmployees = employeesData?.filter(emp => 
+          emp.ชื่อพนักงาน && emp.ชื่อพนักงาน.trim() !== ''
+        ) || [];
+        
+        console.log('ทีมที่พบ:', uniqueTeams);
+        console.log('พนักงานที่พบ:', validEmployees);
         
         setTeams(uniqueTeams);
-        setEmployees(employeesData || []);
+        setEmployees(validEmployees);
         
       } catch (err) {
         console.error('เกิดข้อผิดพลาดในการดึงข้อมูล:', err);
