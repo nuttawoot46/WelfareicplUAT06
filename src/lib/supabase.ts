@@ -1,8 +1,12 @@
-
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database.types';
 
-// Using the provided Supabase credentials
-const supabaseUrl = 'https://tpqetfmwiydzsaltvyxo.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwcWV0Zm13aXlkenNhbHR2eXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MDA2MjksImV4cCI6MjA2MzQ3NjYyOX0.5fb9S3nbrXMdWYlgUSgsve_ym4cDNd2MaZRB_2GnBts';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Supabase URL and Anon Key must be defined in .env file');
+}
+
+// Create a single, shared Supabase client for the entire application
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

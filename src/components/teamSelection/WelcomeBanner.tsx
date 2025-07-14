@@ -4,7 +4,7 @@ export const WelcomeBanner = () => {
     <div className="hidden md:block md:w-1/2 bg-gradient-primary relative overflow-hidden java-effect">
       <div className="absolute inset-0 flex items-center justify-center p-8">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-lg text-white shadow-lg border border-white/20">
-          <h2 className="text-3xl font-bold mb-4">ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน</h2>
+          <h2 className="text-3xl font-bold mb-4">ยินดีต้อนรับสู่ระบบสวัสดิการพนักงาน ICP Ladda</h2>
           <p className="mb-6">
             ระบบการจัดการสวัสดิการที่ครบวงจรสำหรับพนักงานทุกคน ช่วยให้การยื่นคำร้องขอสวัสดิการเป็นเรื่องง่าย สะดวก และรวดเร็ว
           </p>

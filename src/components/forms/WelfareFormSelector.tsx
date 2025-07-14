@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,52 +89,51 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const welfareOptions: WelfareOption[] = [
     {
       id: 'wedding',
-      title: 'ค่าแต่งงาน',
-      description: 'สำหรับพนักงานที่กำลังจะแต่งงาน',
+      title: 'สวัสดิการงานสมรส',
       icon: <WeddingIcon />,
       color: 'text-welfare-blue',
     },
     {
       id: 'training',
       title: 'ค่าอบรม',
-      description: 'ค่าใช้จ่ายในการเข้าอบรมหลักสูตรต่างๆ',
       icon: <TrainingIcon />,
       color: 'text-welfare-teal',
     },
     {
       id: 'childbirth',
       title: 'ค่าคลอดบุตร',
-      description: 'สำหรับพนักงานที่มีบุตร',
       icon: <ChildbirthIcon />,
       color: 'text-welfare-pink',
     },
     {
       id: 'funeral',
       title: 'ค่าช่วยเหลืองานศพ',
-      description: 'สำหรับงานศพญาติสายตรง',
       icon: <FuneralIcon />,
       color: 'text-welfare-purple',
     },
     {
       id: 'glasses',
       title: 'ค่าตัดแว่น',
-      description: 'ค่าแว่นตาหรือคอนแทคเลนส์',
       icon: <GlassesIcon />,
       color: 'text-welfare-blue',
     },
     {
       id: 'dental',
       title: 'ค่าทำฟัน',
-      description: 'ค่ารักษาทางทันตกรรม',
       icon: <DentalIcon />,
       color: 'text-welfare-orange',
     },
     {
       id: 'fitness',
       title: 'ค่าออกกำลังกาย',
-      description: 'ค่าสมาชิกฟิตเนสหรืออุปกรณ์กีฬา',
       icon: <FitnessIcon />,
       color: 'text-welfare-green',
+    },
+    {
+      id: 'medical',
+      title: 'ของเยี่ยมกรณีเจ็บป่วย',
+      icon: <img src="/Icon/medical_icon.png" alt="Medical Icon" style={{ width: 24, height: 24 }} />,
+      color: 'text-welfare-red',
     },
   ];
 

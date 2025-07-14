@@ -1,10 +1,9 @@
-
 import { useAuth } from '@/context/AuthContext';
 import TeamSelectionPage from './TeamSelectionPage';
 import Dashboard from './Dashboard';
 
 const Index = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isPinVerified, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -14,8 +13,7 @@ const Index = () => {
     );
   }
 
-  // Redirect based on authentication status
-  return isAuthenticated ? <Dashboard /> : <TeamSelectionPage />;
+  return isAuthenticated && isPinVerified ? <Dashboard /> : <TeamSelectionPage />;
 };
 
 export default Index;

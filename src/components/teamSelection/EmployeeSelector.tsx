@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Employee } from '@/types';
 
@@ -23,9 +22,14 @@ export const EmployeeSelector = ({
       onValueChange={onEmployeeChange}
       disabled={disabled}
     >
-      <SelectTrigger id="employee" className="w-full">
-        <SelectValue placeholder="เลือกพนักงาน" />
-      </SelectTrigger>
+      <div className="p-[2px] rounded-md bg-gradient-to-r from-[rgb(111,133,200)] via-[rgb(240,191,170)] via-[rgb(225,158,200)] to-[rgb(108,161,199)]">
+        <SelectTrigger 
+          id="employee" 
+          className="w-full bg-white !border-0"
+        >
+          <SelectValue placeholder="เลือกพนักงาน" />
+        </SelectTrigger>
+      </div>
       <SelectContent>
         {isLoading ? (
           <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>

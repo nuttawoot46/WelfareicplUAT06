@@ -1,12 +1,8 @@
-
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { WelfareRequest } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface WelfareTypeChartProps {
-  requests: WelfareRequest[];
-}
+import { useWelfare } from '@/context/WelfareContext';
+import { WelfareType } from '@/types';
 
 const COLORS = [
   '#4361EE', // wedding
@@ -18,45 +14,68 @@ const COLORS = [
   '#06D6A0', // fitness
 ];
 
-const welfareTypeLabels: Record<string, string> = {
-  wedding: 'ค่าแต่งงาน',
-  training: 'ค่าอบรม',
-  childbirth: 'ค่าคลอดบุตร',
-  funeral: 'ค่าช่วยเหลืองานศพ',
-  glasses: 'ค่าตัดแว่น',
-  dental: 'ค่าทำฟัน',
-  fitness: 'ค่าออกกำลังกาย',
-};
+export function WelfareTypeChart() {
+  const { getWelfareLimit } = useWelfare();
 
-export function WelfareTypeChart({ requests }: WelfareTypeChartProps) {
-  // Count welfare types
-  const typeCounts = requests.reduce((acc, req) => {
-    acc[req.type] = (acc[req.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const getChildbirthLimits = () => {
+    const limit = getWelfareLimit('childbirth') as any;
+    return {
+      natural: limit.natural || 4000,
+      caesarean: limit.caesarean || 6000,
+    };
+  };
 
-  // Transform into chart data
-  const data = Object.entries(typeCounts).map(([type, value]) => ({
-    name: welfareTypeLabels[type] || type,
-    value,
-    type
-  }));
+  const data = [
+    {
+      name: 'ค่าแต่งงาน',
+      value: getWelfareLimit('wedding').amount,
+      type: 'wedding',
+    },
+    {
+      name: 'ค่าอบรม',
+      value: getWelfareLimit('training').amount,
+      type: 'training',
+    },
+    {
+      name: 'ค่าคลอดบุตร (คลอดธรรมชาติ)',
+      value: getChildbirthLimits().natural,
+      type: 'childbirth_natural',
+    },
+    {
+      name: 'ค่าคลอดบุตร (ผ่าคลอด)',
+      value: getChildbirthLimits().caesarean,
+      type: 'childbirth_caesarean',
+    },
+    {
+      name: 'ค่าตัดแว่น',
+      value: getWelfareLimit('glasses').amount,
+      type: 'glasses',
+    },
+    {
+      name: 'ค่าทำฟัน',
+      value: getWelfareLimit('dental').amount,
+      type: 'dental',
+    },
+    {
+      name: 'ค่าออกกำลังกาย (ต่อเดือน)',
+      value: getWelfareLimit('fitness').amount,
+      type: 'fitness',
+    },
+  ].filter(item => item.value !== null && item.value > 0);
 
-  // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
         <div className="bg-white p-3 border border-gray-200 shadow-md rounded-md">
           <p className="font-medium">{item.name}</p>
-          <p className="text-sm">{`จำนวน: ${item.value} รายการ`}</p>
+          <p className="text-sm">{`วงเงิน: ${item.value?.toLocaleString()} บาท`}</p>
         </div>
       );
     }
     return null;
   };
 
-  // Custom legend
   const CustomLegend = ({ payload }: any) => {
     return (
       <ul className="flex flex-wrap gap-4 justify-center mt-4">
@@ -73,7 +92,7 @@ export function WelfareTypeChart({ requests }: WelfareTypeChartProps) {
   return (
     <Card className="java-card">
       <CardHeader>
-        <CardTitle>สัดส่วนประเภทสวัสดิการ</CardTitle>
+        <CardTitle>สัดส่วนวงเงินสวัสดิการแต่ละประเภท</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -90,6 +109,7 @@ export function WelfareTypeChart({ requests }: WelfareTypeChartProps) {
                 animationDuration={1000}
                 animationBegin={200}
                 className="animate-pulse-slow"
+                nameKey="name"
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

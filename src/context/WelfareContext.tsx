@@ -1,92 +1,127 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { WelfareRequest, WelfareType, StatusType } from '@/types';
+import { BenefitLimit, getBenefitLimits } from '@/services/welfareApi';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-
-// Generate a random ID
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// Get current date in ISO format
-const getCurrentDate = () => new Date().toISOString();
-
-// Welfare benefit limitations
-export const WELFARE_LIMITS = {
-  dental: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
-  glasses: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
-  childbirth: { 
-    natural: 4000, 
-    caesarean: 6000, 
-    condition: "จำกัด 3 คนต่อครอบครัว" 
-  },
-  training: { amount: 10000 },
-  wedding: { amount: 3000 },
-  fitness: { amount: 300, monthly: true, yearlyTotal: 3600 },
-  funeral: { amount: null } // No specific limit mentioned for funeral
-};
+import { supabase } from '@/integrations/supabase/client';
 
 interface WelfareContextType {
   welfareRequests: WelfareRequest[];
   getRequestsByUser: (userId: string) => WelfareRequest[];
   getRequestsByStatus: (status: StatusType) => WelfareRequest[];
   getRequestsByType: (type: WelfareType) => WelfareRequest[];
-  submitRequest: (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => void;
-  updateRequestStatus: (id: string, status: StatusType, notes?: string) => void;
+  submitRequest: (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => Promise<WelfareRequest | null>;
+  updateRequest: (id: number, data: Partial<WelfareRequest>) => Promise<void>;
+  updateRequestStatus: (id: number, status: StatusType, comment?: string) => Promise<{ success: boolean; data?: any; error?: string; details?: any }>;
   isLoading: boolean;
   getWelfareLimit: (type: WelfareType) => { amount: number | null, condition?: string, monthly?: boolean };
   getRemainingBudget: (userId: string, type?: WelfareType) => number;
+  trainingBudget: number | null;
 }
-
-// Mock data
-const mockRequests: WelfareRequest[] = [
-  {
-    id: '1',
-    userId: '1',
-    userName: 'สมชาย ใจดี',
-    userDepartment: 'การตลาด',
-    type: 'wedding',
-    status: 'approved',
-    amount: 5000,
-    date: '2024-05-10',
-    details: 'แต่งงานวันที่ 10 พฤษภาคม 2567',
-    attachments: ['wedding_cert.jpg'],
-    createdAt: '2024-05-01T12:30:00Z',
-    updatedAt: '2024-05-03T09:15:00Z'
-  },
-  {
-    id: '2',
-    userId: '1',
-    userName: 'สมชาย ใจดี',
-    userDepartment: 'การตลาด',
-    type: 'training',
-    status: 'pending',
-    amount: 2500,
-    date: '2024-05-20',
-    details: 'คอร์สอบรม Digital Marketing วันที่ 20 พฤษภาคม 2567',
-    createdAt: '2024-05-05T10:00:00Z'
-  },
-  {
-    id: '3',
-    userId: '1',
-    userName: 'สมชาย ใจดี',
-    userDepartment: 'การตลาด',
-    type: 'glasses',
-    status: 'rejected',
-    amount: 1500,
-    date: '2024-04-15',
-    details: 'ซื้อแว่นตาใหม่เมื่อวันที่ 15 เมษายน 2567',
-    notes: 'เอกสารไม่ครบถ้วน กรุณาแนบใบเสร็จรับเงินที่มีรายละเอียดชัดเจน',
-    createdAt: '2024-04-16T14:20:00Z',
-    updatedAt: '2024-04-18T11:45:00Z'
-  }
-];
 
 const WelfareContext = createContext<WelfareContextType | undefined>(undefined);
 
 export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [welfareRequests, setWelfareRequests] = useState<WelfareRequest[]>(mockRequests);
+  const [welfareRequests, setWelfareRequests] = useState<WelfareRequest[]>([]);
+  const [benefitLimits, setBenefitLimits] = useState<BenefitLimit[]>([]);
+  const [trainingBudget, setTrainingBudget] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('welfare_requests')
+          .select('*, Employee:employee_id ( Team )');
+        if (error) {
+          toast({ title: 'โหลดข้อมูลล้มเหลว', description: error.message, variant: 'destructive' });
+        } else {
+          setWelfareRequests(
+            (data || []).map((row: any) => {
+              let attachments: string[] = [];
+              if (Array.isArray(row.attachment_url)) {
+                attachments = row.attachment_url;
+              } else if (typeof row.attachment_url === 'string') {
+                try {
+                  // Try parse JSON string
+                  const parsed = JSON.parse(row.attachment_url);
+                  attachments = Array.isArray(parsed) ? parsed : [parsed];
+                } catch {
+                  attachments = row.attachment_url ? [row.attachment_url] : [];
+                }
+              }
+              return {
+                id: row.id,
+                userId: row.employee_id?.toString(),
+                userName: row.employee_name || '',
+                userDepartment: row.Employee?.Team || '',
+                type: row.request_type,
+                status: row.status?.toLowerCase() || 'pending',
+                amount: row.amount,
+                date: row.created_at,
+                details: row.details,
+                attachments,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at,
+                title: row.title,
+                approverId: row.approver_id,
+                notes: row.manager_notes || '',
+                managerId: row.manager_id?.toString(),
+              };
+            })
+          );
+        }
+      } catch (err) {
+        console.error('Exception fetching data:', err);
+        toast({ title: 'โหลดข้อมูลล้มเหลว', description: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchBenefitLimits = async () => {
+      if (!user) return;
+      try {
+        const limits = await getBenefitLimits();
+        setBenefitLimits(limits);
+      } catch (error) {
+        console.error("Failed to fetch benefit limits", error);
+        toast({
+          title: 'ไม่สามารถโหลดข้อมูลวงเงินสวัสดิการได้',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    const fetchTrainingBudget = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from('Employee')
+          .select('Original_Budget_Training')
+          .eq('"email_user"', user.email)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          setTrainingBudget(data.Original_Budget_Training);
+          console.log('Fetched training budget:', data.Original_Budget_Training);
+        }
+      } catch (error) {
+        console.error('Error fetching training budget:', error);
+      }
+    };
+
+    fetchRequests();
+    fetchBenefitLimits();
+    fetchTrainingBudget();
+  }, [user, toast]);
 
   const getRequestsByUser = (userId: string) => {
     return welfareRequests.filter(request => request.userId === userId);
@@ -101,117 +136,207 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const getWelfareLimit = (type: WelfareType) => {
-    switch (type) {
-      case 'dental':
-      case 'glasses':
-        return { 
-          amount: WELFARE_LIMITS.dental.amount,
-          condition: WELFARE_LIMITS.dental.condition
-        };
-      case 'childbirth':
-        return { 
-          amount: WELFARE_LIMITS.childbirth.natural, 
-          caesarean: WELFARE_LIMITS.childbirth.caesarean,
-          condition: WELFARE_LIMITS.childbirth.condition
-        };
-      case 'training':
-        return { amount: WELFARE_LIMITS.training.amount };
-      case 'wedding':
-        return { amount: WELFARE_LIMITS.wedding.amount };
-      case 'fitness':
-        return { 
-          amount: WELFARE_LIMITS.fitness.amount,
-          monthly: WELFARE_LIMITS.fitness.monthly,
-          yearlyTotal: WELFARE_LIMITS.fitness.yearlyTotal
-        };
-      case 'funeral':
-        return { amount: null }; // No specific limit
-      default:
-        return { amount: 10000 }; // Default limit
-    }
+    const limits = {
+      dental: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
+      glasses: { amount: 2000, condition: "หลังทำงานครบ 180 วัน" },
+      childbirth: { 
+        natural: 4000, 
+        caesarean: 6000, 
+        condition: "จำกัด 3 คนต่อครอบครัว" 
+      },
+      training: { amount: trainingBudget },
+      wedding: { amount: 3000 },
+      medical: { amount: 1000 },
+      fitness: { amount: 300, monthly: true, yearlyTotal: 3600 },
+      funeral: { amount: null }
+    };
+    return limits[type] || { amount: 10000 };
   };
 
   const getRemainingBudget = (userId: string, type?: WelfareType) => {
-    // If type is specified, calculate remaining budget for that specific welfare type
-    if (type) {
-      const limit = getWelfareLimit(type);
-      const usedBudget = welfareRequests
-        .filter(req => req.userId === userId && req.type === type && req.status === 'approved')
-        .reduce((sum, req) => sum + req.amount, 0);
-      
-      return Math.max(0, (limit.amount || 10000) - usedBudget);
-    }
-    
-    // Otherwise calculate total remaining budget across all welfare types
-    const usedBudget = welfareRequests
-      .filter(req => req.userId === userId && req.status === 'approved')
-      .reduce((sum, req) => sum + req.amount, 0);
-      
-    return Math.max(0, 10000 - usedBudget);
+    if (!type || !user || user.id !== userId) return 0;
+
+    const limitInfo = benefitLimits.find(limit => limit.type === type);
+    return limitInfo ? limitInfo.remaining : 0;
   };
 
-  const submitRequest = (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+  const submitRequest = async (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
+    try {
+      let managerId: number | null = null;
+      if (user?.id) {
+        try {
+          const userId = parseInt(user.id, 10);
+          if (!isNaN(userId)) {
+            const { data: employeeData, error: employeeError } = await supabase
+              .from('Employee')
+              .select('manager_id')
+              .eq('id', userId)
+              .single();
+              
+            if (!employeeError && employeeData) {
+              managerId = employeeData.manager_id as number;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching manager ID:', error);
+        }
+      }
+      
+      // Always save attachments as JSON string in attachment_url
+      let attachmentsToSave: string = '[]';
+      if (Array.isArray(requestData.attachments)) {
+        attachmentsToSave = JSON.stringify(requestData.attachments);
+      } else if (typeof requestData.attachments === 'string') {
+        attachmentsToSave = JSON.stringify([requestData.attachments]);
+      }
+      const requestDataObj = {
+        employee_id: parseInt(requestData.userId, 10),
+        employee_name: requestData.userName,
+        request_type: requestData.type,
+        status: 'Pending',
+        amount: requestData.amount,
+        created_at: new Date().toISOString(),
+        details: requestData.details,
+        attachment_url: attachmentsToSave,
+        title: requestData.title,
+        manager_id: managerId,
+        start_date: requestData.start_date,
+        end_date: requestData.end_date,
+        total_days: requestData.total_days,
+        birth_type: requestData.birth_type,
+        training_topics: requestData.training_topics,
+        total_amount: requestData.total_amount,
+        tax7_percent: requestData.tax7_percent,
+        withholding_tax3_percent: requestData.withholding_tax3_percent,
+        excess_amount: requestData.excess_amount,
+        company_payment: requestData.company_payment,
+        employee_payment: requestData.employee_payment,
+        course_name: requestData.course_name,
+        organizer: requestData.organizer,
+      };
+      
+      const { data, error } = await supabase
+        .from('welfare_requests')
+        .insert(requestDataObj)
+        .select();
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      const newRequestId = data[0].id;
       const newRequest: WelfareRequest = {
         ...requestData,
-        id: generateId(),
+        id: newRequestId,
         status: 'pending',
-        createdAt: getCurrentDate()
+        createdAt: data[0].created_at,
+        managerId: managerId?.toString() || null
       };
       
       setWelfareRequests(prev => [newRequest, ...prev]);
-      
+      return newRequest;
+    } catch (err: any) {
       toast({
-        title: "ส่งคำร้องสำเร็จ",
-        description: "คำร้องของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา",
-        variant: "default",
+        title: "ส่งคำร้องล้มเหลว",
+        description: err.message,
+        variant: "destructive",
       });
-      
+      return null;
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const updateRequestStatus = (id: string, status: StatusType, notes?: string) => {
+  const updateRequest = async (id: number, data: Partial<WelfareRequest>) => {
     setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update(data)
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       setWelfareRequests(prev => 
-        prev.map(request => 
-          request.id === id 
-            ? { 
-                ...request, 
-                status, 
-                notes: notes || request.notes,
-                updatedAt: getCurrentDate()
-              } 
-            : request
-        )
+        prev.map(req => req.id === id ? { ...req, ...data } : req)
       );
-      
+    } catch (err: any) {
       toast({
-        title: "อัพเดทสถานะสำเร็จ",
-        description: `คำร้องหมายเลข ${id} ได้รับการอัพเดทสถานะแล้ว`,
-        variant: "default",
+        title: "อัปเดตล้มเหลว",
+        description: err.message,
+        variant: "destructive",
       });
-      
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const value = {
+  const updateRequestStatus = async (id: number, status: StatusType, comment?: string) => {
+    setIsLoading(true);
+    try {
+      let dbStatus;
+      switch(status.toLowerCase()) {
+        case 'approved':
+          dbStatus = 'Approved';
+          break;
+        case 'rejected':
+          dbStatus = 'Rejected';
+          break;
+        default:
+          dbStatus = 'Pending';
+      }
+      
+      const updateObj: any = { status: dbStatus };
+      if (user?.id) updateObj.approver_id = user.id;
+      updateObj.approver_at = new Date().toISOString();
+      if (comment) updateObj.manager_notes = comment;
+      
+      const { data, error } = await supabase
+        .from('welfare_requests')
+        .update(updateObj)
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setWelfareRequests(prev => {
+        return prev.map(req => 
+          req.id === id ? { 
+            ...req, 
+            status, 
+            notes: comment,
+            manager_notes: comment,
+            approverId: user?.id 
+          } : req
+        );
+      });
+      
+      return { success: true, data };
+    } catch (err: any) {
+      toast({ title: 'อัพเดทสถานะล้มเหลว', description: err.message, variant: 'destructive' });
+      return { success: false, error: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const value: WelfareContextType = {
     welfareRequests,
     getRequestsByUser,
     getRequestsByStatus,
     getRequestsByType,
     submitRequest,
+    updateRequest,
     updateRequestStatus,
     isLoading,
     getWelfareLimit,
-    getRemainingBudget
+    getRemainingBudget,
+    trainingBudget
   };
 
   return <WelfareContext.Provider value={value}>{children}</WelfareContext.Provider>;

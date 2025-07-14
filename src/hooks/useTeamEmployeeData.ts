@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Employee } from '@/types';
@@ -27,7 +26,8 @@ export const useTeamEmployeeData = () => {
           throw employeesError;
         }
         
-        console.log('ข้อมูลพนักงานทั้งหมด:', employeesData);
+        // Log the data structure
+        console.log('Employee data structure:', employeesData?.[0]);
         
         // กรองและสร้างรายการทีมจากข้อมูลที่ได้
         const uniqueTeams = [...new Set(

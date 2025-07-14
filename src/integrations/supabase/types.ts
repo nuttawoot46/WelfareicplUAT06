@@ -14,16 +14,37 @@ export type Database = {
           Name: string | null
           Team: string | null
           อีเมล: string | null
+          Budget_Training: number | null
+          Original_Budget_Training: number | null
+          budget_dentalglasses: number | null
+          budget_medical: number | null
+          budget_wedding: number | null
+          budget_childbirth: number | null
+          budget_fitness: number | null
         }
         Insert: {
           Name?: string | null
           Team?: string | null
           อีเมล?: string | null
+          Budget_Training?: number | null
+          Original_Budget_Training?: number | null
+          budget_dentalglasses?: number | null
+          budget_medical?: number | null
+          budget_wedding?: number | null
+          budget_childbirth?: number | null
+          budget_fitness?: number | null
         }
         Update: {
           Name?: string | null
           Team?: string | null
           อีเมล?: string | null
+          Budget_Training?: number | null
+          Original_Budget_Training?: number | null
+          budget_dentalglasses?: number | null
+          budget_medical?: number | null
+          budget_wedding?: number | null
+          budget_childbirth?: number | null
+          budget_fitness?: number | null
         }
         Relationships: []
       }

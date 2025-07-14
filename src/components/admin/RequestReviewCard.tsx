@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { WelfareRequest, WelfareType, StatusType } from '@/types';
 import { useWelfare } from '@/context/WelfareContext';
 import { useNotification } from '@/context/NotificationContext';
-import { Check, X, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { Check, X, Loader2, FileText, User, Calendar, Building } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
 
 interface RequestReviewCardProps {
   request: WelfareRequest;
@@ -24,6 +25,12 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   fitness: 'ค่าออกกำลังกาย',
 };
 
+const statusConfig = {
+  pending: { label: 'รออนุมัติ', className: 'bg-amber-100 text-amber-800 border-amber-200' },
+  approved: { label: 'อนุมัติแล้ว', className: 'bg-green-100 text-green-800 border-green-200' },
+  rejected: { label: 'ไม่อนุมัติ', className: 'bg-red-100 text-red-800 border-red-200' },
+};
+
 export function RequestReviewCard({ request }: RequestReviewCardProps) {
   const [notes, setNotes] = useState(request.notes || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,88 +43,64 @@ export function RequestReviewCard({ request }: RequestReviewCardProps) {
     
     setIsSubmitting(true);
     
-    // Update request status
-    updateRequestStatus(request.id, status, notes);
+    await updateRequestStatus(request.id, status, notes);
     
-    // Add notification for the employee
     addNotification({
       userId: request.userId,
-      title: status === 'approved' ? 'คำร้องได้รับการอนุมัติ' : 'คำร้องไม่ได้รับการอนุมัติ',
-      message: status === 'approved'
-        ? `คำร้องขอสวัสดิการ${welfareTypeLabels[request.type]} ของคุณได้รับการอนุมัติแล้ว`
-        : `คำร้องขอสวัสดิการ${welfareTypeLabels[request.type]} ของคุณไม่ได้รับการอนุมัติ ${notes ? `หมายเหตุ: ${notes}` : ''}`,
+      title: `คำร้องของคุณ ${status === 'approved' ? 'ได้รับการอนุมัติ' : 'ถูกปฏิเสธ'}`,
+      message: `คำร้องขอสวัสดิการ "${welfareTypeLabels[request.type]}" ได้รับการอัปเดตแล้ว ${notes ? `หมายเหตุ: ${notes}` : ''}`,
       type: status === 'approved' ? 'success' : 'warning',
     });
 
-    // Simulate API delay
-    setTimeout(() => {
-      setIsSubmitting(false);
-    }, 1000);
+    setIsSubmitting(false);
   };
 
-  // Render attachments
   const renderAttachments = () => {
     if (!request.attachments || request.attachments.length === 0) {
       return <p className="text-sm text-muted-foreground">ไม่มีเอกสารแนบ</p>;
     }
-
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 pt-1">
         {request.attachments.map((file, index) => (
-          <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs">
+          <a href={file} target="_blank" rel="noopener noreferrer" key={index} className="flex items-center gap-2 bg-muted px-2 py-1 rounded-md text-xs hover:bg-muted/80">
             <FileText className="h-3 w-3" />
-            {file}
-          </div>
+            <span>เอกสารแนบ {index + 1}</span>
+          </a>
         ))}
       </div>
     );
   };
 
   return (
-    <Card className={`welfare-card ${
-      request.status === 'pending' 
-        ? 'welfare-card-pending' 
-        : request.status === 'approved' 
-          ? 'welfare-card-approved' 
-          : 'welfare-card-rejected'
-    }`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">
-              {welfareTypeLabels[request.type]} - {request.amount.toLocaleString()} บาท
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              โดย: {request.userName} ({request.userDepartment})
-            </p>
-          </div>
-          <Badge
-            variant="outline" 
-            className={
-              request.status === 'pending'
-                ? 'bg-amber-100 text-amber-800 border-amber-200'
-                : request.status === 'approved'
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : 'bg-red-100 text-red-800 border-red-200'
-            }
-          >
-            {request.status === 'pending' 
-              ? 'รออนุมัติ' 
-              : request.status === 'approved' 
-                ? 'อนุมัติแล้ว' 
-                : 'ไม่อนุมัติ'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between">
         <div>
-          <p className="text-sm font-medium">รายละเอียด:</p>
-          <p className="text-sm">{request.details}</p>
+          <CardTitle className="text-lg mb-1">{welfareTypeLabels[request.type]}</CardTitle>
+          <p className="text-xl font-bold">{request.amount.toLocaleString()} บาท</p>
+        </div>
+        <Badge variant="outline" className={cn('text-xs', statusConfig[request.status].className)}>
+          {statusConfig[request.status].label}
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span>{request.userName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span>{request.userDepartment}</span>
+          </div>
+          <div className="flex items-center gap-2 col-span-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span>วันที่เกิดค่าใช้จ่าย: {new Date(request.date).toLocaleDateString('th-TH')}</span>
+          </div>
         </div>
         
         <div>
-          <p className="text-sm font-medium">วันที่เกิดค่าใช้จ่าย:</p>
-          <p className="text-sm">{request.date}</p>
+          <p className="text-sm font-medium">รายละเอียดคำร้อง:</p>
+          <p className="text-sm text-muted-foreground pl-2 border-l-2 ml-1 mt-1">{request.details}</p>
         </div>
         
         <div>
@@ -127,10 +110,10 @@ export function RequestReviewCard({ request }: RequestReviewCardProps) {
         
         {request.status === 'pending' && (
           <div>
-            <label htmlFor={`notes-${request.id}`} className="text-sm font-medium">หมายเหตุ:</label>
+            <label htmlFor={`notes-${request.id}`} className="text-sm font-medium">เพิ่มหมายเหตุ (ถ้ามี):</label>
             <Textarea
               id={`notes-${request.id}`}
-              placeholder="ระบุหมายเหตุ (ถ้ามี)"
+              placeholder="เช่น เหตุผลในการอนุมัติหรือปฏิเสธ"
               className="mt-1"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -140,39 +123,29 @@ export function RequestReviewCard({ request }: RequestReviewCardProps) {
         
         {(request.status === 'approved' || request.status === 'rejected') && request.notes && (
           <div>
-            <p className="text-sm font-medium">หมายเหตุ:</p>
-            <p className="text-sm">{request.notes}</p>
+            <p className="text-sm font-medium">หมายเหตุจากผู้ตรวจสอบ:</p>
+            <p className="text-sm text-muted-foreground pl-2 border-l-2 ml-1 mt-1">{request.notes}</p>
           </div>
         )}
       </CardContent>
       
       {request.status === 'pending' && (
-        <CardFooter className="flex justify-end gap-2">
+        <CardFooter className="flex justify-end gap-2 border-t pt-4">
           <Button
             variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-50"
             onClick={() => handleUpdateStatus('rejected')}
             disabled={isLoading || isSubmitting}
           >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <X className="mr-2 h-4 w-4" />
-            )}
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
             ไม่อนุมัติ
           </Button>
           
           <Button
-            variant="outline"
-            className="border-green-500 text-green-500 hover:bg-green-50"
+            className="bg-green-600 hover:bg-green-700 text-white"
             onClick={() => handleUpdateStatus('approved')}
             disabled={isLoading || isSubmitting}
           >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="mr-2 h-4 w-4" />
-            )}
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
             อนุมัติ
           </Button>
         </CardFooter>
