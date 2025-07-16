@@ -190,6 +190,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } else if (typeof requestData.attachments === 'string') {
         attachmentsToSave = JSON.stringify([requestData.attachments]);
       }
+      // สร้าง object โดยไม่รวม id
+      const { id, ...requestDataWithoutId } = requestData;
       const requestDataObj = {
         employee_id: parseInt(requestData.userId, 10),
         employee_name: requestData.userName,
@@ -214,8 +216,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         employee_payment: requestData.employee_payment,
         course_name: requestData.course_name,
         organizer: requestData.organizer,
-      department_user: requestData.department_user,
+        department_user: requestData.department_user,
       };
+      // ป้องกัน id ติดไปกับ insert object
+      if ('id' in requestDataObj) delete requestDataObj.id;
       
       const { data, error } = await supabase
         .from('welfare_requests')

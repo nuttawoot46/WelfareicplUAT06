@@ -140,7 +140,7 @@ export function Sidebar() {
           </Link>
           
           {/* Approval Page */}
-          {(userRole === 'manager' || userRole === 'accountingandmanager') && (
+          {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (
             <Link to="/approve" className={cn(
               "nav-link group",
               isActive('/approve') ? "nav-link-active" : "text-white/90 hover:text-white"
