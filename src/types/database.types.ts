@@ -496,10 +496,23 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+export type StatusType =
+  | 'pending_manager'
+  | 'pending_accounting'
+  | 'completed'
+  | 'rejected_manager'
+  | 'rejected_accounting';
+
 export const Constants = {
   public: {
     Enums: {
-      request_status: ["Pending", "Approved", "Rejected"],
+      request_status: [
+        "pending_manager",
+        "pending_accounting",
+        "completed",
+        "rejected_manager",
+        "rejected_accounting"
+      ],
     },
   },
 } as const

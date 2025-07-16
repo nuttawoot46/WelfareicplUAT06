@@ -112,9 +112,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
           <Button onClick={() => setViewMode('table')} disabled={viewMode === 'table'} className={viewMode === 'table' ? 'bg-welfare-blue text-white' : ''}>
             Table View
           </Button>
-          <Button onClick={() => setViewMode('chart')} disabled={viewMode === 'chart'} className={viewMode === 'chart' ? 'bg-welfare-blue text-white' : ''}>
-            Chart View
-          </Button>
+
         </div>
       </CardHeader>
       <CardContent>

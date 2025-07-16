@@ -194,7 +194,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         employee_id: parseInt(requestData.userId, 10),
         employee_name: requestData.userName,
         request_type: requestData.type,
-        status: 'Pending',
+        status: 'pending_manager',
         amount: requestData.amount,
         created_at: new Date().toISOString(),
         details: requestData.details,
@@ -214,6 +214,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         employee_payment: requestData.employee_payment,
         course_name: requestData.course_name,
         organizer: requestData.organizer,
+      department_user: requestData.department_user,
       };
       
       const { data, error } = await supabase
@@ -229,7 +230,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newRequest: WelfareRequest = {
         ...requestData,
         id: newRequestId,
-        status: 'pending',
+        status: 'pending_manager',
         createdAt: data[0].created_at,
         managerId: managerId?.toString() || null
       };
@@ -277,19 +278,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateRequestStatus = async (id: number, status: StatusType, comment?: string) => {
     setIsLoading(true);
     try {
-      let dbStatus;
-      switch(status.toLowerCase()) {
-        case 'approved':
-          dbStatus = 'Approved';
-          break;
-        case 'rejected':
-          dbStatus = 'Rejected';
-          break;
-        default:
-          dbStatus = 'Pending';
-      }
-      
-      const updateObj: any = { status: dbStatus };
+      const updateObj: any = { status };
+
       if (user?.id) updateObj.approver_id = user.id;
       updateObj.approver_at = new Date().toISOString();
       if (comment) updateObj.manager_notes = comment;

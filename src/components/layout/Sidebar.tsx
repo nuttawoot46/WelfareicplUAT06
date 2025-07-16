@@ -12,7 +12,8 @@ import {
   X,
   CheckCircle,
   Users,
-  ShieldCheck
+  ShieldCheck,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -114,7 +115,19 @@ export function Sidebar() {
             )}
           </Link>
 
-          
+          {/* Accounting Review Menu (for accounting role only) */}
+          {(userRole === 'accounting' || userRole === 'accountingandmanager') && (
+            <Link to="/accounting-review" className={cn(
+              "nav-link group",
+              isActive('/accounting-review') ? "nav-link-active" : "text-white/90 hover:text-white"
+            )}>
+              <FileText className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <span className="transition-all duration-300 text-white font-medium">รายการรอตรวจสอบ (บัญชี)</span>
+              )}
+            </Link>
+          )}
+
           {/* Welfare Forms */}
           <Link to="/forms" className={cn(
             "nav-link group",
@@ -127,7 +140,7 @@ export function Sidebar() {
           </Link>
           
           {/* Approval Page */}
-          {(profile?.role === 'manager' || profile?.role === 'admin') && (
+          {(userRole === 'manager' || userRole === 'accountingandmanager') && (
             <Link to="/approve" className={cn(
               "nav-link group",
               isActive('/approve') ? "nav-link-active" : "text-white/90 hover:text-white"

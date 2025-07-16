@@ -29,7 +29,7 @@ interface FormValues {
   totalDays: number;
   amount: number;
   details: string;
-  title?: string;
+
   birthType?: 'natural' | 'caesarean';
   attachments?: FileList;
   trainingTopics?: { value: string }[];
@@ -299,13 +299,33 @@ if (type === 'glasses' || type === 'dental') {
         .eq('email_user', user.email)
         .single();
 
+      console.log('employeeData:', employeeData);
+      console.log('employeeData.Team:', employeeData.Team);
       if (employeeError || !employeeData) {
         throw new Error('Employee data not found. Please contact support.');
       }
 
       if (editIdNum) {
-        // UPDATE EXISTING REQUEST
-        const updateData: any = {
+      // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
+      const { data: currentRequest, error: fetchError } = await supabase
+        .from('welfare_requests')
+        .select('status')
+        .eq('id', editIdNum)
+        .single();
+      if (fetchError || !currentRequest) {
+        throw new Error('ไม่พบข้อมูลคำร้อง หรือเกิดข้อผิดพลาดในการตรวจสอบสถานะ');
+      }
+      if (currentRequest.status && currentRequest.status.toLowerCase() === 'approved') {
+        toast({
+          title: 'ไม่สามารถแก้ไขได้',
+          description: 'คำร้องนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      // UPDATE EXISTING REQUEST
+      const updateData: any = {
           amount: Number(data.netAmount || data.amount || 0), // Net amount ยังคง map ไป column เดิม
           details: data.details || '',
           title: data.title || '',
@@ -324,8 +344,10 @@ if (type === 'glasses' || type === 'dental') {
           employee_payment: data.employeePayment,
           course_name: data.courseName,
           organizer: data.organizer,
+          department_user: employeeData.Team,
         };
 
+        console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
 
         const { error: updateError } = await supabase
           .from('welfare_requests')
@@ -333,6 +355,7 @@ if (type === 'glasses' || type === 'dental') {
           .eq('id', editIdNum);
 
         if (updateError) {
+          console.error('Supabase updateError:', updateError);
           throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
         }
 
@@ -349,6 +372,7 @@ if (type === 'glasses' || type === 'dental') {
         userId: user.id,
         userName: employeeData.Name || 'Unknown User',
         userDepartment: employeeData.Team || 'Unknown Department',
+        department_user: employeeData.Team || 'Unknown Department',
         type: type,
         status: 'pending' as const,
         amount: Number(data.netAmount || data.amount || 0), // Net amount ยังคง map ไป column เดิม
@@ -761,18 +785,6 @@ if (type === 'glasses' || type === 'dental') {
             </>
           )}
           
-          {/* Title Field */}
-          <div className="space-y-2">
-            <label htmlFor="title" className="form-label">หัวข้อ (ถ้ามี)</label>
-            <input
-              id="title"
-              type="text"
-              className="form-input"
-              placeholder="ระบุหัวข้อคำร้อง (ถ้ามี)"
-              {...register('title')}
-            />
-          </div>
-
           {/* Details Field */}
           <div className="space-y-2">
             <label htmlFor="details" className="form-label">รายละเอียด</label>

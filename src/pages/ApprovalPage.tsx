@@ -40,7 +40,7 @@ export const ApprovalPage = () => {
   useEffect(() => {
     if (isAuthLoading) return;
 
-    if (!user || (!['manager', 'admin'].includes(profile?.role))) {
+    if (!user || (!['manager', 'admin', 'accountingandmanager'].includes(profile?.role))) {
       addNotification({
         userId: user?.id || 'system',
         title: 'Access Denied',
@@ -82,7 +82,7 @@ export const ApprovalPage = () => {
   // รวม filter ทั้งหมดไว้ใน useMemo เดียว
   const filteredRequests = useMemo(() => {
     let base = allRequests;
-    if (profile?.role === 'manager' && teamMemberIds.length > 0) {
+    if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
       base = allRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
     }
     return base
@@ -142,7 +142,7 @@ export const ApprovalPage = () => {
     if (selectedRequests.length === 0) return true;
     return selectedRequests.every(id => {
       const request = filteredRequests.find(req => req.id === id);
-      return request && (request.status === 'approved' || request.status === 'rejected');
+      return request && (request.status === 'pending_accounting' || request.status === 'completed' || request.status === 'rejected_manager' || request.status === 'rejected_accounting');
     });
   }, [selectedRequests, filteredRequests]);
 
@@ -171,7 +171,7 @@ export const ApprovalPage = () => {
     setIsLoading(true);
     try {
       const requestsToApprove = welfareRequests.filter(req => 
-        selectedRequests.includes(req.id) && req.status !== 'approved' && req.status !== 'rejected'
+        selectedRequests.includes(req.id) && req.status === 'pending_manager'
       );
 
       if (requestsToApprove.length === 0) {
@@ -186,11 +186,11 @@ export const ApprovalPage = () => {
       }
 
       for (const req of requestsToApprove) {
-        await updateRequestStatus(req.id, 'approved');
+        await updateRequestStatus(req.id, 'pending_accounting');
       }
       setWelfareRequests(prev => 
         prev.map(req => requestsToApprove.some(r => r.id === req.id) 
-          ? { ...req, status: 'approved', approverId: user.id } 
+          ? { ...req, status: 'pending_accounting', approverId: user.id } 
           : req
         )
       );
@@ -223,7 +223,7 @@ export const ApprovalPage = () => {
     setIsLoading(true);
     try {
       const requestsToReject = welfareRequests.filter(req => 
-        selectedRequests.includes(req.id) && req.status !== 'approved' && req.status !== 'rejected'
+        selectedRequests.includes(req.id) && req.status === 'pending_manager'
       );
 
       if (requestsToReject.length === 0) {
@@ -239,11 +239,11 @@ export const ApprovalPage = () => {
       }
 
       for (const req of requestsToReject) {
-        await updateRequestStatus(req.id, 'rejected', rejectionReason);
+        await updateRequestStatus(req.id, 'rejected_manager', rejectionReason);
       }
       setWelfareRequests(prev => 
         prev.map(req => requestsToReject.some(r => r.id === req.id) 
-          ? { ...req, status: 'rejected', notes: rejectionReason, manager_notes: rejectionReason, approverId: user.id } 
+          ? { ...req, status: 'rejected_manager', notes: rejectionReason, manager_notes: rejectionReason, approverId: user.id } 
           : req
         )
       );
@@ -272,10 +272,10 @@ export const ApprovalPage = () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      await updateRequestStatus(requestId, 'approved');
+      await updateRequestStatus(requestId, 'pending_accounting');
       setWelfareRequests(prev => 
         prev.map(req => req.id === requestId 
-          ? { ...req, status: 'approved', approverId: user.id } 
+          ? { ...req, status: 'pending_accounting', approverId: user.id } 
           : req
         )
       );
@@ -302,10 +302,10 @@ export const ApprovalPage = () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      await updateRequestStatus(requestId, 'rejected', comment);
+      await updateRequestStatus(requestId, 'rejected_manager', comment);
       setWelfareRequests(prev => 
         prev.map(req => req.id === requestId 
-          ? { ...req, status: 'rejected', notes: comment, manager_notes: comment, approverId: user.id } 
+          ? { ...req, status: 'rejected_manager', notes: comment, manager_notes: comment, approverId: user.id } 
           : req
         )
       );
@@ -371,10 +371,7 @@ export const ApprovalPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
+                                                                                              </SelectContent>
                     </Select>
                     <div className="mt-4">
                       <Popover>
@@ -399,19 +396,7 @@ export const ApprovalPage = () => {
               </Popover>
             </div>
             <div className="space-x-2">
-              <Button 
-                onClick={handleBulkApprove} 
-                disabled={selectedRequests.length === 0 || isLoading || allSelectedAreFinal}
-              >
-                Approve Selected
-              </Button>
-              <Button 
-                onClick={handleBulkReject} 
-                variant="destructive" 
-                disabled={selectedRequests.length === 0 || isLoading || allSelectedAreFinal}
-              >
-                Reject Selected
-              </Button>
+
             </div>
           </div>
 
@@ -438,7 +423,7 @@ export const ApprovalPage = () => {
                 <TableHead>Submission Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Attachment</TableHead>
-                <TableHead>Manager Notes</TableHead>
+                
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -450,7 +435,7 @@ export const ApprovalPage = () => {
                     onCheckedChange={() => handleSelectRequest(req.id)}
                     checked={selectedRequests.includes(req.id)}
                     aria-label={`Select request ${req.id}`}
-                    disabled={req.status === 'approved' || req.status === 'rejected'}
+                    disabled={req.status === 'pending_accounting' || req.status === 'completed' || req.status === 'rejected_manager' || req.status === 'rejected_accounting'}
                   />
                   </TableCell>
                   <TableCell>{req.userName}</TableCell>
@@ -460,18 +445,23 @@ export const ApprovalPage = () => {
                   <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
                   <TableCell>
                     <Select
-                      value={req.status}
-                      onValueChange={(newStatus: StatusType) => updateRequestStatus(req.id, newStatus)}
-                      disabled={req.status === 'approved' || req.status === 'rejected'}
+                      value={req.status === 'pending_accounting' ? 'approved' : req.status === 'rejected_manager' ? 'reject' : ''}
+                      onValueChange={(newStatus: string) => {
+                        if (newStatus === 'approved') {
+                          updateRequestStatus(req.id, 'pending_accounting');
+                        } else if (newStatus === 'reject') {
+                          updateRequestStatus(req.id, 'rejected_manager');
+                        }
+                      }}
+                      disabled={req.status === 'pending_accounting' || req.status === 'completed' || req.status === 'rejected_manager' || req.status === 'rejected_accounting'}
                     >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
+  <SelectItem value="approved">อนุมัติ (Approve)</SelectItem>
+  <SelectItem value="reject">ปฏิเสธ (Reject)</SelectItem>
+</SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell className="text-center">
@@ -495,7 +485,7 @@ export const ApprovalPage = () => {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>{req.notes || '-'}</TableCell>
+                  
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
                   </TableCell>

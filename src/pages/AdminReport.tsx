@@ -63,6 +63,8 @@ function exportReportToCSV({ summaryByType, statusSummary, departmentSummary, to
   saveAs(blob, `welfare_report_${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
+import Modal from '@/components/ui/modal';
+
 const AdminReport = () => {
   const navigate = useNavigate();
   const { welfareRequests } = useWelfare();
@@ -74,6 +76,9 @@ const AdminReport = () => {
   const [employeeFilter, setEmployeeFilter] = useState<string>('all');
 
   const [employees, setEmployees] = useState<SimpleEmployee[]>([]);
+  // Modal สำหรับดูรายการคำร้องแต่ละสถานะ
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
   const [loadingEmp, setLoadingEmp] = useState(true);
   const [empError, setEmpError] = useState<string | null>(null);
@@ -217,18 +222,30 @@ const employeeWelfareSummary = useMemo(() => {
   }));
 }, [benefitLimits]);
 
-  const barData = {
+  // Vibrant color palette for welfare types
+const barColors: Record<string, string> = {
+  wedding:   '#FF6F61', // แดงส้มสด
+  training:  '#6A5ACD', // น้ำเงินม่วงสด
+  childbirth:'#FFD700', // เหลืองทองสด
+  funeral:   '#20B2AA', // ฟ้าอมเขียวสด
+  glasses:   '#FF69B4', // ชมพูสด
+  dental:    '#40E0D0', // ฟ้าครามสด
+  fitness:   '#FF8C00', // ส้มเข้มสด
+  medical:   '#43A047', // เขียวสด
+};
+
+const barData = {
     labels: summaryByType.map((d) => welfareTypeLabels[d.type as WelfareType] || d.type),
     datasets: [
       {
         label: 'ยอดใช้ไป (บาท)',
         data: summaryByType.map((d) => d.used),
-        backgroundColor: '#3b82f6',
+        backgroundColor: summaryByType.map((d) => barColors[d.type] || '#3b82f6'),
       },
       {
         label: 'คงเหลือ (บาท)',
         data: summaryByType.map((d) => d.remaining),
-        backgroundColor: '#a5b4fc',
+        backgroundColor: summaryByType.map((d) => barColors[d.type] ? `${barColors[d.type]}33` : '#a5b4fc'), // add transparency for remaining
       },
     ],
   };
@@ -326,11 +343,67 @@ const employeeWelfareSummary = useMemo(() => {
                 <CardContent>
                   <ul className="space-y-3">
                     {statusSummary.map((s) => (
-                      <li key={s.status} className="flex justify-between items-center">
-                        <span className="capitalize">{s.status === 'pending' ? 'รอดำเนินการ' : s.status === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}</span>
-                        <span className="font-bold text-blue-600">{s.count.toLocaleString()} รายการ</span>
-                      </li>
-                    ))}
+  <li key={s.status} className="flex justify-between items-center">
+    <span className="capitalize">{s.status === 'pending' ? 'รอดำเนินการ' : s.status === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}</span>
+    <span
+      className="font-bold text-blue-600 cursor-pointer hover:underline"
+      onClick={() => {
+        if (s.count > 0) {
+          setModalStatus(s.status as 'pending' | 'approved' | 'rejected');
+          setModalOpen(true);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      style={{ userSelect: 'none' }}
+    >
+      {s.count.toLocaleString()} รายการ
+    </span>
+  </li>
+))}
+
+{/* Modal แสดงรายการคำร้องแต่ละสถานะ */}
+{modalOpen && modalStatus && (
+  <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+    <div className="p-4 w-full max-w-2xl">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">
+          รายการคำร้องสถานะ
+          {modalStatus === 'pending' ? 'รอดำเนินการ' : modalStatus === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}
+        </h2>
+        <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-red-500 text-lg">✕</button>
+      </div>
+      <div className="overflow-y-auto max-h-[60vh]">
+        {filteredRequests.filter(r => r.status === modalStatus).length === 0 ? (
+          <div className="text-center text-gray-400 py-10">ไม่พบรายการคำร้อง</div>
+        ) : (
+          <table className="min-w-full text-sm border">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="py-2 px-2 border">วันที่</th>
+                <th className="py-2 px-2 border">ชื่อพนักงาน</th>
+                <th className="py-2 px-2 border">ประเภท</th>
+                <th className="py-2 px-2 border">จำนวนเงิน</th>
+                <th className="py-2 px-2 border">แผนก</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRequests.filter(r => r.status === modalStatus).map((r, i) => (
+                <tr key={r.id || i} className="odd:bg-white even:bg-gray-50">
+                  <td className="border px-2 py-1">{new Date(r.date).toLocaleDateString('th-TH')}</td>
+                  <td className="border px-2 py-1">{r.userName}</td>
+                  <td className="border px-2 py-1">{welfareTypeLabels[r.type] || r.type}</td>
+                  <td className="border px-2 py-1 text-right">{Number(r.amount).toLocaleString()} บาท</td>
+                  <td className="border px-2 py-1">{r.userDepartment || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  </Modal>
+)}
                   </ul>
                 </CardContent>
               </Card>
@@ -372,15 +445,15 @@ const employeeWelfareSummary = useMemo(() => {
           const percentRemaining = w.limit > 0 ? (w.remaining / w.limit) * 100 : 0;
           // สี bar ตาม type
           const barColors: Record<string, string> = {
-            wedding: '#FF6384',
-            training: '#36A2EB',
-            childbirth: '#FFCE56',
-            funeral: '#4BC0C0',
-            glasses: '#9966FF',
-            dental: '#FF9F40',
-            fitness: '#FF63FF',
-            medical: '#63FF84',
-          };
+  wedding:   '#FF6F61', // แดงส้มสด
+  training:  '#6A5ACD', // น้ำเงินม่วงสด
+  childbirth:'#FFD700', // เหลืองทองสด
+  funeral:   '#20B2AA', // ฟ้าอมเขียวสด
+  glasses:   '#FF69B4', // ชมพูสด
+  dental:    '#40E0D0', // ฟ้าครามสด
+  fitness:   '#FF8C00', // ส้มเข้มสด
+  medical:   '#43A047', // เขียวสด
+};
           return (
             <tr key={w.type} className="hover:bg-welfare-blue/5 dark:hover:bg-welfare-blue/20 transition-colors">
               <td className="font-medium flex items-center gap-3 py-2 px-2">

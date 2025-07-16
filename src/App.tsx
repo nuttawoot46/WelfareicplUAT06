@@ -18,6 +18,7 @@ import Admin from "./pages/Admin";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import { ApprovalPage } from "./pages/ApprovalPage";
+import { AccountingReviewPage } from "./pages/AccountingReviewPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -116,6 +117,12 @@ const App = () => (
                   <Route path="/admin/*" element={
                     <ProtectedRoute>
                       <Admin />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounting-review" element={
+                    <ProtectedRoute>
+                      <AccountingReviewPage />
                     </ProtectedRoute>
                   } />
                   

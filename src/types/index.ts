@@ -33,7 +33,12 @@ export interface Employee {
   manager_id?: number; // ID reference to the employee's manager
 }
 
-export type StatusType = 'pending' | 'approved' | 'rejected';
+export type StatusType =
+  | 'pending_manager'
+  | 'pending_accounting'
+  | 'completed'
+  | 'rejected_manager'
+  | 'rejected_accounting';
 
 export type WelfareType = 
   | 'wedding'

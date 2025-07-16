@@ -6,30 +6,44 @@ import { useWelfareRequests } from '@/hooks/useWelfareRequests';
 export function WelfareStatusCards() {
   const { requests } = useWelfareRequests();
 
-  // Count requests by status
-  const pendingCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending').length;
-  const approvedCount = requests.filter(r => r.status?.toLowerCase() === 'approved').length;
-  const rejectedCount = requests.filter(r => r.status?.toLowerCase() === 'rejected').length;
+  // Count requests by status (new detailed statuses)
+  const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
+  const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
+  const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
+  const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
+  const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-5">
       <StatusCard
-        title="รออนุมัติ"
-        count={pendingCount}
-        status="pending"
+        title="รออนุมัติโดยหัวหน้า"
+        count={pendingManagerCount}
+        status="pending_manager"
         icon={<Clipboard className="h-5 w-5" />}
       />
       <StatusCard
-        title="อนุมัติแล้ว"
-        count={approvedCount}
-        status="approved"
-        icon={<CheckCircle2 className="h-5 w-5" />}
+        title="รอตรวจสอบโดยบัญชี"
+        count={pendingAccountingCount}
+        status="pending_accounting"
+        icon={<Clipboard className="h-5 w-5 text-amber-700" />}
       />
       <StatusCard
-        title="ไม่อนุมัติ"
-        count={rejectedCount}
-        status="rejected"
-        icon={<XCircle className="h-5 w-5" />}
+        title="เสร็จสมบูรณ์"
+        count={completedCount}
+        status="completed"
+        icon={<CheckCircle2 className="h-5 w-5 text-green-700" />}
+      />
+      <StatusCard
+        title="ปฏิเสธโดยหัวหน้า"
+        count={rejectedManagerCount}
+        status="rejected_manager"
+        icon={<XCircle className="h-5 w-5 text-red-700" />}
+      />
+      <StatusCard
+        title="ปฏิเสธโดยบัญชี"
+        count={rejectedAccountingCount}
+        status="rejected_accounting"
+        icon={<XCircle className="h-5 w-5 text-pink-700" />}
       />
     </div>
   );

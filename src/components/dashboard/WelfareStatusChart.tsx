@@ -9,7 +9,7 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
     'จำนวนเงิน',
     'สถานะ',
     'รายละเอียด',
-    'หัวข้อ',
+
     'หมายเหตุจากผู้จัดการ'
   ];
   const rows = data.map(row => [
@@ -19,7 +19,7 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
     row.amount?.toString() || '',
     getStatusText(row.status),
     row.details || '',
-    row.title || '',
+
     row.manager_notes || ''
   ]);
   // รวม header กับ rows
@@ -67,7 +67,7 @@ interface WelfareRequestItem {
   amount: number;
   created_at: string;
   details?: string;
-  title?: string;
+
   manager_notes?: string;
   attachment_url?: string;
   attachments?: string[];
@@ -92,23 +92,36 @@ const formatCurrency = (amount: number) => {
 };
 
 const getStatusText = (status: string) => {
-  if (!status) return 'รออนุมัติ';
+  if (!status) return 'รออนุมัติโดยหัวหน้า';
   switch (status.toLowerCase()) {
-    case 'approved': return 'อนุมัติแล้ว';
-    case 'rejected': return 'ไม่อนุมัติ';
-    default: return 'รออนุมัติ';
+    case 'pending_manager':
+      return 'รออนุมัติโดยหัวหน้า';
+    case 'pending_accounting':
+      return 'รอตรวจสอบโดยบัญชี';
+    case 'completed':
+      return 'เสร็จสมบูรณ์';
+    case 'rejected_manager':
+      return 'ปฏิเสธโดยหัวหน้า';
+    case 'rejected_accounting':
+      return 'ปฏิเสธโดยบัญชี';
+    default:
+      return 'สถานะไม่ทราบ';
   }
 };
 
 const getStatusClass = (status: string) => {
-  if (!status) return 'bg-gray-100 text-gray-800';
+  if (!status) return 'bg-yellow-100 text-yellow-800';
   switch (status.toLowerCase()) {
-    case 'approved':
-      return 'bg-green-100 text-green-800';
-    case 'pending':
+    case 'pending_manager':
       return 'bg-yellow-100 text-yellow-800';
-    case 'rejected':
+    case 'pending_accounting':
+      return 'bg-amber-200 text-amber-900';
+    case 'completed':
+      return 'bg-green-100 text-green-800';
+    case 'rejected_manager':
       return 'bg-red-100 text-red-800';
+    case 'rejected_accounting':
+      return 'bg-pink-200 text-pink-900';
     default:
       return 'bg-gray-100 text-gray-800';
   }
@@ -133,6 +146,13 @@ const WelfareStatusChart: React.FC = () => {
   const [years, setYears] = useState<string[]>([]);
   // Double click handler for editing
   const handleDoubleClick = (request: WelfareRequestItem) => {
+    setEditId(request.id);
+    setEditType(request.request_type);
+    setEditModalOpen(true);
+  };
+
+  // Single click handler for edit button
+  const handleEdit = (request: WelfareRequestItem) => {
     setEditId(request.id);
     setEditType(request.request_type);
     setEditModalOpen(true);
@@ -360,17 +380,17 @@ const WelfareStatusChart: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewDetails(request);
-                              }}
-                            >
-                              <span className="sr-only">View details</span>
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <Button
+  variant="ghost"
+  size="icon"
+  onClick={e => {
+    e.stopPropagation();
+    handleEdit(request);
+  }}
+>
+  <span className="sr-only">แก้ไข</span>
+  แก้ไข
+</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -420,12 +440,7 @@ const WelfareStatusChart: React.FC = () => {
                   {selectedRequest.details || 'ไม่มีรายละเอียด'}
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-2">
-                <span className="text-muted-foreground">หัวข้อ (ถ้ามี):</span>
-                <p className="p-2 bg-muted rounded-md text-muted-foreground break-words">
-                  {selectedRequest.title || '-'}
-                </p>
-              </div>
+
               <div className="grid grid-cols-1 gap-2">
                 <span className="text-muted-foreground">หมายเหตุจากผู้จัดการ:</span>
                 <p className="p-2 bg-muted rounded-md text-muted-foreground break-words">
