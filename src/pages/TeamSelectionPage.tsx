@@ -1,24 +1,26 @@
 import { WelcomeBanner } from '@/components/teamSelection/WelcomeBanner';
 import { supabase } from '@/integrations/supabase/client';
+import FlowerAnimation from '@/components/animation/FlowerAnimation';
 
 const TeamSelectionPage = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left side - Selection Form */}
-      <div className="md:w-1/2 flex items-center justify-center p-8 md:p-16">
-        <div className="w-full max-w-md text-center">
+      <div className="md:w-1/2 flex flex-col items-center justify-center p-8 md:p-16">
+        {/* Login Form Section */}
+        <div className="w-full max-w-md text-center mb-8">
           <div className="mb-8">
             <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-10">
-              <img 
-                src="/Picture/logo-Photoroom.jpg" 
-                alt="ICP Ladda Logo" 
+              <img
+                src="/Picture/logo-Photoroom.jpg"
+                alt="ICP Ladda Logo"
                 className="w-full h-full object-cover"
               />
             </div>
             <h1 className="text-3xl font-bold gradient-animated-text">ระบบสวัสดิการพนักงาน ICP Ladda</h1>
             <p className="mt-2 gradient-animated-text">กรุณาเข้าสู่ระบบด้วยบัญชี Microsoft</p>
           </div>
-          
+
           {/* Microsoft Login Button */}
           <button
             onClick={async () => {
@@ -38,10 +40,15 @@ const TeamSelectionPage = () => {
           </button>
           {/* End Microsoft Login Button */}
         </div>
+
+
       </div>
-      
+
       {/* Right side - Decorative Background */}
       <WelcomeBanner />
+      
+      {/* Flower Animation */}
+      <FlowerAnimation />
     </div>
   );
 };

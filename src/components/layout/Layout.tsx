@@ -2,7 +2,6 @@ import React from "react";
 import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationBadge } from "../notifications/NotificationBadge";
-import { ThemeToggle } from "../theme/theme-toggle";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -27,7 +26,6 @@ export function Layout({ children }: LayoutProps) {
       
       <div className="md:ml-64 p-4 md:p-8 transition-all duration-300 min-h-full relative z-10">
         <div className="mb-6 flex justify-end gap-2">
-          <ThemeToggle />
           <NotificationBadge />
         </div>
         

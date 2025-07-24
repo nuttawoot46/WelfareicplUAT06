@@ -74,7 +74,6 @@ export function Sidebar() {
       {/* Sidebar container */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-40 bg-gradient-primary shadow-xl transition-all duration-300 flex flex-col",
-        "dark:bg-card",
         isOpen ? "w-64" : "w-20",
         isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
@@ -147,7 +146,20 @@ export function Sidebar() {
             )}>
               <CheckSquare className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง</span>
+                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (ผู้จัดการ)</span>
+              )}
+            </Link>
+          )}
+
+          {/* HR Approval Page - Admin only */}
+          {(userRole === 'admin' || userRole === 'hr') && (
+            <Link to="/hr-approve" className={cn(
+              "nav-link group",
+              isActive('/hr-approve') ? "nav-link-active" : "text-white/90 hover:text-white"
+            )}>
+              <Users className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (HR)</span>
               )}
             </Link>
           )}

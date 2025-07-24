@@ -30,7 +30,7 @@ const welfareTypeLabels: Record<WelfareType, string> = {
 };
 
 // ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
-function exportReportToCSV({ summaryByType, statusSummary, departmentSummary, topEmployees, welfareTypeLabels }: any) {
+function exportReportToCSV({ summaryByType, statusSummary, departmentSummary, welfareTypeLabels }: any) {
   let csv = '';
   csv += 'สรุปการใช้สวัสดิการแยกตามประเภท\r\n';
   csv += 'ประเภท,จำนวนคำร้อง,ยอดใช้ไป,คงเหลือ\r\n';
@@ -41,7 +41,7 @@ function exportReportToCSV({ summaryByType, statusSummary, departmentSummary, to
   csv += '\r\nสรุปสถานะคำร้อง\r\n';
   csv += 'สถานะ,จำนวน\r\n';
   statusSummary.forEach((row: any) => {
-    const statusLabel = row.status === 'pending' ? 'รอดำเนินการ' : row.status === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ';
+    const statusLabel = row.label || (row.status === 'pending' ? 'รอดำเนินการ' : row.status === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ');
     csv += `"${statusLabel}","${row.count}"\r\n`;
   });
 
@@ -49,12 +49,6 @@ function exportReportToCSV({ summaryByType, statusSummary, departmentSummary, to
   csv += 'แผนก,จำนวนคำร้อง,ยอดใช้ไป\r\n';
   departmentSummary.forEach((row: any) => {
     csv += `"${row.department}","${row.count}","${row.used}"\r\n`;
-  });
-
-  csv += '\r\nTop 5 พนักงานที่ใช้สวัสดิการสูงสุด\r\n';
-  csv += 'ชื่อ,ยอดใช้ไปทั้งหมด\r\n';
-  topEmployees.forEach((row: any) => {
-    csv += `"${row.name}","${row.used}"\r\n`;
   });
 
   // ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยถูก
@@ -148,12 +142,35 @@ const AdminReport = () => {
   }, [filteredRequests]);
 
   const statusSummary = useMemo(() => {
-    const map: Record<StatusType, number> = { pending: 0, approved: 0, rejected: 0 };
-    filteredRequests.forEach((req) => { map[req.status]++; });
+    const detailedMap: Record<string, number> = {
+      'pending_manager': 0,
+      'pending_hr': 0,
+      'pending_accounting': 0,
+      'approved': 0,
+      'rejected': 0,
+    };
+
+    filteredRequests.forEach((req) => {
+      if (req.status === 'pending') {
+        // ตรวจสอบว่าคำร้องอยู่ในขั้นตอนไหน
+        if (!req.managerApproval) {
+          detailedMap['pending_manager']++;
+        } else if (req.managerApproval === 'approved' && !req.hrApproval) {
+          detailedMap['pending_hr']++;
+        } else if (req.hrApproval === 'approved' && !req.accountingApproval) {
+          detailedMap['pending_accounting']++;
+        }
+      } else {
+        detailedMap[req.status]++;
+      }
+    });
+
     return [
-      { status: 'pending', count: map.pending },
-      { status: 'approved', count: map.approved },
-      { status: 'rejected', count: map.rejected },
+      { status: 'pending_manager', count: detailedMap['pending_manager'], label: 'รอผู้จัดการอนุมัติ' },
+      { status: 'pending_hr', count: detailedMap['pending_hr'], label: 'รอ HR อนุมัติ' },
+      { status: 'pending_accounting', count: detailedMap['pending_accounting'], label: 'รอฝ่ายบัญชีตรวจสอบ' },
+      { status: 'approved', count: detailedMap['approved'], label: 'อนุมัติแล้ว' },
+      { status: 'rejected', count: detailedMap['rejected'], label: 'ไม่อนุมัติ' },
     ];
   }, [filteredRequests]);
 
@@ -168,24 +185,7 @@ const AdminReport = () => {
     return Object.entries(map).map(([department, v]) => ({ department, ...v }));
   }, [filteredRequests]);
   
-  // แก้ไข: รวมยอดใช้จ่ายทั้งหมดของพนักงานแต่ละคน ไม่ใช่แค่รายการแรก
-  const topEmployees = useMemo(() => {
-    const map: Record<string, { id: number; name: string; used: number }> = {};
-    filteredRequests.forEach((req) => {
-      if (req.status === 'approved') {
-        const emp = employees.find(e => e.Name === req.userName);
-        if (emp) {
-          if (!map[emp.id]) {
-            map[emp.id] = { id: emp.id, name: emp.Name || `ID: ${emp.id}`, used: 0 };
-          }
-          map[emp.id].used += req.amount;
-        }
-      }
-    });
-    return Object.values(map)
-      .sort((a, b) => b.used - a.used)
-      .slice(0, 5);
-  }, [filteredRequests, employees]);
+
 
   const [benefitLimits, setBenefitLimits] = useState<BenefitLimit[] | null>(null);
 
@@ -234,6 +234,7 @@ const barColors: Record<string, string> = {
   medical:   '#43A047', // เขียวสด
 };
 
+// 3D Bar Chart Configuration
 const barData = {
     labels: summaryByType.map((d) => welfareTypeLabels[d.type as WelfareType] || d.type),
     datasets: [
@@ -241,13 +242,79 @@ const barData = {
         label: 'ยอดใช้ไป (บาท)',
         data: summaryByType.map((d) => d.used),
         backgroundColor: summaryByType.map((d) => barColors[d.type] || '#3b82f6'),
-      },
-      {
-        label: 'คงเหลือ (บาท)',
-        data: summaryByType.map((d) => d.remaining),
-        backgroundColor: summaryByType.map((d) => barColors[d.type] ? `${barColors[d.type]}33` : '#a5b4fc'), // add transparency for remaining
+        borderColor: summaryByType.map((d) => barColors[d.type] || '#3b82f6'),
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
       },
     ],
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          font: {
+            size: 14,
+            weight: 'bold',
+          },
+          color: '#374151',
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context: any) {
+            return `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString()} บาท`;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            size: 12,
+            weight: 'bold',
+          },
+          color: '#6b7280',
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#f3f4f6',
+          lineWidth: 1,
+        },
+        ticks: {
+          font: {
+            size: 12,
+          },
+          color: '#6b7280',
+          callback: function(value: any) {
+            return Number(value).toLocaleString() + ' บาท';
+          }
+        },
+      },
+    },
+    elements: {
+      bar: {
+        borderRadius: 8,
+        borderSkipped: false,
+      },
+    },
   };
 
   return (
@@ -263,7 +330,7 @@ const barData = {
           <Button 
             variant="outline" 
             className="flex items-center gap-2" 
-            onClick={() => exportReportToCSV({ summaryByType, statusSummary, departmentSummary, topEmployees, welfareTypeLabels })}
+            onClick={() => exportReportToCSV({ summaryByType, statusSummary, departmentSummary, welfareTypeLabels })}
           >
             <Download className="w-4 h-4" />
             ดาวน์โหลดรายงาน
@@ -333,7 +400,9 @@ const barData = {
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle>สรุปการใช้สวัสดิการแยกตามประเภท</CardTitle></CardHeader>
               <CardContent>
-                <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'top' }}}}/>
+                <div className="h-96">
+                  <Bar data={barData} options={barOptions} />
+                </div>
               </CardContent>
             </Card>
 
@@ -342,14 +411,20 @@ const barData = {
                 <CardHeader><CardTitle>สรุปสถานะคำร้อง</CardTitle></CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {statusSummary.map((s) => (
+                    {statusSummary.filter(s => s.count > 0).map((s) => (
   <li key={s.status} className="flex justify-between items-center">
-    <span className="capitalize">{s.status === 'pending' ? 'รอดำเนินการ' : s.status === 'approved' ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ'}</span>
+    <span className="text-sm font-medium">{s.label}</span>
     <span
       className="font-bold text-blue-600 cursor-pointer hover:underline"
       onClick={() => {
         if (s.count > 0) {
-          setModalStatus(s.status as 'pending' | 'approved' | 'rejected');
+          // Map detailed status back to basic status for modal
+          let modalStatusValue: 'pending' | 'approved' | 'rejected' = 'pending';
+          if (s.status === 'approved') modalStatusValue = 'approved';
+          else if (s.status === 'rejected') modalStatusValue = 'rejected';
+          else modalStatusValue = 'pending'; // for all pending variants
+          
+          setModalStatus(modalStatusValue);
           setModalOpen(true);
         }
       }}
@@ -424,8 +499,8 @@ const barData = {
             </div>
           </div>
 
-          {/* Conditional Employee Summary or Top 5 Employees */}
-          {employeeFilter !== 'all' && employeeWelfareSummary ? (
+          {/* Employee Summary */}
+          {employeeFilter !== 'all' && employeeWelfareSummary && (
              <Card>
                <CardHeader><CardTitle>สรุปสวัสดิการของ {employees.find(e => e.id.toString() === employeeFilter)?.Name || ''}</CardTitle></CardHeader>
                <CardContent>
@@ -482,20 +557,6 @@ const barData = {
   </div>
 </CardContent>
              </Card>
-          ) : (
-            <Card>
-              <CardHeader><CardTitle>Top 5 พนักงานที่ใช้สวัสดิการสูงสุด</CardTitle></CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {topEmployees.map((emp, index) => (
-                    <li key={index} className="flex justify-between items-center">
-                      <span>{index + 1}. {emp.name}</span>
-                      <span className="font-bold text-blue-600">{emp.used.toLocaleString()} บาท</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
           )}
 
         </div>

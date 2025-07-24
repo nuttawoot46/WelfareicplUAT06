@@ -1,0 +1,419 @@
+/* ใส่โค้ด CSS ทั้งหมดที่นี่ */
+:root {
+    --dark-color: #000000;
+    --main-color: #308f92;
+    --secondary-color: #55c3c6;
+    --light-color: #afe1e3;
+}
+
+body {
+    background-color: var(--dark-color);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.not-loaded * {
+    animation-play-state: paused !important;
+}
+
+.night {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: rotateZ(45deg);
+}
+
+.night::before,
+.night::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px 2px white;
+    animation: shooting-star 5s linear infinite;
+    opacity: 0;
+}
+
+.night::after {
+    width: 3px;
+    height: 3px;
+    top: 200px;
+    left: 200px;
+    animation-delay: 1.5s;
+}
+
+.flowers {
+    position: relative;
+    top: -10vh;
+    transform: scale(0.7);
+    z-index: 10;
+}
+
+/* === Flower Structure === */
+.flower {
+    position: absolute;
+    top: 50vh;
+    left: 50vw;
+    transform: translateX(-50%) translateY(-50%);
+}
+
+.flower--1 {
+    transform: translateX(-50%) translateY(-50%) rotate(10deg);
+}
+
+.flower--2 {
+    transform: translateX(-50%) translateY(-50%) rotate(-10deg) scale(0.9);
+    left: 60vw;
+    top: 40vh;
+}
+
+.flower--3 {
+    transform: translateX(-50%) translateY(-50%) rotate(-5deg) scale(0.8);
+    left: 40vw;
+    top: 60vh;
+}
+
+.flower__leafs {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    transform-origin: bottom center;
+    animation: growing-flower 4s 1s ease-in-out both;
+}
+
+.flower__leafs--1 {
+    animation-delay: 1.2s;
+}
+
+.flower__leafs--2 {
+    animation-delay: 1.4s;
+}
+
+.flower__leafs--3 {
+    animation-delay: 1.6s;
+}
+
+.flower__leaf {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--main-color);
+    border-radius: 50% 0;
+    transform-origin: bottom center;
+}
+
+.flower__leaf--1 {
+    transform: rotate(0deg) scale(0);
+    animation: growing-leaf-1 2s 2s ease-in-out both;
+}
+
+.flower__leaf--2 {
+    transform: rotate(90deg) scale(0);
+    animation: growing-leaf-2 2s 2s ease-in-out both;
+}
+
+.flower__leaf--3 {
+    transform: rotate(180deg) scale(0);
+    animation: growing-leaf-3 2s 2s ease-in-out both;
+}
+
+.flower__leaf--4 {
+    transform: rotate(270deg) scale(0);
+    animation: growing-leaf-4 2s 2s ease-in-out both;
+}
+
+.flower__white-circle {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background-color: var(--light-color);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    box-shadow: 0 0 20px 5px var(--light-color);
+    animation: growing-circle 2s 2s ease-in-out both;
+}
+
+
+/* === Flower Line === */
+.flower__line {
+    width: 5px;
+    height: 300px;
+    background: linear-gradient(to top, var(--main-color), var(--secondary-color));
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    transform: translate(-50%, 0) scaleY(0);
+    animation: growing-line 2s 1s ease-in-out both;
+}
+
+.flower__line__leaf {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background-color: var(--main-color);
+    border-radius: 0 50%;
+    transform: scale(0);
+}
+
+.flower__line__leaf--1 {
+    top: 50px;
+    left: 100%;
+    transform-origin: left;
+    animation: growing-line-leaf 2s 2.2s ease-in-out both;
+}
+
+.flower__line__leaf--2 {
+    top: 100px;
+    left: -100%;
+    transform-origin: right;
+    transform: rotate(180deg) scale(0);
+    animation: growing-line-leaf-2 2s 2.4s ease-in-out both;
+}
+
+.flower__line__leaf--3 {
+    top: 150px;
+    left: 100%;
+    transform-origin: left;
+    animation: growing-line-leaf 2s 2.6s ease-in-out both;
+}
+
+.flower__line__leaf--4 {
+    top: 200px;
+    left: -100%;
+    transform-origin: right;
+    transform: rotate(180deg) scale(0);
+    animation: growing-line-leaf-2 2s 2.8s ease-in-out both;
+}
+
+/* === Particles === */
+.flower__light {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--light-color);
+    animation: light-fly 4s ease-in-out infinite;
+    transform: translate(-50%, 0);
+    opacity: 0;
+}
+
+.flower__light--1 {
+    animation-delay: 0.2s;
+}
+
+.flower__light--2 {
+    animation-delay: 0.4s;
+    left: 25%;
+}
+
+.flower__light--3 {
+    animation-delay: 0.6s;
+    left: 75%;
+}
+
+.flower__light--4 {
+    animation-delay: 0.8s;
+}
+
+.flower__light--5 {
+    animation-delay: 1.0s;
+    left: 25%;
+}
+
+.flower__light--6 {
+    animation-delay: 1.2s;
+    left: 75%;
+}
+
+.flower__light--7 {
+    animation-delay: 1.4s;
+}
+
+.flower__light--8 {
+    animation-delay: 1.6s;
+}
+
+/* === Other growing plants === */
+.growing-grass {
+    position: absolute;
+    bottom: -150px;
+    left: 0;
+    width: 100%;
+    animation: grass-grow 2s 3s both;
+}
+
+.growing-grass--2 {
+    left: 30vw;
+    bottom: -180px;
+    transform: scale(0.8) rotate(-10deg);
+}
+
+.flower__grass {
+    position: absolute;
+    bottom: 0;
+    left: 45vw;
+}
+
+.flower__grass--top {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 150px;
+    background: linear-gradient(to top, #142544, #1a9092);
+    clip-path: path('M0,150 C50,150 50,100 100,100 C150,100 150,150 200,150 Z');
+}
+
+.flower__grass--bottom {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    width: 200px;
+    height: 20px;
+    background-color: #142544;
+}
+
+.flower__g-long {
+    position: absolute;
+    bottom: 0;
+    left: 48vw;
+    transform-origin: bottom center;
+    animation: grow-ans-long var(--d) 3s both;
+}
+
+/* === Keyframes === */
+@keyframes shooting-star {
+    0% {
+        transform: translateY(-500px);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(500px);
+        opacity: 1;
+    }
+}
+
+@keyframes growing-flower {
+    0% {
+        transform: scale(0);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes growing-leaf-1 {
+    0% {
+        transform: rotate(0deg) scale(0);
+    }
+
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+}
+
+@keyframes growing-leaf-2 {
+    0% {
+        transform: rotate(90deg) scale(0);
+    }
+
+    100% {
+        transform: rotate(90deg) scale(1);
+    }
+}
+
+@keyframes growing-leaf-3 {
+    0% {
+        transform: rotate(180deg) scale(0);
+    }
+
+    100% {
+        transform: rotate(180deg) scale(1);
+    }
+}
+
+@keyframes growing-leaf-4 {
+    0% {
+        transform: rotate(270deg) scale(0);
+    }
+
+    100% {
+        transform: rotate(270deg) scale(1);
+    }
+}
+
+@keyframes growing-circle {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes growing-line {
+    0% {
+        transform: translate(-50%, 0) scaleY(0);
+    }
+
+    100% {
+        transform: translate(-50%, 0) scaleY(1);
+    }
+}
+
+@keyframes growing-line-leaf {
+    0% {
+        transform: scale(0);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes growing-line-leaf-2 {
+    0% {
+        transform: rotate(180deg) scale(0);
+    }
+
+    100% {
+        transform: rotate(180deg) scale(1);
+    }
+}
+
+@keyframes light-fly {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-100px) scale(0.5);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-200px) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes grass-grow {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}

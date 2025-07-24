@@ -9,6 +9,7 @@ export function WelfareStatusCards() {
   // Count requests by status (new detailed statuses)
   const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
   const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
+  const pendingHRCount = requests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
   const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
   const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
@@ -20,6 +21,12 @@ export function WelfareStatusCards() {
         count={pendingManagerCount}
         status="pending_manager"
         icon={<Clipboard className="h-5 w-5" />}
+      />
+      <StatusCard
+        title="รอตรวจสอบโดย HR"
+        count={pendingHRCount}
+        status="pending_hr"
+        icon={<Clipboard className="h-5 w-5 text-amber-700" />}
       />
       <StatusCard
         title="รอตรวจสอบโดยบัญชี"

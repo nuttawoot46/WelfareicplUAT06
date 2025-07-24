@@ -8,30 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Search, Filter, FileText } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
-
 import { updatePDFWithSignature } from '@/utils/pdfUtils';
-
 import { supabase } from '@/lib/supabase';
 
-export const ApprovalPage = () => {
+export const HRApprovalPage = () => {
   const { user, profile, loading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
   const { updateRequestStatus, welfareRequests: allRequests } = useWelfare();
   const [isLoading, setIsLoading] = useState(false);
   const [managers, setManagers] = useState<{[key: string]: string}>({});
-  const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<WelfareRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
@@ -43,12 +39,10 @@ export const ApprovalPage = () => {
   const [isSignaturePopupOpen, setIsSignaturePopupOpen] = useState(false);
   const [pendingApprovalRequest, setPendingApprovalRequest] = useState<WelfareRequest | null>(null);
 
-
-
   useEffect(() => {
     if (isAuthLoading) return;
 
-    if (!user || (!['manager', 'admin', 'accountingandmanager'].includes(profile?.role))) {
+    if (!user || (!['hr', 'admin'].includes(profile?.role))) {
       addNotification({
         userId: user?.id || 'system',
         title: 'Access Denied',
@@ -56,46 +50,15 @@ export const ApprovalPage = () => {
         type: 'error',
       });
       navigate('/dashboard', { replace: true });
-    } else if (profile?.role === 'manager' && profile.employee_id) {
-      fetchTeamMemberIds(profile.employee_id);
-    } else if (profile?.role === 'admin') {
-      console.log('Admin user, will see all requests.');
     }
   }, [user, profile, isAuthLoading, navigate, addNotification]);
 
-  const fetchTeamMemberIds = async (managerId: number) => {
-    try {
-      console.log('Fetching team members for manager ID:', managerId);
-      const { data, error } = await supabase
-        .from('Employee')
-        .select('id')
-        .eq('manager_id', managerId);
-
-      if (error) {
-        console.error('Error fetching team members by manager ID:', error);
-        return;
-      }
-
-      if (data) {
-        const memberIds = data.map(member => member.id);
-        console.log('Team member IDs:', memberIds);
-        setTeamMemberIds(memberIds);
-      }
-    } catch (err) {
-      console.error('Failed to fetch team member IDs:', err);
-    }
-  };
-
-  // Filter requests that are pending manager approval or pending HR (to show history)
+  // Filter requests that are pending HR approval or pending accounting (to show history)
   const filteredRequests = useMemo(() => {
-    let base = allRequests;
-    if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
-      base = allRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
-    }
-    return base
+    return allRequests
       .filter((req: WelfareRequest) => {
-        // Show requests that are pending manager approval or pending HR (approved by manager)
-        const isRelevantStatus = req.status === 'pending_manager' || req.status === 'pending_hr';
+        // Show requests that are pending HR approval or pending accounting (approved by HR)
+        const isRelevantStatus = req.status === 'pending_hr' || req.status === 'pending_accounting';
         
         if (!isRelevantStatus) return false;
         
@@ -111,9 +74,8 @@ export const ApprovalPage = () => {
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm]);
+  }, [allRequests, statusFilter, dateFilter, searchTerm]);
 
-  // (ถ้ามี logic อื่นๆ ที่ต้องใช้ approverIds ให้คงไว้)
   useEffect(() => {
     const approverIds = allRequests
       .filter(req => req.approverId)
@@ -148,10 +110,6 @@ export const ApprovalPage = () => {
     }
   };
 
-
-
-
-
   const handleSelectRequest = (requestId: number) => {
     const newSelectedRequests = selectedRequests.includes(requestId)
       ? selectedRequests.filter(id => id !== requestId)
@@ -161,9 +119,7 @@ export const ApprovalPage = () => {
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
-      // Only select requests that are pending_manager (can be approved)
-      const selectableRequests = filteredRequests.filter(req => req.status === 'pending_manager');
-      setSelectedRequests(selectableRequests.map(req => req.id));
+      setSelectedRequests(filteredRequests.map(req => req.id));
     } else {
       setSelectedRequests([]);
     }
@@ -179,7 +135,7 @@ export const ApprovalPage = () => {
     setIsLoading(true);
     try {
       const requestsToApprove = filteredRequests.filter(req => 
-        selectedRequests.includes(req.id) && req.status === 'pending_manager'
+        selectedRequests.includes(req.id) && req.status === 'pending_hr'
       );
 
       if (requestsToApprove.length === 0) {
@@ -196,14 +152,14 @@ export const ApprovalPage = () => {
       const currentDateTime = new Date().toISOString();
       
       for (const req of requestsToApprove) {
-        // Update with Manager approval information
+        // Update with HR approval information
         const { error } = await supabase
           .from('welfare_requests')
           .update({
-            status: 'pending_hr',
-            manager_approver_id: user.id,
-            manager_approver_name: profile?.display_name || user.email,
-            manager_approved_at: currentDateTime
+            status: 'pending_accounting',
+            hr_approver_id: user.id,
+            hr_approver_name: profile?.display_name || user.email,
+            hr_approved_at: currentDateTime
           })
           .eq('id', req.id);
           
@@ -216,7 +172,7 @@ export const ApprovalPage = () => {
       addNotification({ 
         userId: user.id, 
         title: 'Success', 
-        message: 'Requests approved successfully and sent to HR.', 
+        message: 'Requests approved successfully and sent to Accounting.', 
         type: 'success' 
       });
       setSelectedRequests([]);
@@ -242,7 +198,7 @@ export const ApprovalPage = () => {
     setIsLoading(true);
     try {
       const requestsToReject = filteredRequests.filter(req => 
-        selectedRequests.includes(req.id) && req.status === 'pending_manager'
+        selectedRequests.includes(req.id) && req.status === 'pending_hr'
       );
 
       if (requestsToReject.length === 0) {
@@ -258,9 +214,9 @@ export const ApprovalPage = () => {
       }
 
       for (const req of requestsToReject) {
-        await updateRequestStatus(req.id, 'rejected_manager', rejectionReason);
+        await updateRequestStatus(req.id, 'rejected_hr', rejectionReason);
       }
-      // Note: The state will be updated automatically by the context
+      
       addNotification({ 
         userId: user.id, 
         title: 'Success', 
@@ -307,15 +263,15 @@ export const ApprovalPage = () => {
     try {
       const currentDateTime = new Date().toISOString();
       
-      // Update with Manager approval information and signature
+      // Update with HR approval information and signature
       const { error } = await supabase
         .from('welfare_requests')
         .update({
-          status: 'pending_hr',
-          manager_approver_id: user.id,
-          manager_approver_name: profile?.display_name || user.email,
-          manager_approved_at: currentDateTime,
-          manager_signature: signature,
+          status: 'pending_accounting',
+          hr_approver_id: user.id,
+          hr_approver_name: profile?.display_name || user.email,
+          hr_approved_at: currentDateTime,
+          hr_signature: signature,
           updated_at: currentDateTime
         })
         .eq('id', pendingApprovalRequest.id);
@@ -325,20 +281,41 @@ export const ApprovalPage = () => {
         throw error;
       }
       
-      // Generate updated PDF with manager signature
+      // Fetch the latest request data to get the manager signature
+      const { data: latestRequestData, error: fetchError } = await supabase
+        .from('welfare_requests')
+        .select('*')
+        .eq('id', pendingApprovalRequest.id)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching latest request data:', fetchError);
+      }
+      
+      // Generate PDF with both manager and HR signatures (pending accounting approval)
       const updatedRequest = {
         ...pendingApprovalRequest,
-        status: 'pending_hr' as const,
-        managerApproverName: profile?.display_name || user.email,
-        managerApprovedAt: currentDateTime,
-        managerSignature: signature
+        status: 'pending_accounting' as const,
+        hrApproverName: profile?.display_name || user.email,
+        hrApprovedAt: currentDateTime,
+        hrSignature: signature,
+        managerSignature: latestRequestData?.manager_signature || pendingApprovalRequest.managerSignature
       };
       
-      // Use new PDF manager to add signature
+      console.log('HR Approval - Updated request with signatures:', {
+        managerSignature: updatedRequest.managerSignature ? 'Present' : 'Missing',
+        hrSignature: updatedRequest.hrSignature ? 'Present' : 'Missing',
+        managerSignatureLength: updatedRequest.managerSignature?.length || 0,
+        hrSignatureLength: updatedRequest.hrSignature?.length || 0,
+        latestRequestManagerSignature: latestRequestData?.manager_signature ? 'Present' : 'Missing',
+        pendingRequestManagerSignature: pendingApprovalRequest.managerSignature ? 'Present' : 'Missing'
+      });
+      
+      // Use new PDF manager to add HR signature
       const { addSignatureToPDF } = await import('@/utils/pdfManager');
       await addSignatureToPDF(
         pendingApprovalRequest.id,
-        'manager',
+        'hr',
         signature,
         profile?.display_name || user.email
       );
@@ -346,7 +323,7 @@ export const ApprovalPage = () => {
       addNotification({ 
         userId: user.id, 
         title: 'Success', 
-        message: 'Request approved successfully with signature and sent to HR.', 
+        message: 'Request approved successfully with signature and sent to Accounting for final approval.', 
         type: 'success' 
       });
       
@@ -370,8 +347,8 @@ export const ApprovalPage = () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      await updateRequestStatus(requestId, 'rejected_manager', comment);
-      // Note: The state will be updated automatically by the context
+      await updateRequestStatus(requestId, 'rejected_hr', comment);
+      
       addNotification({ 
         userId: user.id, 
         title: 'Success', 
@@ -398,12 +375,12 @@ export const ApprovalPage = () => {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-4">Manager Approval Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">HR Approval Dashboard</h1>
       
       <Card>
         <CardHeader>
           <CardTitle>
-            <span>Manager Approval Dashboard - Pending & Approved Requests</span>
+            <span>HR Approval Dashboard - Pending & Approved Requests</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -422,20 +399,12 @@ export const ApprovalPage = () => {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                     <Filter className="mr-2 h-4 w-4" />
-                    <span>Filter by status, date</span>
+                    <span>Filter by date</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <div className="p-4">
                     <h4 className="font-medium mb-2">Filters</h4>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                                                                                              </SelectContent>
-                    </Select>
                     <div className="mt-4">
                       <Popover>
                         <PopoverTrigger asChild>
@@ -497,9 +466,9 @@ export const ApprovalPage = () => {
                 <TableHead>Welfare Type</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Submission Date</TableHead>
+                <TableHead>Approve by</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Attachment</TableHead>
-                
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -508,11 +477,10 @@ export const ApprovalPage = () => {
                 <TableRow key={req.id}>
                   <TableCell>
                     <Checkbox 
-                    onCheckedChange={() => handleSelectRequest(req.id)}
-                    checked={selectedRequests.includes(req.id)}
-                    aria-label={`Select request ${req.id}`}
-                    disabled={req.status !== 'pending_manager'}
-                  />
+                      onCheckedChange={() => handleSelectRequest(req.id)}
+                      checked={selectedRequests.includes(req.id)}
+                      aria-label={`Select request ${req.id}`}
+                    />
                   </TableCell>
                   <TableCell>{req.userName}</TableCell>
                   <TableCell>{req.userDepartment || '-'}</TableCell>
@@ -520,17 +488,23 @@ export const ApprovalPage = () => {
                   <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
                   <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
                   <TableCell>
-                    {req.status === 'pending_manager' ? (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                        Pending Manager
-                      </Badge>
-                    ) : req.status === 'pending_hr' ? (
+                    <div className="text-sm">
+                      <div>{req.managerApproverName}</div>
+                      {req.managerApprovedAt && (
+                        <div className="text-xs text-gray-500">
+                          {format(new Date(req.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {req.status === 'pending_hr' ? (
                       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                         Pending HR
                       </Badge>
-                    ) : req.status === 'rejected_manager' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected
+                    ) : req.status === 'pending_accounting' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        Pending Accounting
                       </Badge>
                     ) : (
                       <Badge variant="outline">
@@ -559,7 +533,6 @@ export const ApprovalPage = () => {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
                   </TableCell>
@@ -567,39 +540,62 @@ export const ApprovalPage = () => {
               ))}
             </TableBody>
           </Table>
+
+          {filteredRequests.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No requests pending HR approval at this time.
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Request Details</DialogTitle>
+              <DialogTitle>Request Details - HR Review</DialogTitle>
             </DialogHeader>
             <div>
-              <div className="space-y-2">
-                <p><strong>Employee:</strong> {selectedRequest.userName}</p>
-                <p><strong>Department:</strong> {selectedRequest.userDepartment}</p>
-                <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
-                <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
-                <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
-                <p><strong>Status:</strong> {selectedRequest.status}</p>
-                <p><strong>Approved By:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'Not approved yet'}</p>
-                <p><strong>Details:</strong> {selectedRequest.details}</p>
-                <p><strong>Title:</strong> {selectedRequest.title}</p>
-                <p><strong>Attachment:</strong> {selectedRequest.attachments && selectedRequest.attachments[0] ? (<a href={selectedRequest.attachments[0]} target="_blank" rel="noopener noreferrer">View Attachment</a>) : 'No attachment'}</p>
-                <p><strong>Attachment:</strong> {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
-                  <span className="flex flex-wrap gap-2">
-                    {selectedRequest.attachments.map((file, idx) => (
-                      <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                        <FileText className="h-4 w-4" />
-                        <span>ไฟล์ {idx + 1}</span>
-                      </a>
-                    ))}
-                  </span>
-                ) : 'No attachment'}</p>
-                <p><strong>Manager Notes:</strong> {selectedRequest.notes}</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p><strong>Employee:</strong> {selectedRequest.userName}</p>
+                    <p><strong>Department:</strong> {selectedRequest.userDepartment}</p>
+                    <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
+                    <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
+                  </div>
+                  <div>
+                    <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
+                    <p><strong>Status:</strong> {selectedRequest.status}</p>
+                    <p><strong>Manager Approved By:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'Not approved yet'}</p>
+                  </div>
+                </div>
                 
+                <div>
+                  <p><strong>Title:</strong> {selectedRequest.title}</p>
+                  <p><strong>Details:</strong> {selectedRequest.details}</p>
+                </div>
+
+                <div>
+                  <p><strong>Attachments:</strong></p>
+                  {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedRequest.attachments.map((file, idx) => (
+                        <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                          <FileText className="h-4 w-4" />
+                          <span>ไฟล์ {idx + 1}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">No attachments</span>
+                  )}
+                </div>
+
+                <div>
+                  <p><strong>Manager Notes:</strong> {selectedRequest.notes || 'No notes from manager'}</p>
+                </div>
+
                 {/* PDF Download Button */}
                 <div className="mt-4">
                   <Button 
@@ -610,14 +606,14 @@ export const ApprovalPage = () => {
                     }}
                     className="mb-4"
                   >
-                    Download PDF
+                    Download Current PDF
                   </Button>
                 </div>
-                
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Rejection Reason (if applicable):</p>
+
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium mb-2">HR Review Notes (optional):</p>
                   <Input 
-                    placeholder="Enter reason for rejection..." 
+                    placeholder="Enter HR review notes or rejection reason..." 
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                   />
@@ -627,20 +623,18 @@ export const ApprovalPage = () => {
             <DialogFooter>
               <Button 
                 onClick={() => {
-                  console.log('Approve button clicked for request:', selectedRequest);
+                  console.log('HR Approve button clicked for request:', selectedRequest);
                   handleApprove(selectedRequest.id);
                 }}
-                disabled={selectedRequest.status !== 'pending_manager'}
                 className="bg-green-600 hover:bg-green-700"
               >
-                Approve
+                Approve & Send to Accounting
               </Button>
               <Button 
                 variant="destructive" 
                 onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                disabled={selectedRequest.status !== 'pending_manager'}
               >
-                Reject
+                Reject Request
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -650,16 +644,16 @@ export const ApprovalPage = () => {
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogTitle>Confirm Bulk Rejection</DialogTitle>
           </DialogHeader>
           <p>Please provide a reason for rejecting the selected requests.</p>
           <Input 
             value={rejectionReason} 
             onChange={(e) => setRejectionReason(e.target.value)} 
-            placeholder="Rejection reason..."
+            placeholder="HR rejection reason..."
           />
           <DialogFooter>
-            <Button onClick={confirmRejection}>Confirm</Button>
+            <Button onClick={confirmRejection} variant="destructive">Confirm Rejection</Button>
             <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
@@ -673,7 +667,7 @@ export const ApprovalPage = () => {
           setPendingApprovalRequest(null);
         }}
         onSave={handleSignatureComplete}
-        title="ลงลายเซ็นอนุมัติ"
+        title="ลงลายเซ็นอนุมัติ HR"
         approverName={profile?.display_name || user?.email || ''}
       />
     </Layout>

@@ -35,7 +35,17 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const { data, error } = await supabase
           .from('welfare_requests')
-          .select('*, Employee:employee_id ( Team )');
+          .select(`
+            *,
+            Employee!employee_id (
+              Team,
+              Name
+            )
+          `);
+        
+        console.log('WelfareContext - Fetched data:', data);
+        console.log('WelfareContext - Error:', error);
+        
         if (error) {
           toast({ title: 'โหลดข้อมูลล้มเหลว', description: error.message, variant: 'destructive' });
         } else {
@@ -56,7 +66,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               return {
                 id: row.id,
                 userId: row.employee_id?.toString(),
-                userName: row.employee_name || '',
+                userName: row.employee_name || row.Employee?.Name || '',
                 userDepartment: row.Employee?.Team || '',
                 type: row.request_type,
                 status: row.status?.toLowerCase() || 'pending',
@@ -67,9 +77,17 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 createdAt: row.created_at,
                 updatedAt: row.updated_at,
                 title: row.title,
-                approverId: row.approver_id,
+                approverId: row.manager_approver_id || row.approver_id,
                 notes: row.manager_notes || '',
                 managerId: row.manager_id?.toString(),
+                // เพิ่มข้อมูล approval
+                managerApproverName: row.manager_approver_name,
+                managerApprovedAt: row.manager_approved_at,
+                hrApproverId: row.hr_approver_id,
+                hrApproverName: row.hr_approver_name,
+                hrApprovedAt: row.hr_approved_at,
+                // ลายเซ็นดิจิทัล
+                userSignature: row.user_signature,
               };
             })
           );
@@ -217,6 +235,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         course_name: requestData.course_name,
         organizer: requestData.organizer,
         department_user: requestData.department_user,
+        user_signature: requestData.userSignature, // บันทึกลายเซ็น
       };
       // ป้องกัน id ติดไปกับ insert object
       if ('id' in requestDataObj) delete requestDataObj.id;
@@ -283,9 +302,29 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     try {
       const updateObj: any = { status };
+      const currentDateTime = new Date().toISOString();
 
-      if (user?.id) updateObj.approver_id = user.id;
-      updateObj.approver_at = new Date().toISOString();
+      // Get employee data from profile instead of using UUID
+      if (user?.id) {
+        // Fetch employee data from Employee table
+        const { data: employeeData } = await supabase
+          .from('Employee')
+          .select('id, Name')
+          .eq('auth_uid', user.id)
+          .single();
+        
+        if (employeeData) {
+          // Legacy fields for backward compatibility
+          updateObj.approver_id = employeeData.id;
+          updateObj.approver_at = currentDateTime;
+          
+          // New Manager approval fields
+          updateObj.manager_approver_id = employeeData.id; // Employee ID (integer)
+          updateObj.manager_approver_name = employeeData.Name;
+          updateObj.manager_approved_at = currentDateTime;
+        }
+      }
+      
       if (comment) updateObj.manager_notes = comment;
       
       const { data, error } = await supabase
@@ -305,7 +344,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
             status, 
             notes: comment,
             manager_notes: comment,
-            approverId: user?.id 
+            approverId: updateObj.approver_id?.toString() || user?.id 
           } : req
         );
       });

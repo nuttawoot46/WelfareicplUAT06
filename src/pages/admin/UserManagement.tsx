@@ -176,6 +176,10 @@ export const UserManagement = () => {
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="accounting">Accounting</SelectItem>
+                    <SelectItem value="accountingandmanager">AccountingAndManager</SelectItem>
+
                 </SelectContent>
             </Select>
         );

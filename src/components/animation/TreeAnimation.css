@@ -1,0 +1,957 @@
+/* Tree Animation CSS - Converted from SCSS */
+:root {
+  --bg: #D9E0E7;
+  --grass: #A0BE38;
+  --tree-body: #91633F;
+  --tree-top: #EAD292;
+  --tree-shade: #6C4B35;
+  --tree-shade2: #C29C57;
+  --tree-shade3: #AB814E;
+  --tree-shade4: #855737;
+  --tree-trunk: #6D4B36;
+  --tree-eye: #392F21;
+  --tree-brows: #6C4B31;
+  --stem: #7C9A2C;
+  --stem-shadow: #678127;
+  --stem-light: #A0BE38;
+  --petal-pink: #E274A4;
+  --petal-pink-shadow: #B75379;
+  --petal-orange: #E07335;
+  --petal-yellow: #ECC33F;
+  --petal-yellow-shade: #E19C34;
+  --bird-body: #89ADBB;
+  --bird-tail: #59718B;
+  --bird-head: #D0DFE2;
+}
+
+/* Global styles */
+body { 
+  overflow-x: hidden; 
+}
+
+.tree-animation-canvas {
+  width: 400px;
+  height: 250px;
+  margin: 20px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.tree-animation-canvas .grass {
+  background-color: var(--grass);
+  height: 8px;
+  width: 225px;
+  z-index: 10;
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+}
+
+.tree-animation-canvas .tree {
+  margin: auto;
+  position: relative;
+  background-color: var(--tree-body);
+  height: 52px;
+  width: 50px;
+  top: 170px;
+}
+
+.tree-animation-canvas .tree:before {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 20px;
+  height: 15px;
+  z-index: 4;
+  bottom: 2px;
+  left: 15px;
+  background: var(--tree-body);
+}
+
+.tree-animation-canvas .tree__top {
+  margin: auto;
+  position: relative;
+  height: 6px;
+  background: var(--tree-top);
+  width: 60px;
+  left: -5px;
+  top: -5px;
+  border-radius: 5px 5px 0 0;
+  z-index: 4;
+}
+
+.tree-animation-canvas .tree__top:after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 5px;
+  width: 50px;
+  background: var(--tree-body);
+  height: 5px;
+  top: 6px;
+  z-index: 3;
+}
+
+.tree-animation-canvas .tree__face {
+  margin: auto;
+  position: relative;
+  top: 3px;
+  z-index: 3;
+}
+
+.tree-animation-canvas .tree__leye {
+  position: absolute;
+  height: 5px;
+  width: 5px;
+  background-color: var(--tree-eye);
+  top: 7px;
+  left: 30%;
+  border-radius: 100%;
+}
+
+.tree-animation-canvas .tree__leye:after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 4px;
+  width: 12px;
+  top: -8px;
+  left: -5px;
+  background: var(--tree-brows);
+  border-radius: 10px;
+}
+
+.tree-animation-canvas .tree__reye {
+  height: 5px;
+  width: 5px;
+  background-color: var(--tree-eye);
+  position: absolute;
+  top: 7px;
+  left: 60%;
+  border-radius: 100%;
+}
+
+.tree-animation-canvas .tree__reye:after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 4px;
+  width: 12px;
+  top: -8px;
+  left: -2px;
+  background: var(--tree-brows);
+  border-radius: 10px;
+}
+
+.tree-animation-canvas .tree__mouth {
+  height: 25px;
+  width: 10px;
+  top: -9px;
+  border-radius: 15px;
+  margin: auto;
+  position: relative;
+  border: solid 2px var(--tree-shade);
+  border-color: transparent transparent var(--tree-shade) transparent;
+}
+
+.tree-animation-canvas .tree__mouth:before {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 2px;
+  background: var(--tree-shade);
+  border-radius: 50%;
+  top: 23px;
+  left: -4px;
+  margin: auto;
+  position: relative;
+}
+
+.tree-animation-canvas .tree__mouth:after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 2px;
+  background: var(--tree-shade);
+  border-radius: 50%;
+  top: 20px;
+  left: 4px;
+  margin: auto;
+  position: relative;
+}
+
+.tree-animation-canvas .flowers {
+  margin: auto;
+  position: relative;
+}
+
+.tree-animation-canvas .flowers__pink {
+  margin: auto;
+  position: relative;
+  left: 37.6%;
+  top: 125px;
+}
+
+.tree-animation-canvas .flowers__pink .flowers__stem {
+  position: absolute;
+  height: 40px;
+  width: 40px;
+  top: 1px;
+  border: solid 5px;
+  border-color: transparent transparent var(--stem) var(--stem);
+  border-radius: 22%;
+}
+
+.tree-animation-canvas .flowers__pink .flowers__stem:before {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 5px;
+  width: 5px;
+  background: var(--stem-shadow);
+  top: 12px;
+  left: -5px;
+}
+
+.tree-animation-canvas .flowers__pink .flowers__stem:after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 7px;
+  width: 9px;
+  background: var(--stem-shadow);
+  top: 46px;
+  left: 9px;
+  border-radius: 50px 0px;
+}
+
+.tree-animation-canvas .flowers__pink .flowers__petals {
+  z-index: 0;
+  position: absolute;
+  height: 15px;
+  width: 15px;
+  top: 1px;
+  left: -4px;
+  background: #9D416D;
+  border-radius: 50px 0px;
+  transform: rotate(-40deg);
+}
+
+.tree-animation-canvas .flowers__pink .flowers__petals:before {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  background: var(--petal-pink);
+  border-radius: 5px 50px 5px 50px;
+  left: -4px;
+  top: -4px;
+  transform: rotate(50deg);
+}
+
+.tree-animation-canvas .flowers__pink .flowers__petals:after {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  left: 3px;
+  top: 3px;
+  background: var(--petal-pink-shadow);
+  border-radius: 50px 5px 50px 5px;
+  transform: rotate(38deg);
+}
+
+.tree-animation-canvas .flowers__pink .flowers__dot1 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -6px;
+  left: -3px;
+}
+
+.tree-animation-canvas .flowers__pink .flowers__dot2 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -6px;
+  left: 7px;
+}
+
+.tree-animation-canvas .flowers__blue {
+  margin: auto;
+  position: relative;
+  left: 44.5%;
+  top: 107px;
+}
+
+.tree-animation-canvas .flowers__blue .flowers__stem {
+  position: absolute;
+  height: 57px;
+  width: 5px;
+  background: var(--stem);
+  box-shadow: 5px 42px 0px 0px var(--stem-shadow);
+}
+
+.tree-animation-canvas .flowers__blue .flowers__stem:before {
+  z-index: 2;
+  content: '';
+  display: block;
+  position: absolute;
+  height: 5px;
+  width: 5px;
+  background: var(--stem-shadow);
+  top: 5px;
+  left: 0;
+}
+
+.tree-animation-canvas .flowers__blue .flowers__stem:after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 7px;
+  width: 9px;
+  background: var(--petal-orange);
+  top: 49px;
+  left: -15px;
+  border-radius: 0px 50px;
+}
+
+.tree-animation-canvas .flowers__blue .flowers__petals {
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  background: #8FC9FC;
+  border-radius: 5px 50px 5px 50px;
+  left: -11px;
+  top: -12px;
+}
+
+.tree-animation-canvas .flowers__blue .flowers__petals:before {
+  content: '';
+  display: block;
+  z-index: 2;
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  top: 0px;
+  left: 5px;
+  background: #6AA4EE;
+  border-radius: 40px 5px 40px 15px;
+  transform: rotate(-45deg);
+}
+
+.tree-animation-canvas .flowers__blue .flowers__petals:after {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  left: 13px;
+  top: 0px;
+  background: #5D89E6;
+  border-radius: 50px 5px;
+}
+
+/* Orange Flower */
+.tree-animation-canvas .flowers__orange {
+  margin: auto;
+  position: relative;
+  left: 50%;
+  top: 135px;
+}
+
+.tree-animation-canvas .flowers__orange .flowers__stem {
+  position: absolute;
+  height: 30px;
+  width: 5px;
+  background: var(--stem);
+  box-shadow: 7px 21px 0px 3px var(--stem-light);
+}
+
+.tree-animation-canvas .flowers__orange .flowers__stem:before {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 5px;
+  width: 5px;
+  background: var(--stem-shadow);
+  top: 5px;
+  left: 0;
+}
+
+.tree-animation-canvas .flowers__orange .flowers__stem:after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 5px;
+  width: 10px;
+  background: var(--stem);
+  top: 25px;
+  left: -10px;
+}
+
+.tree-animation-canvas .flowers__orange .flowers__petals {
+  z-index: 0;
+  position: absolute;
+  height: 15px;
+  width: 15px;
+  top: -13px;
+  left: -5px;
+  background: #B15422;
+  border-radius: 50px 0px;
+  transform: rotate(-45deg);
+}
+
+.tree-animation-canvas .flowers__orange .flowers__petals:before {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  background: var(--petal-orange);
+  border-radius: 5px 50px 5px 50px;
+  left: -4px;
+  top: -4px;
+  transform: rotate(50deg);
+}
+
+.tree-animation-canvas .flowers__orange .flowers__petals:after {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  left: 3px;
+  top: 3px;
+  background: #D16126;
+  border-radius: 50px 5px 50px 5px;
+  transform: rotate(38deg);
+}
+
+/* Yellow Flower */
+.tree-animation-canvas .flowers__yellow {
+  margin: auto;
+  position: relative;
+  left: 42.6%;
+  top: 130px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__stem {
+  position: absolute;
+  height: 40px;
+  width: 12px;
+  border: solid 5px;
+  border-color: var(--stem-light) var(--stem-light) transparent transparent;
+  border-radius: 0px 50px 50px 50px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__stem:before {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 15px;
+  width: 7px;
+  border: solid 5px;
+  border-color: var(--stem-light) transparent var(--stem-light) var(--stem-light);
+  border-radius: 50px 0px 0px 50px;
+  top: -25px;
+  left: -11px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__stem:after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 25px;
+  width: 20px;
+  border: solid 5px;
+  border-color: transparent var(--stem) var(--stem) transparent;
+  border-radius: 0px 0px 15px 0px;
+  top: -55px;
+  left: 1px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__petals {
+  z-index: 0;
+  position: absolute;
+  height: 15px;
+  width: 15px;
+  top: -60px;
+  left: 26px;
+  background: #C37A28;
+  border-radius: 50px 0px;
+  transform: rotate(-45deg);
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__petals:before {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  background: var(--petal-yellow);
+  border-radius: 5px 50px 5px 50px;
+  left: -4px;
+  top: -4px;
+  transform: rotate(50deg);
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__petals:after {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  left: 3px;
+  top: 3px;
+  background: var(--petal-yellow-shade);
+  border-radius: 50px 5px 50px 5px;
+  transform: rotate(38deg);
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__dot1 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -67px;
+  left: 25px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__dot2 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -67px;
+  left: 37px;
+}
+
+.tree-animation-canvas .flowers__yellow .flowers__dot3 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -72px;
+  left: 31px;
+}
+
+/* Yellow Flower 2 */
+.tree-animation-canvas .flowers__yellow2 {
+  margin: auto;
+  position: relative;
+  left: 56%;
+  top: 155px;
+}
+
+.tree-animation-canvas .flowers__yellow2 .flowers__stem {
+  z-index: 1;
+  position: absolute;
+  height: 15px;
+  width: 4px;
+  background: var(--stem-shadow);
+  transform: rotate(45deg);
+}
+
+.tree-animation-canvas .flowers__yellow2 .flowers__petals {
+  background: linear-gradient(to right, var(--petal-yellow) 0%, var(--petal-yellow) 50%, var(--petal-yellow-shade) 50%, var(--petal-yellow-shade) 100%);
+  position: absolute;
+  height: 17px;
+  width: 11px;
+  top: -12px;
+  left: 7px;
+  border-radius: 100% 100% 100% 100%;
+  transform: rotate(45deg);
+}
+
+/* Purple Flower */
+.tree-animation-canvas .flowers__purple {
+  margin: auto;
+  position: relative;
+  left: 53.8%;
+  top: 135px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__stem {
+  position: absolute;
+  height: 30px;
+  width: 2px;
+  border: solid 5px;
+  border-color: transparent transparent transparent var(--stem-shadow);
+  border-radius: 10px 0px 0px 0px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__stem:before {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 20px;
+  width: 2px;
+  border: solid 5px;
+  border-color: transparent var(--stem-shadow) transparent transparent;
+  border-radius: 0px 0px 10px 0px;
+  top: -29px;
+  left: -2px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__stem:after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 7px;
+  width: 9px;
+  background: var(--stem);
+  top: -16px;
+  left: 11px;
+  border-radius: 50px 0px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__petals {
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  background: #AE6CC8;
+  border-radius: 5px 50px 5px 50px;
+  left: -1px;
+  top: -35px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__petals:before {
+  content: '';
+  display: block;
+  z-index: 2;
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  top: 0px;
+  left: 5px;
+  background: #8855C1;
+  border-radius: 40px 5px 40px 15px;
+  transform: rotate(-45deg);
+}
+
+.tree-animation-canvas .flowers__purple .flowers__petals:after {
+  content: '';
+  display: block;
+  z-index: 1;
+  position: absolute;
+  height: 17px;
+  width: 12px;
+  left: 13px;
+  top: 0px;
+  background: #6A43A9;
+  border-radius: 50px 5px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__dot1 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -44px;
+  left: 4px;
+}
+
+.tree-animation-canvas .flowers__purple .flowers__dot2 {
+  height: 5px;
+  width: 5px;
+  background: var(--bird-head);
+  position: absolute;
+  border-radius: 50%;
+  top: -44px;
+  left: 15px;
+}
+
+.tree-animation-canvas .bees {
+  position: relative;
+  left: 50%;
+}
+
+.tree-animation-canvas .bees__1 {
+  height: 7px;
+  width: 11px;
+  border-radius: 22%;
+  background: var(--petal-yellow);
+  position: absolute;
+  left: -52px;
+  top: 105px;
+  transform: rotate(40deg);
+}
+
+.tree-animation-canvas .bees__1:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 4px;
+  width: 7px;
+  background: #51524C;
+  transform: rotate(-90deg);
+  top: 1px;
+  left: 2px;
+}
+
+.tree-animation-canvas .bees__2 {
+  height: 7px;
+  width: 11px;
+  border-radius: 21%;
+  background: var(--petal-yellow);
+  position: absolute;
+  left: -40px;
+  top: 70px;
+}
+
+.tree-animation-canvas .bees__2:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 7px;
+  width: 4px;
+  background: #51524C;
+  left: 3px;
+}
+
+.tree-animation-canvas .bees__3 {
+  height: 7px;
+  width: 11px;
+  border-radius: 22%;
+  background: var(--petal-yellow);
+  position: absolute;
+  left: 27px;
+  top: 75px;
+}
+
+.tree-animation-canvas .bees__3:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 4px;
+  width: 7px;
+  background: #51524C;
+  transform: rotate(-90deg);
+  top: 1px;
+  left: 2px;
+}
+
+.tree-animation-canvas .bird {
+  z-index: -2;
+  height: 25px;
+  width: 25px;
+  position: relative;
+  margin: auto;
+  left: 60px;
+  top: 94px;
+}
+
+.tree-animation-canvas .bird__head {
+  z-index: 1;
+  position: relative;
+  margin: auto;
+  top: 1px;
+  height: 7px;
+  width: 6px;
+  background: var(--bird-head);
+}
+
+.tree-animation-canvas .bird__body {
+  position: relative;
+  margin: auto;
+  height: 20px;
+  width: 14px;
+  background: var(--bird-body);
+  border-radius: 100%;
+}
+
+.tree-animation-canvas .bird__body:before {
+  height: 4px;
+  width: 4px;
+  background: var(--bird-tail);
+  border-radius: 100%;
+  content: '';
+  display: block;
+  position: relative;
+  top: 4px;
+  left: 5px;
+}
+
+.tree-animation-canvas .bird__body:after {
+  height: 0;
+  width: 0;
+  content: '';
+  display: block;
+  position: relative;
+  top: 5px;
+  left: 4px;
+  border-width: 3px;
+  border-style: solid;
+  border-color: var(--bird-tail) transparent transparent transparent;
+}
+
+.tree-animation-canvas .bird__tail {
+  z-index: -1;
+  background: var(--bird-tail);
+  position: relative;
+  margin: auto;
+  height: 10px;
+  width: 9px;
+  top: -2px;
+}
+
+.tree-animation-canvas .bird__note1 {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--bird-head);
+  border-radius: 50%;
+  left: 25px;
+  top: -5px;
+}
+
+.tree-animation-canvas .bird__note1:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 5px;
+  width: 1px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -3px;
+}
+
+.tree-animation-canvas .bird__note1:after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 3px;
+  width: 5px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -10px;
+}
+
+.tree-animation-canvas .bird__note2 {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--bird-head);
+  border-radius: 50%;
+  left: 7px;
+  top: -14px;
+}
+
+.tree-animation-canvas .bird__note2:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 5px;
+  width: 1px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -3px;
+}
+
+.tree-animation-canvas .bird__note2:after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 3px;
+  width: 5px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -10px;
+}
+
+.tree-animation-canvas .bird__note3 {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--bird-head);
+  border-radius: 50%;
+  left: 12px;
+  top: -4px;
+}
+
+.tree-animation-canvas .bird__note3:before {
+  content: '';
+  display: block;
+  position: relative;
+  height: 5px;
+  width: 1px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -3px;
+}
+
+.tree-animation-canvas .bird__note3:after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 3px;
+  width: 5px;
+  background: var(--bird-head);
+  left: 3px;
+  top: -10px;
+}
+
+/* Animation keyframes */
+@keyframes fadeFlowers {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.1; }
+}
+
+@keyframes bee1Movement {
+  0% { transform: translate(0, 0) rotate(40deg); }
+  25% { transform: translate(-15px, -15px) rotate(-20deg); }
+  50% { transform: translate(-30px, 0) rotate(-120deg); }
+  100% { transform: translate(30px, 0) rotate(-180deg); }
+}
+
+@keyframes bee2Movement {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(5px, 15px) rotate(45deg); }
+}
+
+@keyframes birdNotes {
+  0% { opacity: 1; transform: translate(0, 0); }
+  100% { opacity: 0; transform: translate(15px, -10px); }
+}
+
+/* Apply animations */
+.tree-animation-canvas .flowers__dot1,
+.tree-animation-canvas .flowers__dot2,
+.tree-animation-canvas .flowers__dot3 {
+  animation: fadeFlowers 4s infinite;
+}
+
+.tree-animation-canvas .bees__1 {
+  animation: bee1Movement 2s infinite;
+}
+
+.tree-animation-canvas .bees__2 {
+  animation: bee2Movement 4s infinite;
+}
+
+.tree-animation-canvas .bird__note1,
+.tree-animation-canvas .bird__note2,
+.tree-animation-canvas .bird__note3 {
+  animation: birdNotes 3s infinite 0.5s;
+}

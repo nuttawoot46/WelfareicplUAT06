@@ -96,6 +96,8 @@ const getStatusText = (status: string) => {
   switch (status.toLowerCase()) {
     case 'pending_manager':
       return 'รออนุมัติโดยหัวหน้า';
+    case 'pending_hr':
+      return 'รอตรวจสอบโดย HR';     
     case 'pending_accounting':
       return 'รอตรวจสอบโดยบัญชี';
     case 'completed':
@@ -114,6 +116,8 @@ const getStatusClass = (status: string) => {
   switch (status.toLowerCase()) {
     case 'pending_manager':
       return 'bg-yellow-100 text-yellow-800';
+    case 'pending_hr':
+      return 'bg-amber-200 text-amber-900';      
     case 'pending_accounting':
       return 'bg-amber-200 text-amber-900';
     case 'completed':

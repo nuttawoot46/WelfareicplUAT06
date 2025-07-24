@@ -15,6 +15,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
 import LoadingPopup from './LoadingPopup';
+import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
+import { uploadPDFToSupabase } from '@/utils/pdfUtils';
+import { DigitalSignature } from '../signature/DigitalSignature';
 
 interface WelfareFormProps {
   type: WelfareType;
@@ -31,6 +34,7 @@ interface FormValues {
   details: string;
 
   birthType?: 'natural' | 'caesarean';
+  funeralType?: 'employee_spouse' | 'child' | 'parent';
   attachments?: FileList;
   trainingTopics?: { value: string }[];
   totalAmount?: number;
@@ -42,6 +46,7 @@ interface FormValues {
   employeePayment?: number;
   courseName?: string;
   organizer?: string;
+  isVatIncluded?: boolean; // เพิ่ม field สำหรับ checkbox
 }
 
 // Helper to get form title by welfare type
@@ -56,7 +61,7 @@ const getFormTitle = (type: WelfareType): string => {
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
   };
-  
+
   return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
 };
 
@@ -80,25 +85,55 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const [isMonthly, setIsMonthly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeBudget, setEmployeeBudget] = useState<number | null>(null);
-  
-  const { 
-    register, 
-    handleSubmit, 
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [userSignature, setUserSignature] = useState<string>('');
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [employeeData, setEmployeeData] = useState<any>(null);
+
+  const {
+    register,
+    handleSubmit,
     reset,
     watch,
     setValue,
     control,
-    formState: { errors } 
+    formState: { errors }
   } = useForm<FormValues>({
     defaultValues: {
       trainingTopics: [{ value: '' }, { value: '' }]
     }
   });
 
+  const isVatIncluded = watch('isVatIncluded');
+
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "trainingTopics"
   });
+
+  // Fetch employee data when component mounts
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      if (!user?.email) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('Employee')
+          .select('id, Name, Position, Team')
+          .eq('email_user', user.email)
+          .single();
+
+        if (!error && data) {
+          setEmployeeData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching employee data:', error);
+      }
+    };
+
+    fetchEmployeeData();
+  }, [user?.email]);
 
   // 1. ตั้งค่าขีดจำกัดและเงื่อนไขของสวัสดิการตาม type ทุกครั้งที่ type หรือ user เปลี่ยน
   useEffect(() => {
@@ -147,16 +182,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             endDate: data.end_date || '',
             totalDays: data.total_days || 0,
             birthType: data.birth_type || '',
+            funeralType: data.funeral_type || '',
             trainingTopics: data.training_topics ? JSON.parse(data.training_topics) : [],
             totalAmount: data.total_amount || 0,
             tax7Percent: data.tax7_percent || 0,
             withholdingTax3Percent: data.withholding_tax3_percent || 0,
-            netAmount: data.amount || 0,
+            netAmount: data.net_amount || data.amount || 0,
             excessAmount: data.excess_amount || 0,
             companyPayment: data.company_payment || 0,
             employeePayment: data.employee_payment || 0,
             courseName: data.course_name || '',
             organizer: data.organizer || '',
+            isVatIncluded: data.is_vat_included || false,
           });
           // Attachments
           if (data.attachment_url) {
@@ -181,7 +218,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
   // For childbirth form
   const birthType = watch('birthType');
-  
+
   // Update amount when birth type changes
   useEffect(() => {
     if (type === 'childbirth' && birthType) {
@@ -190,10 +227,27 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [birthType, type, setValue]);
 
+  // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยนสถานะ isVatIncluded หรือ amount
+  useEffect(() => {
+    const amount = watch('amount');
+    if (type === 'training') {
+      // สมมติว่า remainingBudget ใช้ trainingBudget
+      const remainingBudget = trainingBudget ?? 0;
+      if (amount !== undefined && amount !== null && amount !== '') {
+        calculateTrainingAmounts(Number(amount), Number(remainingBudget));
+      }
+    } else if (type !== 'training') {
+      // คำนวณสำหรับ welfare types อื่น ๆ
+      if (amount !== undefined && amount !== null && amount !== '') {
+        calculateNonTrainingAmounts(Number(amount));
+      }
+    }
+  }, [isVatIncluded, watch('amount'), trainingBudget, type]);
+
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
-    
+
     if (!fileInput.files || fileInput.files.length === 0) return;
 
     try {
@@ -220,10 +274,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
       // Wait for all uploads to complete
       const uploadedUrls = await Promise.all(uploadPromises);
-      
+
       // Update files state with new URLs
       setFiles(prevFiles => [...prevFiles, ...uploadedUrls]);
-      
+
       toast({
         title: "อัพโหลดสำเร็จ",
         description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
@@ -246,20 +300,20 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     try {
       // Get the file URL to remove
       const fileUrl = files[index];
-      
+
       // Extract the file path from the URL
       const filePath = fileUrl.split('/').slice(-2).join('/');
-      
+
       // Delete the file from Supabase Storage
       const { error } = await supabase.storage
         .from('welfare-attachments')
         .remove([filePath]);
 
       if (error) throw error;
-      
+
       // Update the files state
       setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
-      
+
       toast({
         title: "ลบไฟล์สำเร็จ",
         description: "ลบไฟล์เรียบร้อยแล้ว",
@@ -273,19 +327,40 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       });
     }
   };
-  
+
   // Get remaining budget from context. This is now the single source of truth.
   // ใช้ budget เดียวกันสำหรับ glasses/dental
-let remainingBudget = 0;
-if (type === 'glasses' || type === 'dental') {
-  remainingBudget = profile?.budget_dentalglasses ?? 0;
-} else if (user?.id) {
-  remainingBudget = getRemainingBudget(user.id, type);
-} else {
-  remainingBudget = 0;
-}
+  let remainingBudget = 0;
+  if (type === 'glasses' || type === 'dental') {
+    remainingBudget = profile?.budget_dentalglasses ?? 0;
+  } else if (user?.id) {
+    remainingBudget = getRemainingBudget(user.id, type);
+  } else {
+    remainingBudget = 0;
+  }
 
   const onSubmit = async (data: any) => {
+    // Store form data and show signature modal for wedding type
+    if (type === 'wedding') {
+      // Make sure we have employeeData before showing signature modal
+      if (!employeeData) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่พบข้อมูลพนักงาน กรุณาลองใหม่อีกครั้ง',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setPendingFormData({ data, employeeData });
+      setShowSignatureModal(true);
+      return;
+    }
+
+    // For other types, submit directly
+    await handleFormSubmit(data);
+  };
+
+  const handleFormSubmit = async (data: any) => {
     try {
       setIsSubmitting(true);
       if (!user) {
@@ -305,27 +380,37 @@ if (type === 'glasses' || type === 'dental') {
         throw new Error('Employee data not found. Please contact support.');
       }
 
-      if (editIdNum) {
-      // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
-      const { data: currentRequest, error: fetchError } = await supabase
-        .from('welfare_requests')
-        .select('status')
-        .eq('id', editIdNum)
-        .single();
-      if (fetchError || !currentRequest) {
-        throw new Error('ไม่พบข้อมูลคำร้อง หรือเกิดข้อผิดพลาดในการตรวจสอบสถานะ');
-      }
-      if (currentRequest.status && currentRequest.status.toLowerCase() === 'approved') {
-        toast({
-          title: 'ไม่สามารถแก้ไขได้',
-          description: 'คำร้องนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้',
-          variant: 'destructive',
-        });
+      // Store form data and employee data for later use
+      setPendingFormData({ data, employeeData });
+
+      // Show signature modal for wedding type
+      if (type === 'wedding') {
+        setShowSignatureModal(true);
         setIsSubmitting(false);
         return;
       }
-      // UPDATE EXISTING REQUEST
-      const updateData: any = {
+
+      if (editIdNum) {
+        // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
+        const { data: currentRequest, error: fetchError } = await supabase
+          .from('welfare_requests')
+          .select('status')
+          .eq('id', editIdNum)
+          .single();
+        if (fetchError || !currentRequest) {
+          throw new Error('ไม่พบข้อมูลคำร้อง หรือเกิดข้อผิดพลาดในการตรวจสอบสถานะ');
+        }
+        if (currentRequest.status && currentRequest.status.toLowerCase() === 'approved') {
+          toast({
+            title: 'ไม่สามารถแก้ไขได้',
+            description: 'คำร้องนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้',
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        // UPDATE EXISTING REQUEST
+        const updateData: any = {
           amount: Number(data.netAmount || data.amount || 0), // Net amount ยังคง map ไป column เดิม
           details: data.details || '',
           title: data.title || '',
@@ -335,15 +420,18 @@ if (type === 'glasses' || type === 'dental') {
           end_date: data.endDate,
           total_days: data.totalDays,
           birth_type: data.birthType,
+          funeral_type: data.funeralType,
           training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
           total_amount: data.totalAmount,
           tax7_percent: data.tax7Percent,
           withholding_tax3_percent: data.withholdingTax3Percent,
+          net_amount: data.netAmount,
           excess_amount: data.excessAmount,
           company_payment: data.companyPayment,
           employee_payment: data.employeePayment,
           course_name: data.courseName,
           organizer: data.organizer,
+          is_vat_included: data.isVatIncluded,
           department_user: employeeData.Team,
         };
 
@@ -367,49 +455,18 @@ if (type === 'glasses' || type === 'dental') {
         return;
       }
 
-      // CREATE NEW REQUEST (เหมือนเดิม)
-      const requestData = {
-        userId: user.id,
-        userName: employeeData.Name || 'Unknown User',
-        userDepartment: employeeData.Team || 'Unknown Department',
-        department_user: employeeData.Team || 'Unknown Department',
-        type: type,
-        status: 'pending' as const,
-        amount: Number(data.netAmount || data.amount || 0), // Net amount ยังคง map ไป column เดิม
-        date: data.startDate || new Date().toISOString(),
-        details: data.details || '',
-        attachments: files, // This now contains the public URLs of the uploaded files
-        notes: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        managerId: employeeData.Position, // Assuming Position contains manager ID
-        start_date: data.startDate,
-        end_date: data.endDate,
-        total_days: data.totalDays,
-        birth_type: data.birthType,
-        training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
-        total_amount: data.totalAmount,
-        tax7_percent: data.tax7Percent,
-        withholding_tax3_percent: data.withholdingTax3Percent,
-        net_amount: data.netAmount,
-        excess_amount: data.excessAmount,
-        company_payment: data.companyPayment,
-        employee_payment: data.employeePayment,
-        course_name: data.courseName,
-        organizer: data.organizer,
-      };
-
-      const result = await submitRequest(requestData);
-      if (!result) {
-        throw new Error('Failed to submit request');
+      // For wedding type, show signature modal before submitting
+      if (type === 'wedding') {
+        // Store form data temporarily
+        setPendingFormData({ data, employeeData });
+        setShowSignatureModal(true);
+        setIsSubmitting(false);
+        return;
       }
-      reset();
-      setFiles([]);
-      toast({
-        title: 'ส่งคำร้องสำเร็จ',
-        description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
-      });
-      setTimeout(onBack, 2000);
+
+      // For non-wedding types, proceed with normal submission
+      await processFormSubmission(data, employeeData);
+
     } catch (error: any) {
       console.error('Error submitting form:', error);
       toast({
@@ -422,13 +479,151 @@ if (type === 'glasses' || type === 'dental') {
     }
   };
 
+  // Handle signature confirmation
+  const handleSignatureConfirm = async (signatureData: string) => {
+    setUserSignature(signatureData);
+
+    if (pendingFormData) {
+      try {
+        setIsSubmitting(true);
+        await processFormSubmission(pendingFormData.data, pendingFormData.employeeData, signatureData);
+      } catch (error: any) {
+        console.error('Error submitting form after signature:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: error.message || 'ไม่สามารถส่งคำร้องได้ กรุณาลองใหม่อีกครั้ง',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSubmitting(false);
+        setPendingFormData(null);
+      }
+    }
+  };
+
+  // Process form submission
+  const processFormSubmission = async (data: any, employeeData: any, signature?: string) => {
+    // If employeeData is not provided, fetch it
+    let finalEmployeeData = employeeData;
+    if (!finalEmployeeData) {
+      try {
+        const { data: fetchedEmployeeData, error } = await supabase
+          .from('Employee')
+          .select('id, Name, Position, Team')
+          .eq('email_user', user!.email)
+          .single();
+
+        if (!error && fetchedEmployeeData) {
+          finalEmployeeData = fetchedEmployeeData;
+        } else {
+          throw new Error('ไม่พบข้อมูลพนักงาน');
+        }
+      } catch (error) {
+        throw new Error('ไม่สามารถดึงข้อมูลพนักงานได้');
+      }
+    }
+
+    // CREATE NEW REQUEST
+    const requestData = {
+      userId: user!.id,
+      userName: finalEmployeeData?.Name || profile?.name || user?.name || 'Unknown User',
+      userDepartment: finalEmployeeData?.Team || 'Unknown Department',
+      department_user: finalEmployeeData?.Team || 'Unknown Department',
+      type: type,
+      status: 'pending' as const,
+      amount: Number(data.netAmount || data.amount || 0),
+      date: data.startDate || new Date().toISOString(),
+      details: data.details || '',
+      attachments: files,
+      notes: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      managerId: finalEmployeeData?.Position,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      total_days: data.totalDays,
+      birth_type: data.birthType,
+      funeral_type: data.funeralType,
+      training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
+      total_amount: data.totalAmount,
+      tax7_percent: data.tax7Percent,
+      withholding_tax3_percent: data.withholdingTax3Percent,
+      net_amount: data.netAmount,
+      excess_amount: data.excessAmount,
+      company_payment: data.companyPayment,
+      employee_payment: data.employeePayment,
+      course_name: data.courseName,
+      organizer: data.organizer,
+      is_vat_included: data.isVatIncluded,
+      userSignature: signature || userSignature, // เพิ่มลายเซ็น
+    };
+
+    const result = await submitRequest(requestData);
+    if (!result) {
+      throw new Error('Failed to submit request');
+    }
+
+    // Generate PDF and upload to Supabase
+    try {
+      const { blob, filename } = await generateWelfarePDF(
+        {
+          ...requestData,
+          id: result.id || Date.now(),
+          status: 'pending_manager' as const,
+          createdAt: requestData.createdAt,
+          updatedAt: requestData.updatedAt,
+          userSignature: signature || userSignature
+        },
+        user!,
+        finalEmployeeData
+      );
+      const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
+      // Update the request with the PDF URL
+      if (result.id && pdfUrl) {
+        await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', result.id);
+      }
+      toast({
+        title: 'ส่งคำร้องและอัปโหลด PDF สำเร็จ',
+        description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และ PDF ได้ถูกบันทึกในระบบแล้ว',
+      });
+    } catch (pdfError) {
+      console.error('PDF generation/upload error:', pdfError);
+      toast({
+        title: 'ส่งคำร้องสำเร็จ',
+        description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว แต่ไม่สามารถสร้าง/อัปโหลด PDF ได้ในขณะนี้',
+      });
+    }
+
+    toast({
+      title: 'ส่งคำร้องสำเร็จ',
+      description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
+    });
+
+
+    reset();
+    setFiles([]);
+    setUserSignature('');
+    setTimeout(onBack, 2000);
+  };
+
 
 
   // 3. อัปเดตฟังก์ชัน calculateTrainingAmounts
   const calculateTrainingAmounts = (total: number, remainingBudget: number) => {
-    const vat = total * 0.07;
-    const withholding = total * 0.03;
-    const grossAmount = total + vat;
+    // ถ้าเลือก checkbox ว่า "จำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว"
+    let vat = 0;
+    let withholding = 0;
+    let grossAmount = total;
+    if (!isVatIncluded) {
+      vat = total * 0.07;
+      withholding = total * 0.03;
+      grossAmount = total + vat;
+    } else {
+      // กรณีผู้ใช้กรอกยอดรวมมาแล้ว ไม่บวก VAT/หัก ณ ที่จ่ายซ้ำ
+      vat = 0;
+      withholding = 0;
+      grossAmount = total;
+    }
     const remainingNum = Number(remainingBudget);
 
     let netNum = 0;
@@ -440,7 +635,7 @@ if (type === 'glasses' || type === 'dental') {
       // --- กรณีเกินงบประมาณ ---
       excessAmountValue = grossAmount - remainingNum;
       netNum = grossAmount;
-      
+
       companyPaymentValue = excessAmountValue / 2;
       employeePaymentValue = (excessAmountValue / 2) + withholding;
 
@@ -462,6 +657,31 @@ if (type === 'glasses' || type === 'dental') {
     setValue('employeePayment', employeePaymentValue);
   };
 
+  // ฟังก์ชันคำนวณสำหรับ welfare types อื่น ๆ (ไม่ใช่ training)
+  const calculateNonTrainingAmounts = (total: number) => {
+    let vat = 0;
+    let withholding = 0;
+    let netAmount = total;
+
+    if (!isVatIncluded) {
+      // กรณีที่ยังไม่รวม VAT และภาษี ณ ที่จ่าย
+      vat = total * 0.07;
+      withholding = total * 0.03;
+      netAmount = total + vat - withholding;
+    } else {
+      // กรณีที่รวม VAT และภาษี ณ ที่จ่ายแล้ว
+      vat = 0;
+      withholding = 0;
+      netAmount = total;
+    }
+
+    // อัปเดตค่าทั้งหมดไปยังฟอร์ม
+    setValue('totalAmount', total);
+    setValue('tax7Percent', vat);
+    setValue('withholdingTax3Percent', withholding);
+    setValue('netAmount', netAmount);
+  };
+
   // Add function to calculate total days
   const calculateTotalDays = (start: string, end: string) => {
     if (!start || !end) return 0;
@@ -472,34 +692,22 @@ if (type === 'glasses' || type === 'dental') {
     return totalDays;
   };
 
-  // Watch start and end dates
-  const startDate = watch('startDate');
-  const endDate = watch('endDate');
-
-  // Update total days when dates change
-  useEffect(() => {
-    if (startDate && endDate) {
-      const days = calculateTotalDays(startDate, endDate);
-      setValue('totalDays', days);
-    }
-  }, [startDate, endDate, setValue]);
-
   return (
     <div className="animate-fade-in">
-      <Button 
-        variant="ghost" 
-        className="mb-6" 
+      <Button
+        variant="ghost"
+        className="mb-6"
         onClick={onBack}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         กลับ
       </Button>
-      
+
       <div id="welfare-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{getFormTitle(type)}</h1>
         </div>
-        
+
         {/* Display welfare limits for non-training types */}
         {maxAmount !== null && type !== 'training' && (
           <div className="mb-6">
@@ -516,8 +724,6 @@ if (type === 'glasses' || type === 'dental') {
             </Alert>
           </div>
         )}
-        
-        {/* Display remaining budget for non-training types */}
         {user && type !== 'training' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
@@ -525,7 +731,6 @@ if (type === 'glasses' || type === 'dental') {
             </p>
           </div>
         )}
-        
         {type === 'training' && (
           <div className="space-y-4 mb-6">
             <Alert>
@@ -542,7 +747,7 @@ if (type === 'glasses' || type === 'dental') {
             </Alert>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Training specific fields */}
           {type === 'training' && (
@@ -582,7 +787,7 @@ if (type === 'glasses' || type === 'dental') {
                   <Input
                     type="date"
                     className="form-input"
-                    {...register('startDate', { 
+                    {...register('startDate', {
                       required: 'กรุณาระบุวันที่เริ่ม',
                       onChange: (e) => {
                         if (endDate && e.target.value > endDate) {
@@ -601,7 +806,7 @@ if (type === 'glasses' || type === 'dental') {
                   <Input
                     type="date"
                     className="form-input"
-                    {...register('endDate', { 
+                    {...register('endDate', {
                       required: 'กรุณาระบุวันที่สิ้นสุด',
                       validate: value => !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม'
                     })}
@@ -636,10 +841,10 @@ if (type === 'glasses' || type === 'dental') {
                         className="form-input"
                       />
                       {fields.length > 2 && (
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => remove(index)}
                         >
                           <X className="h-4 w-4" />
@@ -648,8 +853,8 @@ if (type === 'glasses' || type === 'dental') {
                     </div>
                   ))}
                   {fields.length < 5 && (
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       onClick={() => append({ value: '' })}
                       className="mt-2"
                       variant="outline"
@@ -660,7 +865,6 @@ if (type === 'glasses' || type === 'dental') {
                   )}
                 </div>
               </div>
-
               <div className="space-y-2">
                 <label htmlFor="amount" className="form-label">จำนวนเงิน</label>
                 <Input
@@ -684,6 +888,19 @@ if (type === 'glasses' || type === 'dental') {
                 {errors.amount && (
                   <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
                 )}
+              </div>
+
+              {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
+              <div className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  id="isVatIncluded"
+                  {...register('isVatIncluded')}
+                  className="mr-2"
+                />
+                <label htmlFor="isVatIncluded" className="form-label text-gray-700">
+                  กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
+                </label>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -715,16 +932,16 @@ if (type === 'glasses' || type === 'dental') {
                   />
                 </div>
               </div>
-              
+
               {/* 2. เพิ่ม Field 'ยอดส่วนเกินทั้งหมด' ในหน้าฟอร์ม (JSX) */}
               <div className="space-y-2">
-                  <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
-                  <Input
-                      type="number"
-                      className="form-input bg-gray-100"
-                      readOnly
-                      {...register('excessAmount')}
-                  />
+                <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
+                <Input
+                  type="number"
+                  className="form-input bg-gray-100"
+                  readOnly
+                  {...register('excessAmount')}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -749,7 +966,33 @@ if (type === 'glasses' || type === 'dental') {
               </div>
             </>
           )}
-          
+
+          {/* Funeral specific fields */}
+          {type === 'funeral' && (
+            <div className="space-y-2">
+              <label className="form-label">ประเภทสวัสดิการงานศพ</label>
+              <Select
+                onValueChange={(value) => setValue('funeralType', value as 'employee_spouse' | 'child' | 'parent')}
+                defaultValue={watch('funeralType')}
+                {...register('funeralType', {
+                  required: type === 'funeral' ? 'กรุณาเลือกประเภทสวัสดิการงานศพ' : false
+                })}
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="เลือกประเภทสวัสดิการงานศพ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee_spouse">สวัสดิการงานศพ พนักงาน/สามีหรือภรรยาของพนักงาน</SelectItem>
+                  <SelectItem value="child">สวัสดิการงานศพ บุตร ของพนักงาน</SelectItem>
+                  <SelectItem value="parent">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.funeralType && (
+                <p className="text-red-500 text-sm mt-1">{errors.funeralType.message}</p>
+              )}
+            </div>
+          )}
+
           {/* Continue with existing fields for other welfare types */}
           {type !== 'training' && (
             <>
@@ -761,8 +1004,8 @@ if (type === 'glasses' || type === 'dental') {
                   type="number"
                   className="form-input"
                   placeholder="ระบุจำนวนเงิน"
-                  {...register('amount', { 
-                    required: 'กรุณาระบุจำนวนเงิน', 
+                  {...register('amount', {
+                    required: 'กรุณาระบุจำนวนเงิน',
                     min: {
                       value: 1,
                       message: 'จำนวนเงินต้องมากกว่า 0'
@@ -772,19 +1015,64 @@ if (type === 'glasses' || type === 'dental') {
                       message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
                     },
                     validate: {
-                      notMoreThanRemaining: value => 
+                      notMoreThanRemaining: value =>
                         Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
-                    }
+                    },
+                    onChange: (e) => calculateNonTrainingAmounts(Number(e.target.value))
                   })}
-                  
+
                 />
                 {errors.amount && (
                   <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
                 )}
               </div>
+
+              {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
+              <div className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  id="isVatIncluded-nontraining"
+                  {...register('isVatIncluded')}
+                  className="mr-2"
+                />
+                <label htmlFor="isVatIncluded-nontraining" className="form-label text-gray-700">
+                  กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
+                </label>
+              </div>
+
+              {/* VAT and Tax fields for non-training types */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="form-label">ภาษีมูลค่าเพิ่ม 7%</label>
+                  <Input
+                    type="number"
+                    className="form-input bg-gray-100"
+                    readOnly
+                    {...register('tax7Percent')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="form-label">หักภาษี ณ ที่จ่าย 3%</label>
+                  <Input
+                    type="number"
+                    className="form-input bg-gray-100"
+                    readOnly
+                    {...register('withholdingTax3Percent')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="form-label">จำนวนเงินสุทธิ</label>
+                  <Input
+                    type="number"
+                    className="form-input bg-gray-100"
+                    readOnly
+                    {...register('netAmount')}
+                  />
+                </div>
+              </div>
             </>
           )}
-          
+
           {/* Details Field */}
           <div className="space-y-2">
             <label htmlFor="details" className="form-label">รายละเอียด</label>
@@ -792,7 +1080,7 @@ if (type === 'glasses' || type === 'dental') {
               id="details"
               className="form-input min-h-[100px]"
               placeholder="กรอกรายละเอียดเพิ่มเติมถ้ามี"
-              {...register('details', { 
+              {...register('details', {
                 required: 'กรุณาระบุรายละเอียด',
                 minLength: {
                   value: 0,
@@ -804,7 +1092,7 @@ if (type === 'glasses' || type === 'dental') {
               <p className="text-red-500 text-sm mt-1">{errors.details.message}</p>
             )}
           </div>
-          
+
           {/* File Upload */}
           <div className="space-y-2">
             <label htmlFor="attachments" className="form-label">แนบเอกสาร (ใบเสร็จรับเงิน, เอกสารประกอบ)</label>
@@ -817,22 +1105,21 @@ if (type === 'glasses' || type === 'dental') {
                 multiple
               />
             </div>
-            
+
             {/* Show uploaded files */}
             {files.length > 0 && (
               <div className="mt-2">
                 <p className="text-sm font-medium mb-1">ไฟล์ที่อัพโหลด:</p>
                 <ul className="text-sm space-y-1">
                   {files.map((file, index) => {
-                    // Extract file name from URL
                     const fileName = file.split('/').pop() || `ไฟล์ ${index + 1}`;
                     return (
                       <li key={index} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2 text-green-600">
                           <Check className="h-4 w-4 flex-shrink-0" />
-                          <a 
-                            href={file} 
-                            target="_blank" 
+                          <a
+                            href={file}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="truncate hover:underline"
                             title={fileName}
@@ -860,10 +1147,10 @@ if (type === 'glasses' || type === 'dental') {
               </div>
             )}
           </div>
-          
+
           {/* Submit Button */}
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full btn-hover-effect"
             disabled={isLoading || isSubmitting}
           >
@@ -876,11 +1163,22 @@ if (type === 'glasses' || type === 'dental') {
               'ส่งคำร้อง'
             )}
           </Button>
-          
+
           {/* Animated Loading Popup */}
           <LoadingPopup open={isSubmitting} />
         </form>
       </div>
+
+      {/* Digital Signature Modal */}
+      <DigitalSignature
+        isOpen={showSignatureModal}
+        onClose={() => {
+          setShowSignatureModal(false);
+          setPendingFormData(null);
+        }}
+        onConfirm={handleSignatureConfirm}
+        userName={employeeData?.Name || profile?.name || user?.name || ''}
+      />
     </div>
   );
 }

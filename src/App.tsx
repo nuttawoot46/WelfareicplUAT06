@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { WelfareProvider } from "@/context/WelfareContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Toaster as HotToast } from 'react-hot-toast';
-import { ThemeProvider } from 'next-themes';
 
 // Import Pages
 import IndexPage from "./pages/Index"; // หน้า Login ของคุณ
@@ -18,7 +17,10 @@ import Admin from "./pages/Admin";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import { ApprovalPage } from "./pages/ApprovalPage";
+import { HRApprovalPage } from "./pages/HRApprovalPage";
 import { AccountingReviewPage } from "./pages/AccountingReviewPage";
+import ManagerPDFApprovalPage from "./pages/ManagerPDFApprovalPage";
+import HRPDFApprovalPage from "./pages/HRPDFApprovalPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -63,8 +65,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
+    <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
             <WelfareProvider>
@@ -114,6 +115,12 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/hr-approve" element={
+                    <ProtectedRoute>
+                      <HRApprovalPage />
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/admin/*" element={
                     <ProtectedRoute>
                       <Admin />
@@ -133,8 +140,7 @@ const App = () => (
             </WelfareProvider>
           </AuthProvider>
         </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

@@ -1,0 +1,1163 @@
+$bg: #D9E0E7;
+$grass: #A0BE38;
+$tree-body: #91633F;
+$tree-top: #EAD292;
+$tree-shade: #6C4B35;
+$tree-shade2: #C29C57;
+$tree-shade3: #AB814E;
+$tree-shade4: #855737;
+$tree-trunk: #6D4B36;
+$tree-eye: #392F21;
+$tree-brows: #6C4B31;
+$stem: #7C9A2C;
+$stem-shadow: #678127;
+$stem-light: #A0BE38;
+$petal-pink: #E274A4;
+$petal-pink-shadow: #B75379;
+$petal-orange: #E07335;
+$petal-yellow: #ECC33F;
+$petal-yellow-shade: #E19C34;
+$bird-body: #89ADBB;
+$bird-tail: #59718B;
+$bird-head: #D0DFE2;
+
+%pos-relative_m-auto {
+    margin: auto;
+    position: relative;
+}
+
+%pseudo_before-after {
+    content: '';
+    display: block;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+.canvas {
+    border: solid 3px $bg;
+    width: 800px;
+    height: 500px;
+    margin: 100px auto;
+    position: relative;
+}
+
+.grass {
+    background-color: $grass;
+    height: 16px;
+    width: 450px;
+    z-index: 10;
+    position: absolute;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%);
+}
+
+.tree {
+    @extend %pos-relative_m-auto;
+    background-color: $tree-body;
+    height: 105px;
+    width: 100px;
+    top: 340px;
+
+    &:before {
+        content: '';
+        display: block;
+        position: absolute;
+        width: 40px;
+        height: 30px;
+        z-index: 4;
+        bottom: 5px;
+        left: 30px;
+        background: $tree-body;
+    }
+}
+
+.tree__top {
+    @extend %pos-relative_m-auto;
+    height: 12px;
+    background: $tree-top;
+    width: 120px;
+    left: -10px;
+    top: -10px;
+    border-radius: 10px 10px 0 0;
+    z-index: 4;
+
+    &:after {
+        content: '';
+        display: block;
+        position: absolute;
+        left: 10px;
+        width: 100px;
+        background: $tree-body;
+        height: 10px;
+        top: 12px;
+        z-index: 3;
+    }
+}
+
+.tree__face {
+    @extend %pos-relative_m-auto;
+    top: 7px;
+    z-index: 3;
+}
+
+.tree__leye {
+    position: absolute;
+    height: 10px;
+    width: 10px;
+    background-color: $tree-eye;
+    top: 15px;
+    left: 30%;
+    border-radius: 100%;
+
+    &:after {
+        content: '';
+        display: block;
+        position: relative;
+        height: 8px;
+        width: 25px;
+        top: -16px;
+        left: -10px;
+        background: $tree-brows;
+        border-radius: 20px;
+    }
+}
+
+.tree__reye {
+    height: 10px;
+    width: 10px;
+    background-color: $tree-eye;
+    position: absolute;
+    top: 15px;
+    left: 60%;
+    border-radius: 100%;
+
+    &:after {
+        content: '';
+        display: block;
+        position: relative;
+        height: 8px;
+        width: 25px;
+        top: -16px;
+        left: -4px;
+        background: $tree-brows;
+        border-radius: 20px;
+    }
+}
+
+.tree__mouth {
+    height: 50px;
+    width: 20px;
+    top: -18px;
+    border-radius: 30px;
+    @extend %pos-relative_m-auto;
+    border: solid 5px $tree-shade;
+    border-color: transparent transparent $tree-shade transparent;
+
+    &:before {
+        content: '';
+        display: block;
+        width: 5px;
+        height: 5px;
+        background: $tree-shade;
+        border-radius: 50%;
+        top: 46px;
+        left: -9px;
+        @extend %pos-relative_m-auto;
+    }
+
+    &:after {
+        content: '';
+        display: block;
+        width: 5px;
+        height: 5px;
+        background: $tree-shade;
+        border-radius: 50%;
+        top: 41px;
+        left: 9px;
+        @extend %pos-relative_m-auto;
+    }
+}
+
+.tree__shade1 {
+    z-index: 1;
+    height: 110px;
+    width: 15px;
+    position: relative;
+    left: 0px;
+    top: -70px;
+    // border-bottom-right-radius: 60%;
+    background: $tree-shade2;
+
+    &:before {
+        content: '';
+        display: block;
+        z-index: 1;
+        height: 100px;
+        width: 120px;
+        position: absolute;
+        border: solid 15px;
+        border-color: transparent $tree-shade2 transparent transparent;
+        box-sizing: border-box;
+        border-radius: 50%;
+        bottom: -7px;
+        right: -5px;
+        transform: rotate(28deg);
+    }
+}
+
+.tree__shade2 {
+    z-index: 1;
+    height: 110px;
+    width: 15px;
+    position: absolute;
+    top: 0;
+    left: 15px;
+    // border-bottom-right-radius: 60%;
+    background: $tree-shade3;
+
+    &:before {
+        content: '';
+        display: block;
+        z-index: 3;
+        height: 90px;
+        width: 120px;
+        position: absolute;
+        border: solid 15px;
+        border-color: transparent $tree-shade3 transparent transparent;
+        box-sizing: border-box;
+        border-radius: 50%;
+        bottom: -7px;
+        right: -5px;
+        transform: rotate(30deg);
+    }
+
+    &:after {
+        content: '';
+        display: block;
+        z-index: 2;
+        height: 20px;
+        width: 20px;
+        position: absolute;
+        bottom: 0;
+        left: 1px;
+        background: $tree-body;
+    }
+}
+
+.tree__shade3 {
+    z-index: 2;
+    height: 110px;
+    width: 15px;
+    position: absolute;
+    top: 0;
+    right: 15px;
+    // border-bottom-left-radius: 60%;
+    background: $tree-shade3;
+
+    &:before {
+        content: '';
+        display: block;
+        z-index: 3;
+        height: 90px;
+        width: 120px;
+        position: absolute;
+        border: solid 15px;
+        border-color: transparent transparent transparent $tree-shade3;
+        box-sizing: border-box;
+        border-radius: 50%;
+        bottom: -6px;
+        left: -5px;
+        transform: rotate(-30deg);
+    }
+
+    &:after {
+        content: '';
+        display: block;
+        z-index: 2;
+        height: 20px;
+        width: 20px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        background: $tree-body;
+    }
+}
+
+.tree__shade4 {
+    z-index: 1;
+    height: 110px;
+    width: 15px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    // border-bottom-left-radius: 60%;
+    background: $tree-body;
+
+    &:before {
+        content: '';
+        display: block;
+        z-index: 1;
+        height: 90px;
+        width: 120px;
+        position: absolute;
+        border: solid 15px;
+        border-color: transparent transparent transparent $tree-body;
+        box-sizing: border-box;
+        border-radius: 50%;
+        bottom: -6px;
+        left: -5px;
+        transform: rotate(-30deg);
+    }
+}
+
+.tree__shade5 {
+    content: '';
+    display: block;
+    height: 40px;
+    width: 15px;
+    background: $tree-shade4;
+    position: absolute;
+    bottom: -10px;
+    left: 43px;
+    border-radius: 20px;
+    z-index: 5;
+
+    &:before {
+        content: '';
+        display: block;
+        height: 15px;
+        width: 15px;
+        background: $tree-shade4;
+        position: absolute;
+        border-radius: 40%;
+        bottom: 4px;
+        left: 7px;
+    }
+}
+
+.tree__trunk1 {
+    position: absolute;
+    z-index: -1;
+    height: 50px;
+    width: 40px;
+    border: solid 15px;
+    border-color: transparent transparent $tree-body transparent;
+    border-radius: 50%;
+    top: 0;
+    left: -35px;
+    transform: rotate(30deg);
+
+    &:before {
+        content: '';
+        height: 15px;
+        width: 15px;
+        position: absolute;
+        display: block;
+        background: $tree-body;
+        border-radius: 100%;
+        left: -7px;
+        bottom: -5px;
+        transform: rotate(-30deg);
+    }
+}
+
+.tree__trunk2 {
+    position: absolute;
+    z-index: -1;
+    height: 50px;
+    width: 70px;
+    border: solid 15px;
+    border-color: transparent $tree-trunk $tree-trunk $tree-trunk;
+    border-radius: 50%;
+    bottom: -8px;
+    right: -85px;
+    transform: rotate(5deg);
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: absolute;
+        height: 16px;
+        width: 16px;
+        background: $tree-trunk;
+        top: -5px;
+        right: -4px;
+        transform: rotate(-5deg);
+        border-radius: 50%;
+    }
+}
+
+.tree__trunk3 {
+    position: absolute;
+    z-index: -1;
+    height: 70px;
+    width: 80px;
+    border: solid 12px;
+    border-color: transparent transparent $tree-trunk $tree-trunk;
+    border-radius: 50%;
+    top: -40px;
+    right: -60px;
+    transform: rotate(-40deg);
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: absolute;
+        height: 10px;
+        width: 50px;
+        background: $tree-body;
+        transform: rotate(40deg);
+        right: -34px;
+        bottom: -8px;
+    }
+}
+
+.tree__trunk3__leaf1 {
+    position: absolute;
+    height: 14px;
+    width: 18px;
+    background: $stem-light;
+    border-radius: 100px 0;
+    left: 65px;
+    top: 36px;
+    transform: rotate(-50deg);
+}
+
+.tree__trunk3__leaf2 {
+    position: absolute;
+    height: 14px;
+    width: 18px;
+    background: $stem;
+    border-radius: 100px 0;
+    left: 112px;
+    top: 75px;
+    transform: rotate(25deg);
+}
+
+.tree__trunk3__leaf3 {
+    position: absolute;
+    height: 14px;
+    width: 18px;
+    background: $stem-shadow;
+    border-radius: 100px 0;
+    left: 95px;
+    top: 95px;
+    transform: rotate(125deg);
+}
+
+.flowers {
+    @extend %pos-relative_m-auto;
+}
+
+//Start: Flower pink
+.flowers__pink {
+    @extend %pos-relative_m-auto;
+    left: 37.6%;
+    top: 250px;
+
+    .flowers__stem {
+        position: absolute;
+        height: 80px;
+        width: 80px;
+        top: 2px;
+        border: solid 10px;
+        border-color: transparent transparent $stem $stem;
+        border-radius: 45%;
+
+        &:before {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 10px;
+            width: 10px;
+            background: $stem-shadow;
+            top: 25px;
+            left: -10px;
+        }
+
+        //leaf
+        &:after {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 14px;
+            width: 18px;
+            background: $stem-shadow;
+            top: 92px;
+            left: 19px;
+            border-radius: 100px 0px;
+        }
+    }
+
+    .flowers__petals {
+        z-index: 0;
+        position: absolute;
+        height: 30px;
+        width: 30px;
+        top: 2px;
+        left: -8px;
+        background: #9D416D;
+        border-radius: 50%;
+        border-radius: 100px 0px;
+        transform: rotate(-40deg);
+
+        &:before {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            background: $petal-pink;
+            border-radius: 10px 100px 10px 100px;
+            left: -8px;
+            top: -8px;
+            transform: rotate(50deg);
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            left: 7px;
+            top: 7px;
+            background: $petal-pink-shadow;
+            border-radius: 100px 10px 100px 10px;
+            transform: rotate(38deg);
+        }
+    }
+
+    .flowers__dot1 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -12px;
+        left: -7px;
+    }
+
+    .flowers__dot2 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -12px;
+        left: 14px;
+    }
+}
+
+//END: Flower pink
+
+//Start: Flower blue
+.flowers__blue {
+    @extend %pos-relative_m-auto;
+    left: 44.5%;
+    top: 215px;
+
+    .flowers__stem {
+        position: absolute;
+        height: 115px;
+        width: 10px;
+        background: $stem;
+        box-shadow: 10px 85px 0px 0px $stem-shadow;
+
+        &:before {
+            z-index: 2;
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 10px;
+            width: 10px;
+            background: $stem-shadow;
+            top: 10px;
+            left: 0;
+        }
+
+        //leaf
+        &:after {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 14px;
+            width: 18px;
+            background: $petal-orange;
+            top: 98px;
+            left: -30px;
+            border-radius: 0px 100px;
+        }
+    }
+
+    .flowers__petals {
+        z-index: 1;
+        position: absolute;
+        height: 35px;
+        width: 25px;
+        background: #8FC9FC;
+        border-radius: 10px 100px 10px 100px;
+        left: -22px;
+        top: -24px;
+
+        &:before {
+            @extend %pseudo_before-after;
+            z-index: 2;
+            position: absolute;
+            height: 32px;
+            width: 32px;
+            top: 0px;
+            left: 10px;
+            background: #6AA4EE;
+            border-radius: 50%;
+            border-radius: 80px 10px 80px 30px;
+            transform: rotate(-45deg);
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            left: 26px;
+            top: 0px;
+            background: #5D89E6;
+            border-radius: 100px 10px;
+            // transform: rotate(38deg);
+        }
+    }
+}
+
+//END: Flower blue
+
+//Start: Flower orange
+.flowers__orange {
+    @extend %pos-relative_m-auto;
+    left: 50%;
+    top: 270px;
+
+    .flowers__stem {
+        position: absolute;
+        height: 60px;
+        width: 10px;
+        background: $stem;
+        box-shadow: 15px 43px 0px 6px $stem-light;
+
+        &:before {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 10px;
+            width: 10px;
+            background: $stem-shadow;
+            top: 10px;
+            left: 0;
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 10px;
+            width: 20px;
+            background: $stem;
+            top: 51px;
+            left: -20px;
+        }
+    }
+
+    .flowers__petals {
+        z-index: 0;
+        position: absolute;
+        height: 30px;
+        width: 30px;
+        top: -26px;
+        left: -10px;
+        background: #B15422;
+        border-radius: 50%;
+        border-radius: 100px 0px;
+        transform: rotate(-45deg);
+
+        &:before {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            background: $petal-orange;
+            border-radius: 10px 100px 10px 100px;
+            left: -8px;
+            top: -8px;
+            transform: rotate(50deg);
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            left: 7px;
+            top: 7px;
+            background: #D16126;
+            border-radius: 100px 10px 100px 10px;
+            transform: rotate(38deg);
+        }
+    }
+}
+
+//END: Flower orange
+
+//Start: Flower yellow
+.flowers__yellow {
+    @extend %pos-relative_m-auto;
+    left: 42.6%;
+    top: 260px;
+
+    .flowers__stem {
+        position: absolute;
+        height: 80px;
+        width: 25px;
+        border: solid 10px;
+        border-color: $stem-light $stem-light transparent transparent;
+        border-radius: 0px 100px 100px 100px;
+
+        &:before {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 30px;
+            width: 15px;
+            border: solid 10px;
+            border-color: $stem-light transparent $stem-light $stem-light;
+            border-radius: 100px 0px 0px 100px;
+            top: -50px;
+            left: -22px;
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 50px;
+            width: 40px;
+            border: solid 10px;
+            border-color: transparent $stem $stem transparent;
+            border-radius: 0px 0px 30px 0px;
+            top: -110px;
+            left: 3px;
+        }
+    }
+
+    .flowers__petals {
+        z-index: 0;
+        position: absolute;
+        height: 30px;
+        width: 30px;
+        top: -120px;
+        left: 53px;
+        background: #C37A28;
+        border-radius: 50%;
+        border-radius: 100px 0px;
+        transform: rotate(-45deg);
+
+        &:before {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            background: $petal-yellow;
+            border-radius: 10px 100px 10px 100px;
+            left: -8px;
+            top: -8px;
+            transform: rotate(50deg);
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            left: 7px;
+            top: 7px;
+            background: $petal-yellow-shade;
+            border-radius: 100px 10px 100px 10px;
+            transform: rotate(38deg);
+        }
+    }
+
+    .flowers__dot1 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -135px;
+        left: 50px;
+    }
+
+    .flowers__dot2 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -135px;
+        left: 75px;
+    }
+
+    .flowers__dot3 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -145px;
+        left: 62px;
+    }
+}
+
+//END: Flower yellow
+
+//Start: Flower orange
+.flowers__yellow2 {
+    @extend %pos-relative_m-auto;
+    left: 56%;
+    top: 310px;
+
+    .flowers__stem {
+        z-index: 1;
+        position: absolute;
+        height: 30px;
+        width: 9px;
+        background: $stem-shadow;
+        transform: rotate(45deg);
+    }
+
+    .flowers__petals {
+        background: linear-gradient(to right, $petal-yellow 0%, $petal-yellow 50%, $petal-yellow-shade 50%, $petal-yellow-shade 100%);
+        position: absolute;
+        height: 35px;
+        width: 22px;
+        top: -24px;
+        left: 15px;
+        border-radius: 100% 100% 100% 100%;
+        transform: rotate(45deg);
+    }
+}
+
+//END: Flower orange
+
+//Start: Flower purple
+.flowers__purple {
+    @extend %pos-relative_m-auto;
+    left: 53.8%;
+    top: 270px;
+
+    .flowers__stem {
+        position: absolute;
+        height: 60px;
+        width: 5px;
+        border: solid 10px;
+        border-color: transparent transparent transparent $stem-shadow;
+        border-radius: 20px 0px 0px 0px;
+
+        &:before {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 40px;
+            width: 5px;
+            border: solid 10px;
+            border-color: transparent $stem-shadow transparent transparent;
+            border-radius: 0px 0px 20px 0px;
+            top: -58px;
+            left: -5px;
+        }
+
+        //leaf
+        &:after {
+            @extend %pseudo_before-after;
+            position: absolute;
+            height: 14px;
+            width: 18px;
+            background: $stem;
+            top: -33px;
+            left: 23px;
+            border-radius: 100px 0px;
+        }
+    }
+
+    .flowers__petals {
+        z-index: 1;
+        position: absolute;
+        height: 35px;
+        width: 25px;
+        background: #AE6CC8;
+        border-radius: 10px 100px 10px 100px;
+        left: -2px;
+        top: -70px;
+
+        &:before {
+            @extend %pseudo_before-after;
+            z-index: 2;
+            position: absolute;
+            height: 32px;
+            width: 32px;
+            top: 0px;
+            left: 10px;
+            background: #8855C1;
+            border-radius: 50%;
+            border-radius: 80px 10px 80px 30px;
+            transform: rotate(-45deg);
+        }
+
+        &:after {
+            @extend %pseudo_before-after;
+            z-index: 1;
+            position: absolute;
+            height: 35px;
+            width: 25px;
+            left: 26px;
+            top: 0px;
+            background: #6A43A9;
+            border-radius: 100px 10px;
+        }
+    }
+
+    .flowers__dot1 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -88px;
+        left: 8px;
+    }
+
+    .flowers__dot2 {
+        height: 10px;
+        width: 10px;
+        background: $bird-head;
+        position: absolute;
+        border-radius: 50%;
+        top: -88px;
+        left: 30px;
+    }
+}
+
+//END: Flower purple
+
+.bird {
+    z-index: -2;
+    height: 50px;
+    width: 50px;
+    position: relative;
+    margin: auto;
+    left: 120px;
+    top: 188px;
+}
+
+.bird__head {
+    z-index: 1;
+    position: relative;
+    margin: auto;
+    top: 2px;
+    height: 14px;
+    width: 12px;
+    background: $bird-head;
+}
+
+.bird__body {
+    position: relative;
+    margin: auto;
+    height: 40px;
+    width: 28px;
+    background: $bird-body;
+    border-radius: 100%;
+
+    &:before {
+        height: 8px;
+        width: 8px;
+        background: $bird-tail;
+        border-radius: 100%;
+        @extend %pseudo_before-after;
+        position: relative;
+        top: 8px;
+        left: 10px;
+    }
+
+    &:after {
+        height: 0;
+        width: 0;
+        @extend %pseudo_before-after;
+        position: relative;
+        top: 10px;
+        left: 8px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: $bird-tail transparent transparent transparent;
+    }
+}
+
+.bird__tail {
+    z-index: -1;
+    background: $bird-tail;
+    position: relative;
+    margin: auto;
+    height: 20px;
+    width: 18px;
+    top: -5px;
+}
+
+.bird__note1 {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: $bird-head;
+    border-radius: 50%;
+    left: 50px;
+    top: -10px;
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 10px;
+        width: 3px;
+        background: $bird-head;
+        left: 7px;
+        top: -6px;
+    }
+
+    &:after {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 7px;
+        width: 10px;
+        background: $bird-head;
+        left: 7px;
+        top: -20px;
+    }
+}
+
+.bird__note2 {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: $bird-head;
+    border-radius: 50%;
+    left: 15px;
+    top: -28px;
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 10px;
+        width: 3px;
+        background: $bird-head;
+        left: 7px;
+        top: -6px;
+    }
+
+    &:after {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 7px;
+        width: 10px;
+        background: $bird-head;
+        left: 7px;
+        top: -20px;
+    }
+}
+
+.bird__note3 {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: $bird-head;
+    border-radius: 50%;
+    left: 25px;
+    top: -8px;
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 10px;
+        width: 3px;
+        background: $bird-head;
+        left: 7px;
+        top: -6px;
+    }
+
+    &:after {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 7px;
+        width: 10px;
+        background: $bird-head;
+        left: 7px;
+        top: -20px;
+    }
+}
+
+.bees {
+    position: relative;
+    left: 50%;
+}
+
+.bees__1 {
+    height: 15px;
+    width: 22px;
+    border-radius: 44%;
+    background: $petal-yellow;
+    position: absolute;
+    left: -105px;
+    top: 210px;
+    transform: rotate(40deg);
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 8px;
+        width: 14px;
+        background: #51524C;
+        transform: rotate(-90deg);
+        top: 3px;
+        left: 4px;
+    }
+}
+
+.bees__2 {
+    height: 15px;
+    width: 22px;
+    border-radius: 42%;
+    background: $petal-yellow;
+    position: absolute;
+    left: -80px;
+    top: 140px;
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 15px;
+        width: 8px;
+        background: #51524C;
+        left: 7px;
+    }
+}
+
+.bees__3 {
+    height: 15px;
+    width: 22px;
+    border-radius: 44%;
+    background: $petal-yellow;
+    position: absolute;
+    left: 55px;
+    top: 150px;
+
+    &:before {
+        @extend %pseudo_before-after;
+        position: relative;
+        height: 8px;
+        width: 14px;
+        background: #51524C;
+        transform: rotate(-90deg);
+        top: 3px;
+        left: 4px;
+    }
+}
