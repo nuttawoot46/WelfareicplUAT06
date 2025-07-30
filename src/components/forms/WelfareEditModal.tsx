@@ -13,6 +13,14 @@ interface WelfareEditModalProps {
 
 export const WelfareEditModal: React.FC<WelfareEditModalProps> = ({ open, onOpenChange, editId, type, onSuccess }) => {
   if (!editId || !type) return null;
+  
+  const handleSuccess = () => {
+    onOpenChange(false);
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -23,13 +31,9 @@ export const WelfareEditModal: React.FC<WelfareEditModalProps> = ({ open, onOpen
           type={type}
           editId={editId}
           onBack={() => onOpenChange(false)}
+          onSuccess={handleSuccess}
           key={editId} // force re-mount on editId change
         />
-        <DialogFooter>
-          <DialogClose asChild>
-            <button type="button" className="btn btn-secondary">ปิด</button>
-          </DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

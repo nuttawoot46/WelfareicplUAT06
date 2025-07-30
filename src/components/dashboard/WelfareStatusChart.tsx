@@ -1,45 +1,7 @@
-// ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
-const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv") => {
-  if (!data || data.length === 0) return;
-  // สร้าง header
-  const header = [
-    'วันที่ยื่น',
-    'ชื่อผู้ยื่น',
-    'ประเภท',
-    'จำนวนเงิน',
-    'สถานะ',
-    'รายละเอียด',
-
-    'หมายเหตุจากผู้จัดการ'
-  ];
-  const rows = data.map(row => [
-    formatDate(row.created_at),
-    row.employee_name || '',
-    row.request_type || '',
-    row.amount?.toString() || '',
-    getStatusText(row.status),
-    row.details || '',
-
-    row.manager_notes || ''
-  ]);
-  // รวม header กับ rows
-  const csv = [header, ...rows].map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(",")).join("\r\n");
-  // ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยถูก
-  const csvWithBom = '\uFEFF' + csv;
-  const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { RefreshCw, FileText, Eye } from 'lucide-react';
+import { RefreshCw, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,23 +93,61 @@ const getStatusClass = (status: string) => {
   }
 };
 
-const WelfareStatusChart: React.FC = () => {
+// ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
+const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv") => {
+  if (!data || data.length === 0) return;
+  
+  // สร้าง header
+  const header = [
+    'วันที่ยื่น',
+    'ชื่อผู้ยื่น',
+    'ประเภท',
+    'จำนวนเงิน',
+    'สถานะ',
+    'รายละเอียด',
+    'หมายเหตุจากผู้จัดการ'
+  ];
+  
+  const rows = data.map(row => [
+    formatDate(row.created_at),
+    row.employee_name || '',
+    row.request_type || '',
+    row.amount?.toString() || '',
+    getStatusText(row.status),
+    row.details || '',
+    row.manager_notes || ''
+  ]);
+  
+  // รวม header กับ rows
+  const csv = [header, ...rows]
+    .map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(","))
+    .join("\r\n");
+  
+  // ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยถูก
+  const csvWithBom = '\uFEFF' + csv;
+  const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const WelfareStatusChart: React.FC = React.memo(() => {
   // state เดิมที่มีอยู่แล้ว
   const { profile } = useAuth();
   const [requests, setRequests] = useState<WelfareRequestItem[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<WelfareRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedRequest, setSelectedRequest] = useState<WelfareRequestItem | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editType, setEditType] = useState<string | null>(null);
-  const navigate = useNavigate();
-  // state ที่เพิ่มใหม่สำหรับ filter ปี
   const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [years, setYears] = useState<string[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   // Double click handler for editing
   const handleDoubleClick = (request: WelfareRequestItem) => {
     setEditId(request.id);
@@ -162,10 +162,19 @@ const WelfareStatusChart: React.FC = () => {
     setEditModalOpen(true);
   };
 
-  const fetchRequests = useCallback(async () => {
-    if (!profile) return;
+  const fetchRequests = useCallback(async (isRefresh = false) => {
+    if (!profile?.display_name) {
+      setIsLoading(false);
+      setError('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+      return;
+    }
+    
     try {
-      setIsLoading(true);
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
 
       const { data, error: fetchError } = await supabase
@@ -175,80 +184,113 @@ const WelfareStatusChart: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        throw new Error('ไม่สามารถโหลดข้อมูลการเบิกสวัสดิการได้');
+        console.error('Database error:', fetchError);
+        throw new Error(`ไม่สามารถโหลดข้อมูลการเบิกสวัสดิการได้: ${fetchError.message}`);
       }
 
-      // Map attachment_url to attachments array here
-      const mapped = (data || []).map((req: WelfareRequestItem) => {
+      if (!data) {
+        setRequests([]);
+        return;
+      }
+
+      // Map attachment_url to attachments array with better error handling
+      const mapped = data.map((req: WelfareRequestItem) => {
         let attachments: string[] = [];
-        if (Array.isArray(req.attachment_url)) {
-          attachments = req.attachment_url;
-        } else if (typeof req.attachment_url === 'string') {
-          try {
-            const parsed = JSON.parse(req.attachment_url);
-            attachments = Array.isArray(parsed) ? parsed : [parsed];
-          } catch {
-            attachments = req.attachment_url ? [req.attachment_url] : [];
+        
+        try {
+          if (Array.isArray(req.attachment_url)) {
+            attachments = req.attachment_url.filter(url => url && typeof url === 'string');
+          } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
+            // Try to parse as JSON first
+            try {
+              const parsed = JSON.parse(req.attachment_url);
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(url => url && typeof url === 'string');
+              } else if (typeof parsed === 'string') {
+                attachments = [parsed];
+              }
+            } catch {
+              // If not JSON, treat as single URL
+              attachments = [req.attachment_url];
+            }
           }
+        } catch (error) {
+          console.warn('Error processing attachments for request:', req.id, error);
+          attachments = [];
         }
+        
         return { ...req, attachments };
       });
+      
       setRequests(mapped);
     } catch (err: any) {
+      console.error('Fetch error:', err);
       setError(err.message || 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [profile]);
+
+  const handleRefresh = useCallback(() => {
+    fetchRequests(true);
+  }, [fetchRequests]);
 
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
 
-  // อัปเดตรายการปีที่มีในข้อมูลเมื่อ requests เปลี่ยน
-  useEffect(() => {
-    if (requests.length === 0) {
-      setYears([]);
-      return;
-    }
-    // ดึงปีจาก created_at
+  // อัปเดตรายการปีที่มีในข้อมูลเมื่อ requests เปลี่ยน - ใช้ useMemo เพื่อประสิทธิภาพ
+  const years = useMemo(() => {
+    if (requests.length === 0) return [];
+    
     const yearSet = new Set<string>();
     requests.forEach((req) => {
       if (req.created_at) {
-        const year = new Date(req.created_at).getFullYear().toString();
-        yearSet.add(year);
+        try {
+          const year = new Date(req.created_at).getFullYear().toString();
+          yearSet.add(year);
+        } catch (error) {
+          console.warn('Invalid date format:', req.created_at);
+        }
       }
     });
+    
     // เรียงจากมากไปน้อย (ล่าสุดอยู่บน)
-    setYears(Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a)));
+    return Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a));
   }, [requests]);
 
-  useEffect(() => {
-    if (!requests.length) {
-      setFilteredRequests([]);
-      return;
-    }
+  // Filter requests - ใช้ useMemo เพื่อประสิทธิภาพ
+  const filteredRequests = useMemo(() => {
+    if (!requests.length) return [];
+    
     let result = [...requests];
+    
+    // Filter by status
     if (selectedStatus !== 'all') {
       result = result.filter(request => 
-        request.status?.toLowerCase() === selectedStatus.toLowerCase()
+        request.status === selectedStatus
       );
     }
+    
+    // Filter by year
     if (selectedYear !== 'all') {
       result = result.filter(request => {
         if (!request.created_at) return false;
-        const year = new Date(request.created_at).getFullYear().toString();
-        return year === selectedYear;
+        try {
+          const year = new Date(request.created_at).getFullYear().toString();
+          return year === selectedYear;
+        } catch {
+          return false;
+        }
       });
     }
-    setFilteredRequests(result);
+    
+    return result;
   }, [requests, selectedStatus, selectedYear]);
 
 
-  const handleViewDetails = (request: WelfareRequestItem) => {
-    setSelectedRequest(request);
-    setIsDetailsModalOpen(true);
-  };
+
 
   return (
     <>
@@ -266,9 +308,12 @@ const WelfareStatusChart: React.FC = () => {
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
                 <option value="all">สถานะทั้งหมด</option>
-                <option value="pending">รออนุมัติ</option>
-                <option value="approved">อนุมัติแล้ว</option>
-                <option value="rejected">ไม่อนุมัติ</option>
+                <option value="pending_manager">รออนุมัติโดยหัวหน้า</option>
+                <option value="pending_hr">รอตรวจสอบโดย HR</option>
+                <option value="pending_accounting">รอตรวจสอบโดยบัญชี</option>
+                <option value="completed">เสร็จสมบูรณ์</option>
+                <option value="rejected_manager">ปฏิเสธโดยหัวหน้า</option>
+                <option value="rejected_accounting">ปฏิเสธโดยบัญชี</option>
               </select>
               {/* Year Filter */}
               <select
@@ -282,14 +327,14 @@ const WelfareStatusChart: React.FC = () => {
                 ))}
               </select>
               <Button 
-                onClick={fetchRequests} 
+                onClick={handleRefresh} 
                 variant="outline" 
                 size="sm" 
                 className="flex items-center gap-2"
-                disabled={isLoading}
+                disabled={isLoading || isRefreshing}
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'กำลังโหลด...' : 'รีเฟรช'}
+                <RefreshCw className={`h-4 w-4 ${(isLoading || isRefreshing) ? 'animate-spin' : ''}`} />
+                {isLoading ? 'กำลังโหลด...' : isRefreshing ? 'รีเฟรช...' : 'รีเฟรช'}
               </Button>
               <Button
                 onClick={() => exportToCSV(filteredRequests)}
@@ -305,28 +350,45 @@ const WelfareStatusChart: React.FC = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center p-8">
+            <div className="flex flex-col items-center justify-center p-8 min-h-[200px]">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
               <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+              <p className="text-sm text-gray-500 mt-1">กรุณารอสักครู่</p>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center p-4 text-center text-red-600 bg-red-50 rounded-lg">
-              <p className="font-medium">เกิดข้อผิดพลาด</p>
-              <p className="text-sm mb-2">{error}</p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="mt-2"
-                variant="default"
-                size="sm"
-              >
-                โหลดใหม่
-              </Button>
+            <div className="flex flex-col items-center justify-center p-6 text-center text-red-600 bg-red-50 rounded-lg min-h-[200px]">
+              <p className="font-medium text-lg mb-2">เกิดข้อผิดพลาด</p>
+              <p className="text-sm mb-4 max-w-md">{error}</p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRefresh}
+                  variant="default"
+                  size="sm"
+                  disabled={isRefreshing}
+                >
+                  {isRefreshing ? 'กำลังลองใหม่...' : 'ลองใหม่'}
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                >
+                  โหลดหน้าใหม่
+                </Button>
+              </div>
             </div>
           ) : filteredRequests.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {selectedStatus !== 'all' 
-                ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา' 
-                : 'ไม่พบข้อมูลการยื่นเบิกสวัสดิการ'}
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-lg font-medium mb-2">
+                {selectedStatus !== 'all' || selectedYear !== 'all'
+                  ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา' 
+                  : 'ไม่พบข้อมูลการยื่นเบิกสวัสดิการ'}
+              </div>
+              <p className="text-sm">
+                {selectedStatus !== 'all' || selectedYear !== 'all'
+                  ? 'ลองเปลี่ยนตัวกรองหรือเพิ่มข้อมูลใหม่'
+                  : 'เริ่มต้นโดยการยื่นคำร้องขอสวัสดิการใหม่'}
+              </p>
             </div>
           ) : (
             <div className="rounded-md border overflow-hidden">
@@ -405,63 +467,7 @@ const WelfareStatusChart: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Details Dialog */}
-      {selectedRequest && (
-        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>รายละเอียดคำร้อง</DialogTitle>
-              <DialogDescription>
-                รายละเอียดสำหรับคำร้องขอสวัสดิการประเภท "{selectedRequest.request_type}".
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 text-sm">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-muted-foreground">ชื่อผู้ยื่น:</span>
-                <span className="col-span-2 font-medium">{selectedRequest.employee_name || 'ไม่ระบุ'}</span>
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-muted-foreground">ประเภท:</span>
-                <span className="col-span-2">{selectedRequest.request_type || 'ไม่ระบุ'}</span>
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-muted-foreground">จำนวนเงิน:</span>
-                <span className="col-span-2">{formatCurrency(selectedRequest.amount || 0)}</span>
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-muted-foreground">สถานะ:</span>
-                <span className={`col-span-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusClass(selectedRequest.status)}`}>
-                  {getStatusText(selectedRequest.status)}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <span className="text-muted-foreground">วันที่ยื่น:</span>
-                <span className="col-span-2">{formatDate(selectedRequest.created_at)}</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <span className="text-muted-foreground">รายละเอียด:</span>
-                <p className="p-2 bg-muted rounded-md text-muted-foreground break-words">
-                  {selectedRequest.details || 'ไม่มีรายละเอียด'}
-                </p>
-              </div>
 
-              <div className="grid grid-cols-1 gap-2">
-                <span className="text-muted-foreground">หมายเหตุจากผู้จัดการ:</span>
-                <p className="p-2 bg-muted rounded-md text-muted-foreground break-words">
-                  {selectedRequest.manager_notes || 'ไม่มีหมายเหตุ'}
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  ปิด
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
       {/* Popup Edit Modal */}
       <WelfareEditModal
         open={editModalOpen}
@@ -483,6 +489,8 @@ const WelfareStatusChart: React.FC = () => {
       />
     </>
   );
-};
+});
+
+WelfareStatusChart.displayName = 'WelfareStatusChart';
 
 export default WelfareStatusChart;

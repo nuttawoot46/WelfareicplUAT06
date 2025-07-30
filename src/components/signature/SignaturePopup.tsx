@@ -4,9 +4,10 @@ import { X } from 'lucide-react';
 interface SignaturePopupProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (signature: string) => void;
+  onSave: (signature: string) => Promise<void>;
   title: string;
   approverName: string;
+  requestDetails?: string;
 }
 
 export const SignaturePopup: React.FC<SignaturePopupProps> = ({
@@ -14,10 +15,12 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   onClose,
   onSave,
   title,
-  approverName
+  approverName,
+  requestDetails
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Initialize canvas - must be before early return to maintain hook order
   React.useEffect(() => {
@@ -89,13 +92,21 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  const saveSignature = () => {
+  const saveSignature = async () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || isSaving) return;
 
-    const dataURL = canvas.toDataURL('image/png');
-    onSave(dataURL);
-    onClose();
+    setIsSaving(true);
+    try {
+      const dataURL = canvas.toDataURL('image/png');
+      await onSave(dataURL);
+      // If successful, close the popup
+      onClose();
+    } catch (error) {
+      console.error('Error saving signature:', error);
+      // Keep popup open on error so user can try again
+      setIsSaving(false);
+    }
   };
 
 
@@ -120,6 +131,11 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
           <p className="text-sm font-medium text-gray-800">
             ผู้อนุมัติ: {approverName}
           </p>
+          {requestDetails && (
+            <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
+              {requestDetails}
+            </div>
+          )}
         </div>
 
         <div className="border-2 border-gray-300 rounded-lg mb-4">
@@ -143,15 +159,17 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
           <div className="space-x-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              disabled={isSaving}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ยกเลิก
             </button>
             <button
               onClick={saveSignature}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={isSaving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              บันทึกลายเซ็น
+              {isSaving ? 'กำลังบันทึก...' : 'บันทึกลายเซ็น'}
             </button>
           </div>
         </div>

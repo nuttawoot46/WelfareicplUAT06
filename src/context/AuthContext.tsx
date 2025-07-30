@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { data, error: emailError } = await supabase
             .from('Employee')
             .select('*')
-            .eq('"email_user"', user.email)
+            .eq('email_user', user.email)
             .single();
           employeeData = data;
           error = emailError;

@@ -18,7 +18,8 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Search, Filter, FileText } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
-import { updatePDFWithSignature } from '@/utils/pdfUtils';
+import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
+
 import { supabase } from '@/lib/supabase';
 
 export const HRApprovalPage = () => {
@@ -551,7 +552,7 @@ export const HRApprovalPage = () => {
 
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Request Details - HR Review</DialogTitle>
             </DialogHeader>
@@ -560,7 +561,7 @@ export const HRApprovalPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p><strong>Employee:</strong> {selectedRequest.userName}</p>
-                    <p><strong>Department:</strong> {selectedRequest.userDepartment}</p>
+                    <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
                     <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
                     <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
                   </div>
@@ -596,18 +597,58 @@ export const HRApprovalPage = () => {
                   <p><strong>Manager Notes:</strong> {selectedRequest.notes || 'No notes from manager'}</p>
                 </div>
 
+                {/* Signature Display Section */}
+                {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
+                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                    <h4 className="font-medium mb-3">ลายเซ็นอนุมัติ</h4>
+                    
+                    {/* Manager Signature */}
+                    {selectedRequest.managerSignature && (
+                      <SignatureDisplay
+                        signature={selectedRequest.managerSignature}
+                        approverName={selectedRequest.managerApproverName}
+                        approvedAt={selectedRequest.managerApprovedAt}
+                        role="manager"
+                      />
+                    )}
+
+                    {/* HR Signature */}
+                    {selectedRequest.hrSignature && (
+                      <SignatureDisplay
+                        signature={selectedRequest.hrSignature}
+                        approverName={selectedRequest.hrApproverName}
+                        approvedAt={selectedRequest.hrApprovedAt}
+                        role="hr"
+                      />
+                    )}
+                  </div>
+                )}
+
                 {/* PDF Download Button */}
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button 
                     variant="outline" 
                     onClick={async () => {
                       const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
                       await downloadPDFFromDatabase(selectedRequest.id);
                     }}
-                    className="mb-4"
                   >
-                    Download Current PDF
+                    Download PDF
                   </Button>
+                  
+                  {/* Preview Button - Show only if there are signatures */}
+                  {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
+                    <Button 
+                      variant="default"
+                      onClick={async () => {
+                        const { previewPDFFromDatabase } = await import('@/utils/pdfManager');
+                        await previewPDFFromDatabase(selectedRequest.id);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Preview PDF with Signatures
+                    </Button>
+                  )}
                 </div>
 
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">

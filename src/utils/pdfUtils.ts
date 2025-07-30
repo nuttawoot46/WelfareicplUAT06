@@ -1,5 +1,5 @@
 import { WelfareRequest, User } from '@/types';
-import { generateWelfarePDF } from '@/components/pdf/WelfarePDFGenerator';
+import { generateAndDownloadWelfarePDF } from '@/components/pdf/WelfarePDFGenerator';
 import { supabase } from '@/lib/supabase';
 
 export const uploadPDFToSupabase = async (
@@ -101,7 +101,7 @@ export const updatePDFWithSignature = async (
     });
 
     // Generate PDF with all available signatures
-    await generateWelfarePDF(
+    await generateAndDownloadWelfarePDF(
       request,
       user,
       employeeData,
@@ -114,6 +114,154 @@ export const updatePDFWithSignature = async (
   } catch (error) {
     console.error('Error updating PDF with signature:', error);
     return false;
+  }
+};
+
+export const uploadPDFToManagerBucket = async (
+  blob: Blob,
+  filename: string,
+  userId?: string
+): Promise<string | null> => {
+  try {
+    console.log('🔄 Starting upload to welfare-pdfs-manager bucket');
+    console.log('📁 Upload path:', `${userId}/${filename}`);
+    console.log('📄 Blob size:', blob.size, 'bytes');
+    
+    // First, try to list buckets to check if welfare-pdfs-manager exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) {
+      console.error('❌ Error listing buckets:', listError);
+    } else {
+      console.log('📦 Available buckets:', buckets?.map(b => b.name));
+      const managerBucketExists = buckets?.some(b => b.name === 'welfare-pdfs-manager');
+      console.log('🔍 welfare-pdfs-manager bucket exists:', managerBucketExists);
+      
+      if (!managerBucketExists) {
+        console.log('🔧 Creating welfare-pdfs-manager bucket...');
+        const { error: createError } = await supabase.storage.createBucket('welfare-pdfs-manager', {
+          public: true,
+          allowedMimeTypes: ['application/pdf'],
+          fileSizeLimit: 10485760 // 10MB
+        });
+        
+        if (createError) {
+          console.error('❌ Error creating bucket:', createError);
+          // Try to use existing welfare-pdfs bucket as fallback
+          console.log('🔄 Falling back to welfare-pdfs bucket...');
+          return await uploadPDFToSupabase(blob, filename, userId);
+        } else {
+          console.log('✅ welfare-pdfs-manager bucket created successfully');
+        }
+      }
+    }
+    
+    const { data, error } = await supabase.storage
+      .from('welfare-pdfs-manager')
+      .upload(`${userId}/${filename}`, blob, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('❌ Error uploading PDF to Manager bucket:', error);
+      console.log('🔄 Falling back to welfare-pdfs bucket...');
+      // Fallback to regular welfare-pdfs bucket
+      return await uploadPDFToSupabase(blob, filename, userId);
+    }
+
+    console.log('✅ PDF uploaded successfully to Manager bucket:', data.path);
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('welfare-pdfs-manager')
+      .getPublicUrl(data.path);
+
+    console.log('🔗 Public URL generated:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('❌ Error uploading PDF to Manager bucket:', error);
+    console.log('🔄 Falling back to welfare-pdfs bucket...');
+    // Fallback to regular welfare-pdfs bucket
+    try {
+      return await uploadPDFToSupabase(blob, filename, userId);
+    } catch (fallbackError) {
+      console.error('❌ Fallback upload also failed:', fallbackError);
+      return null;
+    }
+  }
+};
+
+export const uploadPDFToHRBucket = async (
+  blob: Blob,
+  filename: string,
+  userId?: string
+): Promise<string | null> => {
+  try {
+    console.log('🔄 Starting upload to welfare-pdfs-hr bucket');
+    console.log('📁 Upload path:', `${userId}/${filename}`);
+    console.log('📄 Blob size:', blob.size, 'bytes');
+    
+    // First, try to list buckets to check if welfare-pdfs-hr exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) {
+      console.error('❌ Error listing buckets:', listError);
+    } else {
+      console.log('📦 Available buckets:', buckets?.map(b => b.name));
+      const hrBucketExists = buckets?.some(b => b.name === 'welfare-pdfs-hr');
+      console.log('🔍 welfare-pdfs-hr bucket exists:', hrBucketExists);
+      
+      if (!hrBucketExists) {
+        console.log('🔧 Creating welfare-pdfs-hr bucket...');
+        const { error: createError } = await supabase.storage.createBucket('welfare-pdfs-hr', {
+          public: true,
+          allowedMimeTypes: ['application/pdf'],
+          fileSizeLimit: 10485760 // 10MB
+        });
+        
+        if (createError) {
+          console.error('❌ Error creating bucket:', createError);
+          // Try to use existing welfare-pdfs bucket as fallback
+          console.log('🔄 Falling back to welfare-pdfs bucket...');
+          return await uploadPDFToSupabase(blob, filename, userId);
+        } else {
+          console.log('✅ welfare-pdfs-hr bucket created successfully');
+        }
+      }
+    }
+    
+    const { data, error } = await supabase.storage
+      .from('welfare-pdfs-hr')
+      .upload(`${userId}/${filename}`, blob, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('❌ Error uploading PDF to HR bucket:', error);
+      console.log('🔄 Falling back to welfare-pdfs bucket...');
+      // Fallback to regular welfare-pdfs bucket
+      return await uploadPDFToSupabase(blob, filename, userId);
+    }
+
+    console.log('✅ PDF uploaded successfully to HR bucket:', data.path);
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('welfare-pdfs-hr')
+      .getPublicUrl(data.path);
+
+    console.log('🔗 Public URL generated:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('❌ Error uploading PDF to HR bucket:', error);
+    console.log('🔄 Falling back to welfare-pdfs bucket...');
+    // Fallback to regular welfare-pdfs bucket
+    try {
+      return await uploadPDFToSupabase(blob, filename, userId);
+    } catch (fallbackError) {
+      console.error('❌ Fallback upload also failed:', fallbackError);
+      return null;
+    }
   }
 };
 
@@ -141,7 +289,7 @@ export const generateFinalPDF = async (
     }
 
     // Generate final PDF with all signatures
-    await generateWelfarePDF(
+    await generateAndDownloadWelfarePDF(
       request,
       user,
       employeeData,

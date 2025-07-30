@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -77,7 +77,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     editIdNum = editIdStr ? Number(editIdStr) : undefined;
   }
   const { user, profile } = useAuth();
-  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget } = useWelfare();
+  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests } = useWelfare();
   const [files, setFiles] = useState<string[]>([]);
   const { toast } = useToast();
   const [maxAmount, setMaxAmount] = useState<number | null>(null);
@@ -432,7 +432,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           course_name: data.courseName,
           organizer: data.organizer,
           is_vat_included: data.isVatIncluded,
-          department_user: employeeData.Team,
+          department_request: employeeData.Team,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -446,6 +446,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           console.error('Supabase updateError:', updateError);
           throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
         }
+
+        await refreshRequests();
 
         toast({
           title: 'แก้ไขคำร้องสำเร็จ',
@@ -525,10 +527,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // CREATE NEW REQUEST
     const requestData = {
-      userId: user!.id,
+      userId: profile.employee_id.toString(),
       userName: finalEmployeeData?.Name || profile?.name || user?.name || 'Unknown User',
-      userDepartment: finalEmployeeData?.Team || 'Unknown Department',
-      department_user: finalEmployeeData?.Team || 'Unknown Department',
+      department_request: finalEmployeeData?.Team || 'Unknown Department',
       type: type,
       status: 'pending' as const,
       amount: Number(data.netAmount || data.amount || 0),
@@ -563,9 +564,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       throw new Error('Failed to submit request');
     }
 
+    await refreshRequests();
     // Generate PDF and upload to Supabase
     try {
-      const { blob, filename } = await generateWelfarePDF(
+      const blob = await generateWelfarePDF(
         {
           ...requestData,
           id: result.id || Date.now(),
@@ -577,6 +579,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         user!,
         finalEmployeeData
       );
+      // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย
+      const employeeId = finalEmployeeData?.employee_id || user?.id?.slice(-8) || 'user';
+      const timestamp = Date.now();
+      const filename = `welfare_${requestData.type}_emp${employeeId}_${timestamp}.pdf`;
       const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
       // Update the request with the PDF URL
       if (result.id && pdfUrl) {

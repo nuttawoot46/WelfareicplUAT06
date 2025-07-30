@@ -40,7 +40,7 @@ const createWelfareFormHTML = (
       width: 210mm;
       min-height: 297mm;
       padding: 15mm;
-      font-family: 'Sarabun', 'TH Sarabun New', Arial, sans-serif;
+      font-family: Arial, sans-serif;
       font-size: 12px;
       line-height: 1.4;
       background: white;
@@ -479,56 +479,58 @@ const createWelfareFormHTML = (
         <!-- HR Manager Approval Section -->
         <div style="border: 2px solid black; padding: 15px;">
           <div style="font-weight: bold; margin-bottom: 12px; font-size: 12px;">สำหรับผู้จัดการฝ่ายบุคคล</div>
-          <div style="display: flex; margin-bottom: 15px; font-size: 12px;">
-            <div style="display: flex; align-items: center; margin-right: 40px;">
-              <div style="
-                border: 3px solid black; 
-                width: 16px; 
-                height: 16px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                background: ${welfareData.status === 'completed' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.status === 'completed' ? `
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
-              <span>เห็นควรอนุมัติ</span>
-            </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 12px;">
             <div style="display: flex; align-items: center;">
-              <div style="
-                border: 3px solid black; 
-                width: 16px; 
-                height: 16px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                background: ${welfareData.status === 'rejected_hr' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.status === 'rejected_hr' ? `
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
+              <div style="display: flex; align-items: center; margin-right: 40px;">
+                <div style="
+                  border: 3px solid black; 
+                  width: 16px; 
+                  height: 16px; 
+                  display: inline-flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  margin-right: 10px; 
+                  background: ${welfareData.status === 'completed' || welfareData.status === 'pending_accounting' ? 'black' : 'white'};
+                  position: relative;
+                ">
+                  ${welfareData.status === 'completed' || welfareData.status === 'pending_accounting' ? `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
+                    </svg>
+                  ` : ''}
+                </div>
+                <span>เห็นควรอนุมัติ</span>
               </div>
-              <span>ไม่ควรอนุมัติ</span>
+              <div style="display: flex; align-items: center;">
+                <div style="
+                  border: 3px solid black; 
+                  width: 16px; 
+                  height: 16px; 
+                  display: inline-flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  margin-right: 10px; 
+                  background: ${welfareData.status === 'rejected_hr' ? 'black' : 'white'};
+                  position: relative;
+                ">
+                  ${welfareData.status === 'rejected_hr' ? `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
+                    </svg>
+                  ` : ''}
+                </div>
+                <span>ไม่ควรอนุมัติ</span>
+              </div>
             </div>
-          </div>
-          
-          <!-- Amount Section -->
-          <div style="margin-bottom: 15px; font-size: 12px;">
-            <span>เป็นจำนวนเงินทั้งหมด</span>
-            <span style="border-bottom: 1px solid black; display: inline-block; width: 150px; margin: 0 10px; text-align: center;">
-              ${welfareData.amount ? welfareData.amount.toLocaleString() : ''}
-            </span>
-            <span>บาท</span>
+            
+            <!-- Amount Section moved to same row -->
+            <div style="display: flex; align-items: center;">
+              <span>เป็นจำนวนเงินทั้งหมด</span>
+              <span style="display: inline-block; width: 100px; margin: 0 10px; text-align: center;">
+                ${welfareData.amount ? welfareData.amount.toLocaleString() : ''}
+              </span>
+              <span>บาท</span>
+            </div>
           </div>
                              
           <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px;">
@@ -574,7 +576,7 @@ export const generateWelfarePDF = async (
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string
-) => {
+): Promise<Blob> => {
   // Use signature from welfareData if available, otherwise use the passed userSignature
   const signatureToUse = welfareData.userSignature || userSignature;
 
@@ -587,14 +589,16 @@ export const generateWelfarePDF = async (
   document.body.appendChild(tempDiv);
 
   try {
-    // Convert HTML to canvas
+    // Convert HTML to canvas with optimized settings for faster generation
     const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
-      scale: 2,
+      scale: 1.5, // Reduced scale for faster processing
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       width: 794, // A4 width in pixels at 96 DPI
-      height: 1123 // A4 height in pixels at 96 DPI
+      height: 1123, // A4 height in pixels at 96 DPI
+      timeout: 10000, // 10 second timeout
+      logging: false // Disable logging for better performance
     });
 
     // Create PDF
@@ -607,17 +611,44 @@ export const generateWelfarePDF = async (
 
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-    // Generate filename
-    const employeeName = employeeData?.Name || userData.name || '';
-    const filename = `welfare_${welfareData.type}_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-
-    // Save the PDF
-    pdf.save(filename);
-
-    return filename;
+    // Return PDF as Blob instead of downloading
+    return pdf.output('blob');
   } finally {
     // Clean up
     document.body.removeChild(tempDiv);
+  }
+};
+
+// เพิ่มฟังก์ชันสำหรับ download PDF (เพื่อใช้ในกรณีที่ต้องการ download)
+export const generateAndDownloadWelfarePDF = async (
+  welfareData: WelfareRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string },
+  userSignature?: string,
+  managerSignature?: string,
+  hrSignature?: string
+) => {
+  try {
+    const pdfBlob = await generateWelfarePDF(welfareData, userData, employeeData, userSignature, managerSignature, hrSignature);
+
+    // Generate filename - สำหรับการดาวน์โหลด สามารถใช้ชื่อไทยได้
+    const employeeName = employeeData?.Name || userData.name || '';
+    const filename = `welfare_${welfareData.type}_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+
+    // Create download link
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return filename;
+  } catch (error) {
+    console.error('Error generating and downloading PDF:', error);
+    throw error;
   }
 };
 
@@ -628,8 +659,8 @@ export const WelfarePDFGenerator: React.FC<WelfarePDFGeneratorProps> = ({
 }) => {
   const handleGeneratePDF = async () => {
     try {
-      // ใช้ลายเซ็นจาก welfareData ที่มาจากฐานข้อมูล
-      await generateWelfarePDF(welfareData, userData, employeeData, welfareData.userSignature);
+      // ใช้ฟังก์ชันใหม่สำหรับ download
+      await generateAndDownloadWelfarePDF(welfareData, userData, employeeData, welfareData.userSignature);
     } catch (error) {
       console.error('Error generating PDF:', error);
     }

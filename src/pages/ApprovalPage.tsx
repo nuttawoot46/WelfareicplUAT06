@@ -19,8 +19,10 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Search, Filter, FileText } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
+import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
+import { usePDFOperations } from '@/hooks/usePDFOperations';
 
-import { updatePDFWithSignature } from '@/utils/pdfUtils';
+
 
 import { supabase } from '@/lib/supabase';
 
@@ -28,7 +30,7 @@ export const ApprovalPage = () => {
   const { user, profile, loading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-  const { updateRequestStatus, welfareRequests: allRequests } = useWelfare();
+  const { updateRequestStatus, welfareRequests: allRequests, refreshRequests } = useWelfare();
   const [isLoading, setIsLoading] = useState(false);
   const [managers, setManagers] = useState<{[key: string]: string}>({});
   const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
@@ -42,6 +44,17 @@ export const ApprovalPage = () => {
   const [dateFilter, setDateFilter] = useState<Date | undefined>();
   const [isSignaturePopupOpen, setIsSignaturePopupOpen] = useState(false);
   const [pendingApprovalRequest, setPendingApprovalRequest] = useState<WelfareRequest | null>(null);
+  const [pendingBulkApproval, setPendingBulkApproval] = useState<WelfareRequest[]>([]);
+  const [isBulkApproval, setIsBulkApproval] = useState(false);
+  const { downloadPDF, previewPDF, isLoading: isPDFLoading } = usePDFOperations();
+
+  // Cleanup function to reset states
+  const resetApprovalStates = () => {
+    setPendingApprovalRequest(null);
+    setPendingBulkApproval([]);
+    setIsBulkApproval(false);
+    setIsSignaturePopupOpen(false);
+  };
 
 
 
@@ -176,60 +189,27 @@ export const ApprovalPage = () => {
 
   const handleBulkApprove = async () => {
     if (selectedRequests.length === 0 || !user) return;
-    setIsLoading(true);
-    try {
-      const requestsToApprove = filteredRequests.filter(req => 
-        selectedRequests.includes(req.id) && req.status === 'pending_manager'
-      );
+    
+    const requestsToApprove = filteredRequests.filter(req => 
+      selectedRequests.includes(req.id) && req.status === 'pending_manager'
+    );
 
-      if (requestsToApprove.length === 0) {
-        addNotification({
-          userId: user.id,
-          title: 'Info',
-          message: 'No pending requests selected for approval.',
-          type: 'info',
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const currentDateTime = new Date().toISOString();
-      
-      for (const req of requestsToApprove) {
-        // Update with Manager approval information
-        const { error } = await supabase
-          .from('welfare_requests')
-          .update({
-            status: 'pending_hr',
-            manager_approver_id: user.id,
-            manager_approver_name: profile?.display_name || user.email,
-            manager_approved_at: currentDateTime
-          })
-          .eq('id', req.id);
-          
-        if (error) {
-          console.error('Error updating request:', error);
-          throw error;
-        }
-      }
-      
-      addNotification({ 
-        userId: user.id, 
-        title: 'Success', 
-        message: 'Requests approved successfully and sent to HR.', 
-        type: 'success' 
+    if (requestsToApprove.length === 0) {
+      addNotification({
+        userId: user.id,
+        title: 'Info',
+        message: 'No pending requests selected for approval.',
+        type: 'info',
       });
-      setSelectedRequests([]);
-    } catch (error) {
-      addNotification({ 
-        userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to approve some requests.', 
-        type: 'error' 
-      });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+
+    console.log('Opening signature popup for bulk approval:', requestsToApprove);
+    
+    // Set pending bulk approval requests and open signature popup
+    setPendingBulkApproval(requestsToApprove);
+    setIsBulkApproval(true);
+    setIsSignaturePopupOpen(true);
   };
 
   const handleBulkReject = () => {
@@ -301,66 +281,145 @@ export const ApprovalPage = () => {
   };
 
   const handleSignatureComplete = async (signature: string) => {
-    if (!user || !pendingApprovalRequest) return;
+    if (!user || (!pendingApprovalRequest && pendingBulkApproval.length === 0)) return;
     
     setIsLoading(true);
     try {
       const currentDateTime = new Date().toISOString();
       
-      // Update with Manager approval information and signature
-      const { error } = await supabase
-        .from('welfare_requests')
-        .update({
-          status: 'pending_hr',
-          manager_approver_id: user.id,
-          manager_approver_name: profile?.display_name || user.email,
-          manager_approved_at: currentDateTime,
-          manager_signature: signature,
-          updated_at: currentDateTime
-        })
-        .eq('id', pendingApprovalRequest.id);
+      if (isBulkApproval && pendingBulkApproval.length > 0) {
+        // Handle bulk approval
+        for (const req of pendingBulkApproval) {
+          const { error } = await supabase
+            .from('welfare_requests')
+            .update({
+              status: 'pending_hr',
+              manager_approver_id: user.id,
+              manager_approver_name: profile?.display_name || user.email,
+              manager_approved_at: currentDateTime,
+              manager_signature: signature,
+              updated_at: currentDateTime
+            })
+            .eq('id', req.id);
+            
+          if (error) {
+            console.error('Error updating request:', error);
+            throw error;
+          }
+        }
         
-      if (error) {
-        console.error('Error updating request:', error);
-        throw error;
+        addNotification({ 
+          userId: user.id, 
+          title: 'Success', 
+          message: `${pendingBulkApproval.length} requests approved successfully with signature and sent to HR.`, 
+          type: 'success' 
+        });
+
+        await refreshRequests();
+        
+        // Store request IDs before resetting state
+        const requestIds = pendingBulkApproval.map(req => req.id);
+        
+        // Reset states
+        setPendingBulkApproval([]);
+        setIsBulkApproval(false);
+        setIsSignaturePopupOpen(false);
+        setSelectedRequests([]);
+        
+        // Add signature to PDFs in background (non-blocking)
+        // Use requestAnimationFrame to ensure UI is not blocked
+        requestAnimationFrame(() => {
+          setTimeout(async () => {
+            try {
+              const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
+              for (const requestId of requestIds) {
+                try {
+                  await addSignatureToPDF(
+                    requestId,
+                    'manager',
+                    signature,
+                    profile?.display_name || user.email
+                  );
+                  // Debug PDF columns after adding signature
+                  await debugPDFColumns(requestId);
+                } catch (singlePdfError) {
+                  console.error(`Error adding signature to PDF ${requestId}:`, singlePdfError);
+                  // Continue with other PDFs even if one fails
+                }
+              }
+              console.log('PDF signatures added successfully in background for bulk approval');
+            } catch (pdfError) {
+              console.error('Error adding signatures to PDFs (background):', pdfError);
+              // Don't show error to user since main approval was successful
+            }
+          }, 500); // Increased delay to ensure UI is responsive
+        });
+        
+      } else if (pendingApprovalRequest) {
+        // Handle individual approval
+        const { error } = await supabase
+          .from('welfare_requests')
+          .update({
+            status: 'pending_hr',
+            manager_approver_id: user.id,
+            manager_approver_name: profile?.display_name || user.email,
+            manager_approved_at: currentDateTime,
+            manager_signature: signature,
+            updated_at: currentDateTime
+          })
+          .eq('id', pendingApprovalRequest.id);
+          
+        if (error) {
+          console.error('Error updating request:', error);
+          throw error;
+        }
+        
+        addNotification({ 
+          userId: user.id, 
+          title: 'Success', 
+          message: 'Request approved successfully with signature and sent to HR.', 
+          type: 'success' 
+        });
+
+        await refreshRequests();
+        
+        // Store requestId before resetting state
+        const requestId = pendingApprovalRequest.id;
+        
+        // Reset states
+        setPendingApprovalRequest(null);
+        setIsSignaturePopupOpen(false);
+        
+        // Add signature to PDF in background (non-blocking)
+        setTimeout(async () => {
+          try {
+            const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
+            await addSignatureToPDF(
+              requestId,
+              'manager',
+              signature,
+              profile?.display_name || user.email
+            );
+            // Debug PDF columns after adding signature
+            await debugPDFColumns(requestId);
+            console.log('PDF signature added successfully in background');
+          } catch (pdfError) {
+            console.error('Error adding signature to PDF (background):', pdfError);
+            // Don't show error to user since main approval was successful
+          }
+        }, 100);
       }
       
-      // Generate updated PDF with manager signature
-      const updatedRequest = {
-        ...pendingApprovalRequest,
-        status: 'pending_hr' as const,
-        managerApproverName: profile?.display_name || user.email,
-        managerApprovedAt: currentDateTime,
-        managerSignature: signature
-      };
-      
-      // Use new PDF manager to add signature
-      const { addSignatureToPDF } = await import('@/utils/pdfManager');
-      await addSignatureToPDF(
-        pendingApprovalRequest.id,
-        'manager',
-        signature,
-        profile?.display_name || user.email
-      );
-      
-      addNotification({ 
-        userId: user.id, 
-        title: 'Success', 
-        message: 'Request approved successfully with signature and sent to HR.', 
-        type: 'success' 
-      });
-      
-      // Reset states
-      setPendingApprovalRequest(null);
-      setIsSignaturePopupOpen(false);
-      
     } catch (error) {
+      console.error('Error in handleSignatureComplete:', error);
       addNotification({ 
         userId: user.id, 
         title: 'Error', 
-        message: 'Failed to approve request.', 
+        message: 'Failed to approve request(s).', 
         type: 'error' 
       });
+      // Don't reset states on error so user can try again
+      throw error; // Re-throw to let SignaturePopup handle the error state
     } finally {
       setIsLoading(false);
     }
@@ -392,8 +451,30 @@ export const ApprovalPage = () => {
     }
   };
 
-  if (isAuthLoading || isLoading || !user) {
-    return <div>Loading...</div>;
+  if (isAuthLoading || !user) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Processing approval...</p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -572,14 +653,14 @@ export const ApprovalPage = () => {
 
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Request Details</DialogTitle>
             </DialogHeader>
             <div>
               <div className="space-y-2">
                 <p><strong>Employee:</strong> {selectedRequest.userName}</p>
-                <p><strong>Department:</strong> {selectedRequest.userDepartment}</p>
+                <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
                 <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
                 <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
                 <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
@@ -600,18 +681,54 @@ export const ApprovalPage = () => {
                 ) : 'No attachment'}</p>
                 <p><strong>Manager Notes:</strong> {selectedRequest.notes}</p>
                 
+                {/* Signature Display Section */}
+                {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
+                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                    <h4 className="font-medium mb-3">ลายเซ็นอนุมัติ</h4>
+                    
+                    {/* Manager Signature */}
+                    {selectedRequest.managerSignature && (
+                      <SignatureDisplay
+                        signature={selectedRequest.managerSignature}
+                        approverName={selectedRequest.managerApproverName}
+                        approvedAt={selectedRequest.managerApprovedAt}
+                        role="manager"
+                      />
+                    )}
+
+                    {/* HR Signature */}
+                    {selectedRequest.hrSignature && (
+                      <SignatureDisplay
+                        signature={selectedRequest.hrSignature}
+                        approverName={selectedRequest.hrApproverName}
+                        approvedAt={selectedRequest.hrApprovedAt}
+                        role="hr"
+                      />
+                    )}
+                  </div>
+                )}
+
                 {/* PDF Download Button */}
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button 
                     variant="outline" 
-                    onClick={async () => {
-                      const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
-                      await downloadPDFFromDatabase(selectedRequest.id);
-                    }}
-                    className="mb-4"
+                    onClick={() => downloadPDF(selectedRequest.id)}
+                    disabled={isPDFLoading || isLoading}
                   >
-                    Download PDF
+                    {isPDFLoading ? 'Downloading...' : 'Download PDF'}
                   </Button>
+                  
+                  {/* Preview Button - Show only if there are signatures */}
+                  {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
+                    <Button 
+                      variant="default"
+                      onClick={() => previewPDF(selectedRequest.id)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={isPDFLoading || isLoading}
+                    >
+                      {isPDFLoading ? 'Loading...' : 'Preview PDF with Signatures'}
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="mt-4">
@@ -668,13 +785,17 @@ export const ApprovalPage = () => {
       {/* Signature Popup */}
       <SignaturePopup
         isOpen={isSignaturePopupOpen}
-        onClose={() => {
-          setIsSignaturePopupOpen(false);
-          setPendingApprovalRequest(null);
-        }}
+        onClose={resetApprovalStates}
         onSave={handleSignatureComplete}
-        title="ลงลายเซ็นอนุมัติ"
+        title={isBulkApproval ? `ลงลายเซ็นอนุมัติ (${pendingBulkApproval.length} คำขอ)` : "ลงลายเซ็นอนุมัติ"}
         approverName={profile?.display_name || user?.email || ''}
+        requestDetails={
+          isBulkApproval 
+            ? `คำขอที่จะอนุมัติ: ${pendingBulkApproval.map(req => `${req.userName} (${req.type})`).join(', ')}`
+            : pendingApprovalRequest 
+              ? `คำขอของ: ${pendingApprovalRequest.userName} (${pendingApprovalRequest.type})`
+              : undefined
+        }
       />
     </Layout>
   );

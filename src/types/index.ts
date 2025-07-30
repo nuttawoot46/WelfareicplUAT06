@@ -92,6 +92,7 @@ export interface WelfareRequest {
   employee_payment?: number;
   course_name?: string;
   organizer?: string;
+  department_user?: string;
   // ลายเซ็นดิจิทัล
   userSignature?: string; // Base64 encoded signature image
   managerSignature?: string; // Manager's digital signature
