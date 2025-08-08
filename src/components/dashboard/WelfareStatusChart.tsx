@@ -1,22 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { RefreshCw, FileText } from 'lucide-react';
+import { RefreshCw, FileText, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/context/AuthContext';
 import { WelfareEditModal } from '@/components/forms/WelfareEditModal';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
+
 
 
 // Interface for welfare requests from database
@@ -33,6 +25,7 @@ interface WelfareRequestItem {
   manager_notes?: string;
   attachment_url?: string;
   attachments?: string[];
+  pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
 }
 
 const formatDate = (dateString: string | Date) => {
@@ -299,7 +292,9 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกสวัสดิการ</CardTitle>
-              <CardDescription className="mt-1">ข้อมูลการเบิกสวัสดิการของคุณ</CardDescription>
+              <CardDescription className="mt-1">
+                ข้อมูลการเบิกสวัสดิการของคุณ • เอกสารสีเขียวคือ PDF ที่ HR อนุมัติแล้ว สามารถดาวน์โหลดเพื่อปริ้นได้
+              </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <select
@@ -425,25 +420,117 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        {request.attachments && request.attachments.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {request.attachments.map((file, idx) => (
-                              <Button asChild variant="ghost" size="icon" key={idx} onClick={e => e.stopPropagation()}>
-                                <a
-                                  href={file}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  aria-label={`View attachment ${idx + 1}`}
-                                  className="text-muted-foreground hover:text-foreground"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                </a>
+                        <div className="flex flex-wrap gap-1 justify-center items-center">
+                          {/* เอกสารแนบต้นฉบับ */}
+                          {request.attachments && request.attachments.length > 0 && (
+                            <>
+                              {request.attachments.map((file, idx) => (
+                                <div key={`attachment-${idx}`} className="flex flex-col items-center">
+                                  <Button asChild variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-blue-600 hover:text-blue-800"
+                                      title="เอกสารแนบต้นฉบับ"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                  <span className="text-xs text-gray-500">ต้นฉบับ</span>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* PDF ที่ HR approve แล้ว - แสดงเฉพาะเมื่อสถานะเป็น pending_accounting หรือ completed */}
+                          {request.pdf_request_hr && 
+                           (request.status === 'pending_accounting' || request.status === 'completed') && (
+                            <div className="flex flex-col items-center">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                key="hr-approved-pdf"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  // ดาวน์โหลด PDF จาก URL
+                                  try {
+                                    if (!request.pdf_request_hr) {
+                                      alert('ไม่พบไฟล์ PDF');
+                                      return;
+                                    }
+                                    
+                                    // แสดง loading state
+                                    const button = e.currentTarget;
+                                    const originalContent = button.innerHTML;
+                                    button.innerHTML = '<div class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>';
+                                    button.disabled = true;
+                                    
+                                    // ตรวจสอบว่าเป็น URL หรือ base64
+                                    if (request.pdf_request_hr.startsWith('http')) {
+                                      // เป็น URL - ดาวน์โหลดโดยตรง
+                                      const link = document.createElement('a');
+                                      link.href = request.pdf_request_hr;
+                                      link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                      link.target = '_blank';
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                      
+                                      // คืนค่า button กลับเป็นปกติ
+                                      button.innerHTML = originalContent;
+                                      button.disabled = false;
+                                    } else {
+                                      // เป็น base64 - แปลงเป็น blob
+                                      setTimeout(() => {
+                                        try {
+                                          const byteCharacters = atob(request.pdf_request_hr!);
+                                          const byteNumbers = new Array(byteCharacters.length);
+                                          for (let i = 0; i < byteCharacters.length; i++) {
+                                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                          }
+                                          const byteArray = new Uint8Array(byteNumbers);
+                                          const blob = new Blob([byteArray], { type: 'application/pdf' });
+                                          const url = URL.createObjectURL(blob);
+                                          const link = document.createElement('a');
+                                          link.href = url;
+                                          link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                          URL.revokeObjectURL(url);
+                                        } catch (error) {
+                                          console.error('Error downloading PDF:', error);
+                                          alert('ไม่สามารถดาวน์โหลด PDF ได้ กรุณาลองใหม่อีกครั้ง');
+                                        } finally {
+                                          // คืนค่า button กลับเป็นปกติ
+                                          button.innerHTML = originalContent;
+                                          button.disabled = false;
+                                        }
+                                      }, 100);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error downloading PDF:', error);
+                                    alert('ไม่สามารถดาวน์โหลด PDF ได้');
+                                  }
+                                }}
+                                className="text-green-600 hover:text-green-800"
+                                title="ดาวน์โหลด PDF ที่ HR อนุมัติแล้ว (สำหรับปริ้น)"
+                              >
+                                <Download className="h-4 w-4" />
+                                <span className="sr-only">ดาวน์โหลด PDF อนุมัติ</span>
                               </Button>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                              <span className="text-xs text-green-600">อนุมัติแล้ว</span>
+                            </div>
+                          )}
+                          
+                          {/* แสดง - เมื่อไม่มีเอกสารใด ๆ */}
+                          {(!request.attachments || request.attachments.length === 0) && 
+                           !request.pdf_request_hr && (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                             <Button

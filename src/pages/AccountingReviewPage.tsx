@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { FileText, Eye, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar } from 'lucide-react';
+import { FileText, Eye, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -24,6 +24,8 @@ interface WelfareRequestItem {
   manager_notes?: string;
   attachment_url?: string;
   attachments?: string[];
+  pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
+  department_user?: string; // แผนก/ฝ่ายของพนักงาน
   // HR approval fields
   hr_approver_id?: string;
   hr_approver_name?: string;
@@ -179,10 +181,11 @@ const AccountingReviewPage: React.FC = () => {
 
   const exportReportToCSV = () => {
     if (!reportData.length) return;
-    const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้อนุมัติ (บัญชี)'];
+    const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้อนุมัติ (บัญชี)'];
     const rows = reportData.map(r => [
       r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy', { locale: th }) : '',
       r.employee_name,
+      r.department_user || '',
       r.request_type,
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
       r.accounting_approver_name || 'บัญชี'
@@ -252,10 +255,11 @@ const AccountingReviewPage: React.FC = () => {
 
   const exportToCSV = () => {
     if (!filteredRequests.length) return;
-    const header = ['วันที่ยื่น', 'ชื่อพนักงาน', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR ที่อนุมัติ', 'วันที่ HR อนุมัติ', 'สถานะ'];
+    const header = ['วันที่ยื่น', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR ที่อนุมัติ', 'วันที่ HR อนุมัติ', 'สถานะ'];
     const rows = filteredRequests.map(r => [
       format(new Date(r.created_at), 'dd MMM yyyy', { locale: th }),
       r.employee_name,
+      r.department_user || '',
       r.request_type,
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
       r.manager_approver_name || r.manager_name || '',
@@ -445,6 +449,7 @@ const AccountingReviewPage: React.FC = () => {
                     <TableRow>
                       <TableHead>วันที่อนุมัติ</TableHead>
                       <TableHead>ชื่อพนักงาน</TableHead>
+                      <TableHead>แผนก/ฝ่าย</TableHead>
                       <TableHead>ประเภทสวัสดิการ</TableHead>
                       <TableHead className="text-right">จำนวนเงิน</TableHead>
                       <TableHead>ผู้อนุมัติ (บัญชี)</TableHead>
@@ -460,6 +465,7 @@ const AccountingReviewPage: React.FC = () => {
                           }
                         </TableCell>
                         <TableCell>{r.employee_name}</TableCell>
+                        <TableCell>{r.department_user || '-'}</TableCell>
                         <TableCell>{r.request_type}</TableCell>
                         <TableCell className="text-right">
                           {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
@@ -501,6 +507,7 @@ const AccountingReviewPage: React.FC = () => {
                   <TableHead><input type="checkbox" checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0} onChange={handleSelectAll} /></TableHead>
                   <TableHead>วันที่ยื่น</TableHead>
                   <TableHead>ชื่อพนักงาน</TableHead>
+                  <TableHead>แผนก/ฝ่าย</TableHead>
                   <TableHead>ประเภทสวัสดิการ</TableHead>
                   <TableHead>จำนวนเงิน</TableHead>
                   <TableHead>ผู้จัดการที่อนุมัติ</TableHead>
@@ -515,6 +522,7 @@ const AccountingReviewPage: React.FC = () => {
                     <TableCell>{!showHistory && <input type="checkbox" checked={selectedIds.includes(r.id)} onChange={() => handleSelect(r.id)} />}</TableCell>
                     <TableCell>{format(new Date(r.created_at), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>{r.employee_name}</TableCell>
+                    <TableCell>{r.department_user || '-'}</TableCell>
                     <TableCell>{r.request_type}</TableCell>
                     <TableCell>{r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</TableCell>
                     <TableCell>
@@ -537,7 +545,61 @@ const AccountingReviewPage: React.FC = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{r.attachment_url || (r.attachments && r.attachments.length > 0) ? <FileText className="text-blue-600 inline" /> : '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 items-center">
+                        {/* เอกสารแนบต้นฉบับ */}
+                        {(r.attachment_url || (r.attachments && r.attachments.length > 0)) && (
+                          <div className="flex items-center">
+                            <FileText className="text-blue-600 h-4 w-4" title="เอกสารแนบต้นฉบับ" />
+                            <span className="text-xs text-gray-500 ml-1">ต้นฉบับ</span>
+                          </div>
+                        )}
+                        
+                        {/* PDF ที่ HR approve แล้ว */}
+                        {r.pdf_request_hr && (
+                          <div className="flex items-center ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // ตรวจสอบว่าเป็น URL หรือ base64
+                                if (r.pdf_request_hr!.startsWith('http')) {
+                                  // เป็น URL - เปิดในแท็บใหม่
+                                  window.open(r.pdf_request_hr, '_blank');
+                                } else {
+                                  // เป็น base64 - แปลงเป็น blob และดาวน์โหลด
+                                  try {
+                                    const byteCharacters = atob(r.pdf_request_hr!);
+                                    const byteNumbers = new Array(byteCharacters.length);
+                                    for (let i = 0; i < byteCharacters.length; i++) {
+                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                    }
+                                    const byteArray = new Uint8Array(byteNumbers);
+                                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                                    const url = URL.createObjectURL(blob);
+                                    window.open(url, '_blank');
+                                    // ทำความสะอาด URL หลังจากใช้งาน
+                                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                                  } catch (error) {
+                                    console.error('Error opening PDF:', error);
+                                    alert('ไม่สามารถเปิด PDF ได้');
+                                  }
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-800 flex items-center"
+                              title="ดู PDF ที่ HR อนุมัติแล้ว"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="text-xs text-green-600 ml-1">HR อนุมัติ</span>
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* แสดง - เมื่อไม่มีเอกสารใด ๆ */}
+                        {!r.attachment_url && (!r.attachments || r.attachments.length === 0) && !r.pdf_request_hr && (
+                          <span>-</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Button size="sm" variant="outline" onClick={() => openDetails(r)}><Eye className="h-4 w-4 mr-1" />ตรวจสอบ</Button>
                     </TableCell>
@@ -559,6 +621,7 @@ const AccountingReviewPage: React.FC = () => {
           {selectedRequest && (
             <div className="space-y-2 text-sm">
               <div><b>ชื่อพนักงาน:</b> {selectedRequest.employee_name}</div>
+              <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_user || '-'}</div>
               <div><b>ประเภทสวัสดิการ:</b> {selectedRequest.request_type}</div>
               <div><b>จำนวนเงิน:</b> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</div>
               <div><b>วันที่ยื่น:</b> {format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</div>
@@ -571,7 +634,75 @@ const AccountingReviewPage: React.FC = () => {
                 <div><b>วันที่ HR อนุมัติ:</b> {format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')}</div>
               )}
               <div><b>รายละเอียด:</b> {selectedRequest.details || '-'}</div>
-              <div><b>ไฟล์แนบ:</b> {selectedRequest.attachment_url ? <a href={selectedRequest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">ดูไฟล์</a> : (selectedRequest.attachments && selectedRequest.attachments.length > 0 ? selectedRequest.attachments.map((url, i) => <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline mr-2">ไฟล์ {i+1}</a>) : '-')}
+              <div>
+                <b>ไฟล์แนบ:</b>
+                <div className="mt-1 space-y-2">
+                  {/* เอกสารแนบต้นฉบับ */}
+                  {selectedRequest.attachment_url && (
+                    <div>
+                      <a href={selectedRequest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        ดูเอกสารแนบต้นฉบับ
+                      </a>
+                    </div>
+                  )}
+                  {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                    <div className="space-y-1">
+                      {selectedRequest.attachments.map((url, i) => (
+                        <div key={i}>
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            เอกสารแนบ {i+1}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* PDF ที่ HR approve แล้ว */}
+                  {selectedRequest.pdf_request_hr && (
+                    <div>
+                      <button
+                        onClick={() => {
+                          // ตรวจสอบว่าเป็น URL หรือ base64
+                          if (selectedRequest.pdf_request_hr!.startsWith('http')) {
+                            // เป็น URL - เปิดในแท็บใหม่
+                            window.open(selectedRequest.pdf_request_hr, '_blank');
+                          } else {
+                            // เป็น base64 - แปลงเป็น blob และเปิด
+                            try {
+                              const byteCharacters = atob(selectedRequest.pdf_request_hr!);
+                              const byteNumbers = new Array(byteCharacters.length);
+                              for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                              }
+                              const byteArray = new Uint8Array(byteNumbers);
+                              const blob = new Blob([byteArray], { type: 'application/pdf' });
+                              const url = URL.createObjectURL(blob);
+                              window.open(url, '_blank');
+                              // ทำความสะอาด URL หลังจากใช้งาน
+                              setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            } catch (error) {
+                              console.error('Error opening PDF:', error);
+                              alert('ไม่สามารถเปิด PDF ได้');
+                            }
+                          }
+                        }}
+                        className="text-green-600 hover:text-green-800 underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        ดู PDF ที่ HR อนุมัติแล้ว (สำหรับตรวจสอบ)
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* แสดงข้อความเมื่อไม่มีไฟล์ */}
+                  {!selectedRequest.attachment_url && 
+                   (!selectedRequest.attachments || selectedRequest.attachments.length === 0) && 
+                   !selectedRequest.pdf_request_hr && (
+                    <span className="text-gray-500">ไม่มีไฟล์แนบ</span>
+                  )}
+                </div>
               </div>
               <div><b>หมายเหตุจากผู้จัดการ:</b> {selectedRequest.manager_notes || '-'}</div>
               {/* Audit Trail */}

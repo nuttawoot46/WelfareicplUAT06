@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 import LoadingPopup from './LoadingPopup';
 import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
+import { generateTrainingPDF } from '../pdf/TrainingPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 
@@ -244,6 +245,16 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [isVatIncluded, watch('amount'), trainingBudget, type]);
 
+  // Calculate total days when start or end date changes
+  useEffect(() => {
+    const startDate = watch('startDate');
+    const endDate = watch('endDate');
+    if (startDate && endDate) {
+      const totalDays = calculateTotalDays(startDate, endDate);
+      setValue('totalDays', totalDays);
+    }
+  }, [watch('startDate'), watch('endDate'), setValue]);
+
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
@@ -340,24 +351,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   }
 
   const onSubmit = async (data: any) => {
-    // Store form data and show signature modal for wedding type
-    if (type === 'wedding') {
-      // Make sure we have employeeData before showing signature modal
-      if (!employeeData) {
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่พบข้อมูลพนักงาน กรุณาลองใหม่อีกครั้ง',
-          variant: 'destructive',
-        });
-        return;
-      }
-      setPendingFormData({ data, employeeData });
-      setShowSignatureModal(true);
+    // Store form data and show signature modal for all types (including training)
+    // Make sure we have employeeData before showing signature modal
+    if (!employeeData) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่พบข้อมูลพนักงาน กรุณาลองใหม่อีกครั้ง',
+        variant: 'destructive',
+      });
       return;
     }
-
-    // For other types, submit directly
-    await handleFormSubmit(data);
+    setPendingFormData({ data, employeeData });
+    setShowSignatureModal(true);
   };
 
   const handleFormSubmit = async (data: any) => {
@@ -378,6 +383,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       console.log('employeeData.Team:', employeeData.Team);
       if (employeeError || !employeeData) {
         throw new Error('Employee data not found. Please contact support.');
+      }
+
+      // For training type, submit directly without PDF generation
+      if (type === 'training') {
+        await processFormSubmissionWithoutPDF(data, employeeData);
+        return;
       }
 
       // Store form data and employee data for later use
@@ -503,7 +514,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   };
 
-  // Process form submission
+
+
+  // Process form submission with PDF (for all types including training)
   const processFormSubmission = async (data: any, employeeData: any, signature?: string) => {
     // If employeeData is not provided, fetch it
     let finalEmployeeData = employeeData;
@@ -567,18 +580,39 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     await refreshRequests();
     // Generate PDF and upload to Supabase
     try {
-      const blob = await generateWelfarePDF(
-        {
-          ...requestData,
-          id: result.id || Date.now(),
-          status: 'pending_manager' as const,
-          createdAt: requestData.createdAt,
-          updatedAt: requestData.updatedAt,
-          userSignature: signature || userSignature
-        },
-        user!,
-        finalEmployeeData
-      );
+      let blob: Blob;
+
+      if (type === 'training') {
+        // Use Training PDF Generator for training type
+        blob = await generateTrainingPDF(
+          {
+            ...requestData,
+            id: result.id || Date.now(),
+            status: 'pending_manager' as const,
+            createdAt: requestData.createdAt,
+            updatedAt: requestData.updatedAt,
+            userSignature: signature || userSignature
+          },
+          user!,
+          finalEmployeeData,
+          signature || userSignature,
+          remainingBudget
+        );
+      } else {
+        // Use Welfare PDF Generator for other types
+        blob = await generateWelfarePDF(
+          {
+            ...requestData,
+            id: result.id || Date.now(),
+            status: 'pending_manager' as const,
+            createdAt: requestData.createdAt,
+            updatedAt: requestData.updatedAt,
+            userSignature: signature || userSignature
+          },
+          user!,
+          finalEmployeeData
+        );
+      }
       // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย
       const employeeId = finalEmployeeData?.employee_id || user?.id?.slice(-8) || 'user';
       const timestamp = Date.now();
@@ -615,14 +649,26 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
 
   // 3. อัปเดตฟังก์ชัน calculateTrainingAmounts
-  const calculateTrainingAmounts = (total: number, remainingBudget: number) => {
+  const calculateTrainingAmounts = (total: number, remainingBudget: number, customVat?: number, customWithholding?: number) => {
     // ถ้าเลือก checkbox ว่า "จำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว"
     let vat = 0;
     let withholding = 0;
     let grossAmount = total;
+
     if (!isVatIncluded) {
-      vat = total * 0.07;
-      withholding = total * 0.03;
+      // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
+      if (customVat !== undefined) {
+        vat = customVat;
+      } else {
+        vat = total * 0.07; // default 7%
+      }
+
+      if (customWithholding !== undefined) {
+        withholding = customWithholding;
+      } else {
+        withholding = total * 0.03; // default 3%
+      }
+
       grossAmount = total + vat;
     } else {
       // กรณีผู้ใช้กรอกยอดรวมมาแล้ว ไม่บวก VAT/หัก ณ ที่จ่ายซ้ำ
@@ -655,24 +701,34 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
     setValue('totalAmount', total);
-    setValue('tax7Percent', vat);
-    setValue('withholdingTax3Percent', withholding);
-    setValue('netAmount', netNum);
-    setValue('excessAmount', excessAmountValue); // ตั้งค่า Field ใหม่
-    setValue('companyPayment', companyPaymentValue);
-    setValue('employeePayment', employeePaymentValue);
+    setValue('tax7Percent', Math.round(vat * 100) / 100);
+    setValue('withholdingTax3Percent', Math.round(withholding * 100) / 100);
+    setValue('netAmount', Math.round(netNum * 100) / 100);
+    setValue('excessAmount', Math.round(excessAmountValue * 100) / 100); // ตั้งค่า Field ใหม่
+    setValue('companyPayment', Math.round(companyPaymentValue * 100) / 100);
+    setValue('employeePayment', Math.round(employeePaymentValue * 100) / 100);
   };
 
   // ฟังก์ชันคำนวณสำหรับ welfare types อื่น ๆ (ไม่ใช่ training)
-  const calculateNonTrainingAmounts = (total: number) => {
+  const calculateNonTrainingAmounts = (total: number, customVat?: number, customWithholding?: number) => {
     let vat = 0;
     let withholding = 0;
     let netAmount = total;
 
     if (!isVatIncluded) {
-      // กรณีที่ยังไม่รวม VAT และภาษี ณ ที่จ่าย
-      vat = total * 0.07;
-      withholding = total * 0.03;
+      // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
+      if (customVat !== undefined) {
+        vat = customVat;
+      } else {
+        vat = total * 0.07; // default 7%
+      }
+
+      if (customWithholding !== undefined) {
+        withholding = customWithholding;
+      } else {
+        withholding = total * 0.03; // default 3%
+      }
+
       netAmount = total + vat - withholding;
     } else {
       // กรณีที่รวม VAT และภาษี ณ ที่จ่ายแล้ว
@@ -683,9 +739,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // อัปเดตค่าทั้งหมดไปยังฟอร์ม
     setValue('totalAmount', total);
-    setValue('tax7Percent', vat);
-    setValue('withholdingTax3Percent', withholding);
-    setValue('netAmount', netAmount);
+    setValue('tax7Percent', Math.round(vat * 100) / 100);
+    setValue('withholdingTax3Percent', Math.round(withholding * 100) / 100);
+    setValue('netAmount', Math.round(netAmount * 100) / 100);
   };
 
   // Add function to calculate total days
@@ -796,6 +852,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     {...register('startDate', {
                       required: 'กรุณาระบุวันที่เริ่ม',
                       onChange: (e) => {
+                        const endDate = watch('endDate');
                         if (endDate && e.target.value > endDate) {
                           setValue('endDate', e.target.value);
                         }
@@ -814,7 +871,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     {...register('endDate', {
                       required: 'กรุณาระบุวันที่สิ้นสุด',
-                      validate: value => !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม'
+                      validate: value => {
+                        const startDate = watch('startDate');
+                        return !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
+                      }
                     })}
                   />
                   {errors.endDate && (
@@ -888,7 +948,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       value: maxAmount || 100000,
                       message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
                     },
-                    onChange: (e) => calculateTrainingAmounts(Number(e.target.value), remainingBudget)
+                    onChange: (e) => {
+                      const amount = Number(e.target.value);
+                      calculateTrainingAmounts(amount, remainingBudget);
+                    }
                   })}
                 />
                 {errors.amount && (
@@ -911,28 +974,56 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม 7%</label>
+                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
                   <Input
                     type="number"
                     className="form-input"
-                    readOnly
-                    {...register('tax7Percent')}
+                    step="0.01"
+                    min="0"
+                    {...register('tax7Percent', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      onChange: (e) => {
+                        const amount = watch('amount');
+                        const vatAmount = Number(e.target.value);
+                        const withholdingAmount = watch('withholdingTax3Percent');
+                        if (amount) {
+                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
+                        }
+                      }
+                    })}
                   />
+                  {errors.tax7Percent && (
+                    <p className="text-red-500 text-sm mt-1">{errors.tax7Percent.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย 3%</label>
+                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
                   <Input
                     type="number"
                     className="form-input"
-                    readOnly
-                    {...register('withholdingTax3Percent')}
+                    step="0.01"
+                    min="0"
+                    {...register('withholdingTax3Percent', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      onChange: (e) => {
+                        const amount = watch('amount');
+                        const withholdingAmount = Number(e.target.value);
+                        const vatAmount = watch('tax7Percent');
+                        if (amount) {
+                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
+                        }
+                      }
+                    })}
                   />
+                  {errors.withholdingTax3Percent && (
+                    <p className="text-red-500 text-sm mt-1">{errors.withholdingTax3Percent.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="form-label">จำนวนเงินสุทธิ</label>
                   <Input
                     type="number"
-                    className="form-input"
+                    className="form-input bg-gray-100"
                     readOnly
                     {...register('netAmount')}
                   />
@@ -1024,7 +1115,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       notMoreThanRemaining: value =>
                         Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
                     },
-                    onChange: (e) => calculateNonTrainingAmounts(Number(e.target.value))
+                    onChange: (e) => {
+                      const amount = Number(e.target.value);
+                      calculateNonTrainingAmounts(amount);
+                    }
                   })}
 
                 />
@@ -1049,22 +1143,50 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               {/* VAT and Tax fields for non-training types */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม 7%</label>
+                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
                   <Input
                     type="number"
-                    className="form-input bg-gray-100"
-                    readOnly
-                    {...register('tax7Percent')}
+                    className="form-input"
+                    step="0.01"
+                    min="0"
+                    {...register('tax7Percent', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      onChange: (e) => {
+                        const amount = watch('amount');
+                        const vatAmount = Number(e.target.value);
+                        const withholdingAmount = watch('withholdingTax3Percent');
+                        if (amount) {
+                          calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
+                        }
+                      }
+                    })}
                   />
+                  {errors.tax7Percent && (
+                    <p className="text-red-500 text-sm mt-1">{errors.tax7Percent.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย 3%</label>
+                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
                   <Input
                     type="number"
-                    className="form-input bg-gray-100"
-                    readOnly
-                    {...register('withholdingTax3Percent')}
+                    className="form-input"
+                    step="0.01"
+                    min="0"
+                    {...register('withholdingTax3Percent', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      onChange: (e) => {
+                        const amount = watch('amount');
+                        const withholdingAmount = Number(e.target.value);
+                        const vatAmount = watch('tax7Percent');
+                        if (amount) {
+                          calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
+                        }
+                      }
+                    })}
                   />
+                  {errors.withholdingTax3Percent && (
+                    <p className="text-red-500 text-sm mt-1">{errors.withholdingTax3Percent.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="form-label">จำนวนเงินสุทธิ</label>
@@ -1087,10 +1209,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               className="form-input min-h-[100px]"
               placeholder="กรอกรายละเอียดเพิ่มเติมถ้ามี"
               {...register('details', {
-                required: 'กรุณาระบุรายละเอียด',
+
                 minLength: {
                   value: 0,
-                  message: 'รายละเอียดต้องมีความยาวอย่างน้อย 10 ตัวอักษร'
+
                 }
               })}
             />
@@ -1183,7 +1305,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           setPendingFormData(null);
         }}
         onConfirm={handleSignatureConfirm}
-        userName={employeeData?.Name || profile?.name || user?.name || ''}
+        userName={profile?.name || user?.name || ''}
       />
     </div>
   );

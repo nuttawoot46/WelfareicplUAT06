@@ -1,13 +1,12 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useWelfare } from '@/context/WelfareContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
-import { Download, Filter } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Download, Filter, TrendingUp, Users, DollarSign, FileText } from 'lucide-react';
 import { WelfareType, StatusType } from '@/types';
 import { saveAs } from 'file-saver';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +15,7 @@ import { fetchAllEmployees, SimpleEmployee } from '@/services/employeeApi';
 import { getBenefitLimitsByEmpId, BenefitLimit } from '@/services/welfareLimitApi';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const welfareTypeLabels: Record<WelfareType, string> = {
   wedding: 'ค่าแต่งงาน',
@@ -102,9 +101,9 @@ function exportReportToCSV({
 
   // สรุปการใช้สวัสดิการแยกตามประเภท
   csv += 'สรุปการใช้สวัสดิการแยกตามประเภท\r\n';
-  csv += 'ประเภทสวัสดิการ,จำนวนคำร้อง (รายการ),ยอดเงินที่ใช้ไป (บาท),ยอดเงินคงเหลือ (บาท)\r\n';
+  csv += 'ประเภทสวัสดิการ,จำนวนคำร้อง (รายการ),ยอดเงินที่ใช้ไป (บาท)\r\n';
   summaryByType.forEach((row: any) => {
-    csv += `"${welfareTypeLabels[row.type as WelfareType] || row.type}","${row.count.toLocaleString()}","${row.used.toLocaleString()}","${row.remaining.toLocaleString()}"\r\n`;
+    csv += `"${welfareTypeLabels[row.type as WelfareType] || row.type}","${row.count.toLocaleString()}","${row.used.toLocaleString()}"\r\n`;
   });
 
   csv += '\r\nสรุปสถานะคำร้อง\r\n';
@@ -154,22 +153,16 @@ const AdminReport = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState<StatusType | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
-  const [loadingEmp, setLoadingEmp] = useState(true);
-  const [empError, setEmpError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      setLoadingEmp(true);
-      setEmpError(null);
       try {
         const emps = await fetchAllEmployees();
         setEmployees(emps);
         const uniqueDepartments = Array.from(new Set(emps.map(e => e.Team).filter(Boolean))) as string[];
         setDepartments(uniqueDepartments);
       } catch (e: any) {
-        setEmpError(e.message || 'เกิดข้อผิดพลาด');
-      } finally {
-        setLoadingEmp(false);
+        console.error('Error loading employees:', e);
       }
     }
     load();
@@ -332,7 +325,7 @@ const AdminReport = () => {
         labels: {
           font: {
             size: 14,
-            weight: 'bold',
+            weight: 'bold' as const,
           },
           color: '#374151',
         },
@@ -360,7 +353,7 @@ const AdminReport = () => {
         ticks: {
           font: {
             size: 12,
-            weight: 'bold',
+            weight: 'normal' as const,
           },
           color: '#6b7280',
         },
@@ -390,15 +383,69 @@ const AdminReport = () => {
     },
   };
 
+  // Calculate key metrics
+  const totalUsed = summaryByType.reduce((sum, item) => sum + item.used, 0);
+  const totalRequests = filteredRequests.length;
+  const completedRequests = filteredRequests.filter(req => req.status === 'completed').length;
+  const pendingRequests = filteredRequests.filter(req => req.status.includes('pending')).length;
+  const rejectedRequests = filteredRequests.filter(req => req.status.includes('rejected')).length;
+
+  // Doughnut chart for status distribution
+  const statusData = {
+    labels: ['อนุมัติแล้ว', 'รอดำเนินการ', 'ไม่อนุมัติ'],
+    datasets: [
+      {
+        data: [completedRequests, pendingRequests, rejectedRequests],
+        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+        borderWidth: 0,
+        cutout: '70%',
+      },
+    ],
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          font: {
+            size: 12,
+          },
+          color: '#374151',
+          usePointStyle: true,
+          padding: 20,
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        cornerRadius: 8,
+      },
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto rounded-2xl shadow-lg bg-white dark:bg-gray-800 p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto rounded-2xl shadow-lg bg-white p-6 md:p-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate('/admin')}>
-              ย้อนกลับ
+              ← ย้อนกลับ
             </Button>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white drop-shadow">ภาพรวมสวัสดิการ</h1>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 drop-shadow">
+                ภาพรวมสวัสดิการ
+              </h1>
+              <p className="text-gray-600">
+                รายงานและสถิติการใช้งานสวัสดิการของบริษัท
+              </p>
+            </div>
           </div>
           <Button
             variant="outline"
@@ -424,230 +471,374 @@ const AdminReport = () => {
           </Button>
         </div>
 
-        <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Filter className="w-5 h-5" /> ตัวกรองข้อมูล
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger><SelectValue placeholder="เลือกแผนก" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกแผนก</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                  <SelectTrigger><SelectValue placeholder="เลือกพนักงาน" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">พนักงานทุกคน</SelectItem>
-                    {employees
-                      .filter(emp => departmentFilter === 'all' || emp.Team === departmentFilter)
-                      .map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          {emp.Name || `ID: ${emp.id}`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger><SelectValue placeholder="ประเภทสวัสดิการ" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกประเภท</SelectItem>
-                    {Object.entries(welfareTypeLabels).map(([key, value]) => (
-                      <SelectItem key={key} value={key}>{value}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกสถานะ</SelectItem>
-                    <SelectItem value="pending_manager">รอผู้จัดการอนุมัติ</SelectItem>
-                    <SelectItem value="pending_hr">รอ HR อนุมัติ</SelectItem>
-                    <SelectItem value="pending_accounting">รอฝ่ายบัญชีตรวจสอบ</SelectItem>
-                    <SelectItem value="completed">อนุมัติแล้ว</SelectItem>
-                    <SelectItem value="rejected_manager">ผู้จัดการไม่อนุมัติ</SelectItem>
-                    <SelectItem value="rejected_hr">HR ไม่อนุมัติ</SelectItem>
-                    <SelectItem value="rejected_accounting">ฝ่ายบัญชีไม่อนุมัติ</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 border-0 text-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">ใช้ไปแล้ว</p>
+                  <p className="text-2xl font-bold">{totalUsed.toLocaleString()}</p>
+                  <p className="text-xs text-green-100">บาท</p>
+                </div>
+                <div className="bg-green-400/30 p-3 rounded-full">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Section for summary cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle>สรุปการใช้สวัสดิการแยกตามประเภท</CardTitle></CardHeader>
-              <CardContent>
-                <div className="h-96">
-                  <Bar data={barData} options={barOptions} />
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">คำร้องทั้งหมด</p>
+                  <p className="text-2xl font-bold">{totalRequests}</p>
+                  <p className="text-xs text-blue-100">รายการ</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card>
-                <CardHeader><CardTitle>สรุปสถานะคำร้อง</CardTitle></CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {statusSummary.filter(s => s.count > 0).map((s) => (
-                      <li key={s.status} className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{s.label}</span>
-                        <span
-                          className="font-bold text-blue-600 cursor-pointer hover:underline"
-                          onClick={() => {
-                            if (s.count > 0) {
-                              setModalStatus(s.status as StatusType);
-                              setModalOpen(true);
-                            }
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          style={{ userSelect: 'none' }}
-                        >
-                          {s.count.toLocaleString()} รายการ
-                        </span>
-                      </li>
-                    ))}
-
-                    {/* Modal แสดงรายการคำร้องแต่ละสถานะ */}
-                    {modalOpen && modalStatus && (
-                      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-                        <div className="p-4 w-full max-w-2xl">
-                          <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">
-                              รายการคำร้องสถานะ {statusSummary.find(s => s.status === modalStatus)?.label || modalStatus}
-                            </h2>
-                            <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-red-500 text-lg">✕</button>
-                          </div>
-                          <div className="overflow-y-auto max-h-[60vh]">
-                            {(() => {
-                              const filteredModalRequests = filteredRequests.filter(r => r.status === modalStatus);
-
-                              return filteredModalRequests.length === 0 ? (
-                                <div className="text-center text-gray-400 py-10">ไม่พบรายการคำร้อง</div>
-                              ) : (
-                                <table className="min-w-full text-sm border">
-                                  <thead className="bg-gray-100">
-                                    <tr>
-                                      <th className="py-2 px-2 border">วันที่</th>
-                                      <th className="py-2 px-2 border">ชื่อพนักงาน</th>
-                                      <th className="py-2 px-2 border">ประเภท</th>
-                                      <th className="py-2 px-2 border">จำนวนเงิน</th>
-                                      <th className="py-2 px-2 border">แผนก</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {filteredModalRequests.map((r, i) => (
-                                      <tr key={r.id || i} className="odd:bg-white even:bg-gray-50">
-                                        <td className="border px-2 py-1">{new Date(r.date).toLocaleDateString('th-TH')}</td>
-                                        <td className="border px-2 py-1">{r.userName}</td>
-                                        <td className="border px-2 py-1">{welfareTypeLabels[r.type] || r.type}</td>
-                                        <td className="border px-2 py-1 text-right">{Number(r.amount).toLocaleString()} บาท</td>
-                                        <td className="border px-2 py-1">{r.userDepartment || '-'}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      </Modal>
-                    )}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>สรุปตามแผนก</CardTitle></CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 max-h-48 overflow-y-auto">
-                    {departmentSummary.map((d) => (
-                      <li key={d.department} className="flex justify-between items-center">
-                        <span>{d.department}</span>
-                        <span className="font-semibold">{d.used.toLocaleString()} บาท</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Employee Summary */}
-          {employeeFilter !== 'all' && employeeWelfareSummary && (
-            <Card>
-              <CardHeader><CardTitle>สรุปสวัสดิการของ {employees.find(e => e.id.toString() === employeeFilter)?.Name || ''}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white dark:bg-gray-900 p-4">
-                  <table className="min-w-full text-base text-gray-700 dark:text-gray-200">
-                    <thead className="bg-welfare-blue/10">
-                      <tr>
-                        <th className="font-semibold text-welfare-blue text-base py-3 px-2 text-left">ประเภทสวัสดิการ</th>
-                        <th className="font-semibold text-welfare-blue text-base py-3 px-2 text-right">วงเงินทั้งหมด</th>
-                        <th className="font-semibold text-welfare-blue text-base py-3 px-2 text-right">ใช้ไปแล้ว</th>
-                        <th className="font-semibold text-welfare-blue text-base py-3 px-2 text-right">คงเหลือ</th>
-                        <th className="w-[180px] font-semibold text-welfare-blue text-base py-3 px-2 text-center">สัดส่วนคงเหลือ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {employeeWelfareSummary.map((w) => {
-                        const percentRemaining = w.limit > 0 ? (w.remaining / w.limit) * 100 : 0;
-                        // สี bar ตาม type
-                        const barColors: Record<string, string> = {
-                          wedding: '#FF6F61', // แดงส้มสด
-                          training: '#6A5ACD', // น้ำเงินม่วงสด
-                          childbirth: '#FFD700', // เหลืองทองสด
-                          funeral: '#20B2AA', // ฟ้าอมเขียวสด
-                          glasses: '#FF69B4', // ชมพูสด
-                          dental: '#40E0D0', // ฟ้าครามสด
-                          fitness: '#FF8C00', // ส้มเข้มสด
-                          medical: '#43A047', // เขียวสด
-                        };
-                        return (
-                          <tr key={w.type} className="hover:bg-welfare-blue/5 dark:hover:bg-welfare-blue/20 transition-colors">
-                            <td className="font-medium flex items-center gap-3 py-2 px-2">
-                              <span className="inline-block w-3 h-3 rounded-full" style={{ background: barColors[w.type] || '#3b82f6' }}></span>
-                              <span className="text-base">{w.label}</span>
-                            </td>
-                            <td className="text-right px-2">{w.limit.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></td>
-                            <td className="text-right px-2">{w.used.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></td>
-                            <td className="text-right px-2">{w.remaining.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></td>
-                            <td className="text-center px-2">
-                              <div className="flex items-center gap-2">
-                                <div className="h-3 w-full rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700" style={{ minWidth: '120px' }}>
-                                  <div
-                                    className="h-full rounded-full transition-all duration-300"
-                                    style={{ width: `${percentRemaining}%`, background: barColors[w.type] || '#3b82f6' }}
-                                  />
-                                </div>
-                                <span className="text-base w-12 font-semibold text-gray-700 dark:text-gray-200">{Math.round(percentRemaining)}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="bg-blue-400/30 p-3 rounded-full">
+                  <FileText className="w-6 h-6" />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
 
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">พนักงานที่ใช้</p>
+                  <p className="text-2xl font-bold">
+                    {new Set(filteredRequests.map(req => req.userName)).size}
+                  </p>
+                  <p className="text-xs text-purple-100">คน</p>
+                </div>
+                <div className="bg-purple-400/30 p-3 rounded-full">
+                  <Users className="w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Filters */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Filter className="w-5 h-5" /> ตัวกรองข้อมูล
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger><SelectValue placeholder="เลือกแผนก" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกแผนก</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                <SelectTrigger><SelectValue placeholder="เลือกพนักงาน" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">พนักงานทุกคน</SelectItem>
+                  {employees
+                    .filter(emp => departmentFilter === 'all' || emp.Team === departmentFilter)
+                    .map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.Name || `ID: ${emp.id}`}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger><SelectValue placeholder="ประเภทสวัสดิการ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกประเภท</SelectItem>
+                  {Object.entries(welfareTypeLabels).map(([key, value]) => (
+                    <SelectItem key={key} value={key}>{value}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกสถานะ</SelectItem>
+                  <SelectItem value="pending_manager">รอผู้จัดการอนุมัติ</SelectItem>
+                  <SelectItem value="pending_hr">รอ HR อนุมัติ</SelectItem>
+                  <SelectItem value="pending_accounting">รอฝ่ายบัญชีตรวจสอบ</SelectItem>
+                  <SelectItem value="completed">อนุมัติแล้ว</SelectItem>
+                  <SelectItem value="rejected_manager">ผู้จัดการไม่อนุมัติ</SelectItem>
+                  <SelectItem value="rejected_hr">HR ไม่อนุมัติ</SelectItem>
+                  <SelectItem value="rejected_accounting">ฝ่ายบัญชีไม่อนุมัติ</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <DateRangePicker value={dateRange} onChange={setDateRange} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Analytics Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Bar Chart */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                สรุปการใช้สวัสดิการแยกตามประเภท
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-96">
+                <Bar data={barData} options={barOptions} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Status Doughnut Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                สถานะคำร้อง
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 mb-4">
+                <Doughnut data={statusData} options={doughnutOptions} />
+              </div>
+              <div className="space-y-2">
+                {statusSummary.filter(s => s.count > 0).map((s) => (
+                  <div key={s.status} className="flex justify-between items-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <span className="text-sm font-medium text-gray-700">{s.label}</span>
+                    <span
+                      className="font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors"
+                      onClick={() => {
+                        if (s.count > 0) {
+                          setModalStatus(s.status as StatusType);
+                          setModalOpen(true);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{ userSelect: 'none' }}
+                    >
+                      {s.count.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Department Summary Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                สรุปตามแผนก
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {departmentSummary.map((d, index) => (
+                  <div key={d.department} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <span className="text-gray-700 font-medium">{d.department}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-gray-900 font-bold">{d.used.toLocaleString()} บาท</div>
+                      <div className="text-gray-500 text-sm">{d.count} รายการ</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Welfare Type Grid */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                ประเภทสวัสดิการยอดนิยม
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {summaryByType
+                  .sort((a, b) => b.used - a.used)
+                  .slice(0, 8)
+                  .map((item) => (
+                    <div key={item.type} className="p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: barColors[item.type] || '#3b82f6' }}
+                        />
+                        <span className="text-gray-700 text-sm font-medium truncate">
+                          {welfareTypeLabels[item.type as WelfareType] || item.type}
+                        </span>
+                      </div>
+                      <div className="text-gray-900 font-bold text-lg">
+                        {item.used.toLocaleString()}
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {item.count} รายการ
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Modal แสดงรายการคำร้องแต่ละสถานะ */}
+        {modalOpen && modalStatus && (
+          <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+            <div className="p-6 w-full max-w-4xl bg-white rounded-lg">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  รายการคำร้องสถานะ {statusSummary.find(s => s.status === modalStatus)?.label || modalStatus}
+                </h2>
+                <button 
+                  onClick={() => setModalOpen(false)} 
+                  className="text-gray-500 hover:text-red-500 text-2xl transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-[70vh]">
+                {(() => {
+                  const filteredModalRequests = filteredRequests.filter(r => r.status === modalStatus);
+
+                  return filteredModalRequests.length === 0 ? (
+                    <div className="text-center text-gray-400 py-20">
+                      <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg">ไม่พบรายการคำร้อง</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full bg-white rounded-lg overflow-hidden border">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="py-3 px-4 text-left text-gray-900 font-semibold">วันที่</th>
+                            <th className="py-3 px-4 text-left text-gray-900 font-semibold">ชื่อพนักงาน</th>
+                            <th className="py-3 px-4 text-left text-gray-900 font-semibold">ประเภท</th>
+                            <th className="py-3 px-4 text-right text-gray-900 font-semibold">จำนวนเงิน</th>
+                            <th className="py-3 px-4 text-left text-gray-900 font-semibold">แผนก</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredModalRequests.map((r, i) => (
+                            <tr key={r.id || i} className="border-b border-gray-200 hover:bg-gray-50">
+                              <td className="py-3 px-4 text-gray-700">
+                                {new Date(r.date).toLocaleDateString('th-TH')}
+                              </td>
+                              <td className="py-3 px-4 text-gray-900 font-medium">{r.userName}</td>
+                              <td className="py-3 px-4 text-gray-700">
+                                {welfareTypeLabels[r.type] || r.type}
+                              </td>
+                              <td className="py-3 px-4 text-right text-green-600 font-bold">
+                                {Number(r.amount).toLocaleString()} บาท
+                              </td>
+                              <td className="py-3 px-4 text-gray-700">{r.userDepartment || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Employee Summary */}
+        {employeeFilter !== 'all' && employeeWelfareSummary && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                สรุปสวัสดิการของ {employees.find(e => e.id.toString() === employeeFilter)?.Name || ''}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white p-4">
+                <table className="min-w-full text-base text-gray-700">
+                  <thead className="bg-blue-50">
+                    <tr>
+                      <th className="font-semibold text-blue-700 text-base py-3 px-2 text-left">ประเภทสวัสดิการ</th>
+                      <th className="font-semibold text-blue-700 text-base py-3 px-2 text-right">วงเงินทั้งหมด</th>
+                      <th className="font-semibold text-blue-700 text-base py-3 px-2 text-right">ใช้ไปแล้ว</th>
+                      <th className="font-semibold text-blue-700 text-base py-3 px-2 text-right">คงเหลือ</th>
+                      <th className="w-[200px] font-semibold text-blue-700 text-base py-3 px-2 text-center">สัดส่วนการใช้</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employeeWelfareSummary.map((w) => {
+                      const percentRemaining = w.limit > 0 ? (w.remaining / w.limit) * 100 : 0;
+                      const percentUsed = w.limit > 0 ? (w.used / w.limit) * 100 : 0;
+                      return (
+                        <tr key={w.type} className="border-b border-gray-200 hover:bg-blue-50/50 transition-colors">
+                          <td className="font-medium flex items-center gap-3 py-4 px-2">
+                            <span 
+                              className="inline-block w-4 h-4 rounded-full shadow-lg" 
+                              style={{ background: barColors[w.type] || '#3b82f6' }}
+                            />
+                            <span className="text-gray-900 text-base">{w.label}</span>
+                          </td>
+                          <td className="text-right px-2 text-gray-700">
+                            {w.limit.toLocaleString()} 
+                            <span className="text-xs text-gray-400 ml-1">บาท</span>
+                          </td>
+                          <td className="text-right px-2 text-green-600 font-semibold">
+                            {w.used.toLocaleString()} 
+                            <span className="text-xs text-gray-400 ml-1">บาท</span>
+                          </td>
+                          <td className="text-right px-2 text-blue-600 font-semibold">
+                            {w.remaining.toLocaleString()} 
+                            <span className="text-xs text-gray-400 ml-1">บาท</span>
+                          </td>
+                          <td className="text-center px-2">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500 shadow-sm"
+                                  style={{ 
+                                    width: `${percentUsed}%`, 
+                                    background: `linear-gradient(90deg, ${barColors[w.type] || '#3b82f6'}, ${barColors[w.type] || '#3b82f6'}dd)` 
+                                  }}
+                                />
+                              </div>
+                              <span className="text-gray-900 font-bold text-sm w-12 text-right">
+                                {Math.round(percentUsed)}%
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              ใช้ไปแล้ว
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

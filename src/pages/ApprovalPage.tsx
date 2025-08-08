@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
@@ -46,6 +46,7 @@ export const ApprovalPage = () => {
   const [pendingApprovalRequest, setPendingApprovalRequest] = useState<WelfareRequest | null>(null);
   const [pendingBulkApproval, setPendingBulkApproval] = useState<WelfareRequest[]>([]);
   const [isBulkApproval, setIsBulkApproval] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
   const { downloadPDF, previewPDF, isLoading: isPDFLoading } = usePDFOperations();
 
   // Cleanup function to reset states
@@ -99,19 +100,26 @@ export const ApprovalPage = () => {
     }
   };
 
-  // Filter requests that are pending manager approval or pending HR (to show history)
+  // Filter requests based on active tab
   const filteredRequests = useMemo(() => {
     let base = allRequests;
     if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
       base = allRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
     }
+    
     return base
       .filter((req: WelfareRequest) => {
-        // Show requests that are pending manager approval or pending HR (approved by manager)
-        const isRelevantStatus = req.status === 'pending_manager' || req.status === 'pending_hr';
+        // Filter by tab
+        if (activeTab === 'pending') {
+          // Show only requests pending manager approval
+          if (req.status !== 'pending_manager') return false;
+        } else if (activeTab === 'history') {
+          // Show requests that have been processed by manager (approved or rejected)
+          const processedStatuses = ['pending_hr', 'pending_accounting', 'approved', 'rejected_manager', 'rejected_hr', 'rejected_accounting'];
+          if (!processedStatuses.includes(req.status)) return false;
+        }
         
-        if (!isRelevantStatus) return false;
-        
+        // Apply other filters
         if (statusFilter !== 'all' && req.status.toLowerCase() !== statusFilter.toLowerCase()) {
           return false;
         }
@@ -124,7 +132,7 @@ export const ApprovalPage = () => {
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm]);
+  }, [allRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm, activeTab]);
 
   // (ถ้ามี logic อื่นๆ ที่ต้องใช้ approverIds ให้คงไว้)
   useEffect(() => {
@@ -174,8 +182,10 @@ export const ApprovalPage = () => {
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
-      // Only select requests that are pending_manager (can be approved)
-      const selectableRequests = filteredRequests.filter(req => req.status === 'pending_manager');
+      // Only select requests that are pending_manager (can be approved) and only in pending tab
+      const selectableRequests = filteredRequests.filter(req => 
+        req.status === 'pending_manager' && activeTab === 'pending'
+      );
       setSelectedRequests(selectableRequests.map(req => req.id));
     } else {
       setSelectedRequests([]);
@@ -484,117 +494,186 @@ export const ApprovalPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            <span>Manager Approval Dashboard - Pending & Approved Requests</span>
+            <span>Manager Approval Dashboard</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search by employee..." 
-                  className="pl-8" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <span>Filter by status, date</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <div className="p-4">
-                    <h4 className="font-medium mb-2">Filters</h4>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                                                                                              </SelectContent>
-                    </Select>
-                    <div className="mt-4">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant={'outline'} className="w-full justify-start text-left font-normal">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={dateFilter}
-                            onSelect={setDateFilter}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="pending" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Pending Approval
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                History
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="pending" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search by employee..." 
+                      className="pl-8" 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-x-2">
-              <Button 
-                onClick={handleBulkApprove}
-                disabled={selectedRequests.length === 0}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Approve ({selectedRequests.length})
-              </Button>
-              <Button 
-                onClick={handleBulkReject}
-                disabled={selectedRequests.length === 0}
-                variant="destructive"
-              >
-                Reject ({selectedRequests.length})
-              </Button>
-            </div>
-          </div>
-
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                        <Filter className="mr-2 h-4 w-4" />
+                        <span>Filter by date</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <div className="p-4">
+                        <h4 className="font-medium mb-2">Filters</h4>
+                        <div className="mt-4">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant={'outline'} className="w-full justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={dateFilter}
+                                onSelect={setDateFilter}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-x-2">
+                  <Button 
+                    onClick={handleBulkApprove}
+                    disabled={selectedRequests.length === 0}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Approve ({selectedRequests.length})
+                  </Button>
+                  <Button 
+                    onClick={handleBulkReject}
+                    disabled={selectedRequests.length === 0}
+                    variant="destructive"
+                  >
+                    Reject ({selectedRequests.length})
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="history" className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by employee..." 
+                    className="pl-8" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                      <Filter className="mr-2 h-4 w-4" />
+                      <span>Filter by status, date</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-4">
+                      <h4 className="font-medium mb-2">Filters</h4>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="pending_hr">Pending HR</SelectItem>
+                          <SelectItem value="pending_accounting">Pending Accounting</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected_manager">Rejected by Manager</SelectItem>
+                          <SelectItem value="rejected_hr">Rejected by HR</SelectItem>
+                          <SelectItem value="rejected_accounting">Rejected by Accounting</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="mt-4">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant={'outline'} className="w-full justify-start text-left font-normal">
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={dateFilter}
+                              onSelect={setDateFilter}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </TabsContent>
+          </Tabs>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
-                  <Checkbox 
-                    onCheckedChange={handleSelectAll}
-                    checked={
-                      filteredRequests.length > 0 && selectedRequests.length === filteredRequests.length
-                        ? true
-                        : selectedRequests.length > 0
-                        ? 'indeterminate'
-                        : false
-                    }
-                    aria-label="Select all"
-                  />
-                </TableHead>
+                {activeTab === 'pending' && (
+                  <TableHead>
+                    <Checkbox 
+                      onCheckedChange={handleSelectAll}
+                      checked={
+                        filteredRequests.length > 0 && selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_manager').length
+                          ? true
+                          : selectedRequests.length > 0
+                          ? 'indeterminate'
+                          : false
+                      }
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Welfare Type</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Submission Date</TableHead>
                 <TableHead>Status</TableHead>
+                {activeTab === 'history' && <TableHead>Processed Date</TableHead>}
                 <TableHead className="text-center">Attachment</TableHead>
-                
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRequests.map((req: WelfareRequest) => (
                 <TableRow key={req.id}>
-                  <TableCell>
-                    <Checkbox 
-                    onCheckedChange={() => handleSelectRequest(req.id)}
-                    checked={selectedRequests.includes(req.id)}
-                    aria-label={`Select request ${req.id}`}
-                    disabled={req.status !== 'pending_manager'}
-                  />
-                  </TableCell>
+                  {activeTab === 'pending' && (
+                    <TableCell>
+                      <Checkbox 
+                        onCheckedChange={() => handleSelectRequest(req.id)}
+                        checked={selectedRequests.includes(req.id)}
+                        aria-label={`Select request ${req.id}`}
+                        disabled={req.status !== 'pending_manager'}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>{req.userName}</TableCell>
                   <TableCell>{req.userDepartment || '-'}</TableCell>
                   <TableCell>{req.type}</TableCell>
@@ -609,9 +688,25 @@ export const ApprovalPage = () => {
                       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                         Pending HR
                       </Badge>
+                    ) : req.status === 'pending_accounting' ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        Pending Accounting
+                      </Badge>
+                    ) : req.status === 'approved' ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Approved
+                      </Badge>
                     ) : req.status === 'rejected_manager' ? (
                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected
+                        Rejected by Manager
+                      </Badge>
+                    ) : req.status === 'rejected_hr' ? (
+                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        Rejected by HR
+                      </Badge>
+                    ) : req.status === 'rejected_accounting' ? (
+                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        Rejected by Accounting
                       </Badge>
                     ) : (
                       <Badge variant="outline">
@@ -619,6 +714,12 @@ export const ApprovalPage = () => {
                       </Badge>
                     )}
                   </TableCell>
+                  {activeTab === 'history' && (
+                    <TableCell>
+                      {req.managerApprovedAt ? format(new Date(req.managerApprovedAt), 'PP') : 
+                       req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
+                    </TableCell>
+                  )}
                   <TableCell className="text-center">
                     {req.attachments && req.attachments.length > 0 ? (
                       <div className="flex flex-wrap gap-1 justify-center">
@@ -640,7 +741,6 @@ export const ApprovalPage = () => {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
                   </TableCell>
@@ -648,6 +748,15 @@ export const ApprovalPage = () => {
               ))}
             </TableBody>
           </Table>
+          
+          {filteredRequests.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              {activeTab === 'pending' 
+                ? 'No requests pending manager approval at this time.'
+                : 'No processed requests found.'
+              }
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -742,23 +851,25 @@ export const ApprovalPage = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                onClick={() => {
-                  console.log('Approve button clicked for request:', selectedRequest);
-                  handleApprove(selectedRequest.id);
-                }}
-                disabled={selectedRequest.status !== 'pending_manager'}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Approve
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                disabled={selectedRequest.status !== 'pending_manager'}
-              >
-                Reject
-              </Button>
+              {selectedRequest.status === 'pending_manager' && (
+                <>
+                  <Button 
+                    onClick={() => {
+                      console.log('Approve button clicked for request:', selectedRequest);
+                      handleApprove(selectedRequest.id);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Approve
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => handleReject(selectedRequest.id, rejectionReason)}
+                  >
+                    Reject
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -202,7 +202,7 @@ export const UserManagement = () => {
           </Button>
           <Link to="/admin/report">
             <Button variant="outline" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
+              
               Report ภาพรวม
             </Button>
           </Link>
