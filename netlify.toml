@@ -1,0 +1,11 @@
+# การตั้งค่าพื้นฐานสำหรับการ Build
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# การตั้งค่า Redirect สำหรับ Single-Page Application (SPA)
+# นี่คือส่วนที่สำคัญที่สุดสำหรับแก้ปัญหา 404
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
