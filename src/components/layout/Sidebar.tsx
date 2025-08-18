@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  ChartBar, 
-  File, 
-  LogOut, 
-  Settings, 
-  CheckSquare, 
+import {
+  ChartBar,
+  File,
+  LogOut,
+  Settings,
+  CheckSquare,
   Bell,
   Menu,
   X,
-  CheckCircle,
   Users,
   ShieldCheck,
-  FileText
+  FileText,
+  ChevronDown,
+  UserPlus,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -31,29 +33,43 @@ export function Sidebar() {
   console.log('Sidebar - isAdmin:', isAdmin);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
-  
+
   // Mobile responsive management
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  
+
+  // Submenu states
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
-  
+
   const toggleMobileSidebar = () => {
     setIsMobileOpen(!isMobileOpen);
   };
 
+  const toggleSubmenu = (menuKey: string) => {
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
+
   const isActive = (path: string) => location.pathname === path;
+
+  const isSubmenuActive = (paths: string[]) => {
+    return paths.some(path => location.pathname.includes(path));
+  };
 
   // If not logged in, don't show sidebar
   if (!user) return null;
 
   // Get user information with priority to profile data
-  const displayName = profile?.display_name || 
-                     `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
-                     user?.user_metadata?.full_name ||
-                     user?.email?.split('@')[0] ||
-                     "User";
+  const displayName = profile?.display_name ||
+    `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    "User";
   const email = user?.email || '';
   const department = profile?.department || '';
   const position = profile?.position || '';
@@ -62,15 +78,15 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile menu button */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={toggleMobileSidebar} 
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleMobileSidebar}
         className="fixed top-4 left-4 z-50 md:hidden bg-primary text-white rounded-full shadow-lg"
       >
         {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
       </Button>
-      
+
       {/* Sidebar container */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-40 bg-gradient-primary shadow-xl transition-all duration-300 flex flex-col",
@@ -84,9 +100,9 @@ export function Sidebar() {
             isOpen ? "w-auto" : "w-12"
           )}>
             <div className="w-12 h-12 rounded-full overflow-hidden bg-white flex items-center justify-center">
-              <img 
-                src="/Picture/logo-Photoroom.jpg" 
-                alt="ICP Ladda Logo" 
+              <img
+                src="/Picture/logo-Photoroom.jpg"
+                alt="ICP Ladda Logo"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -94,15 +110,15 @@ export function Sidebar() {
               <h1 className="text-white font-bold text-xl animate-fade-in">ICP Ladda</h1>
             )}
           </div>
-          
+
 
         </div>
-        
+
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {/* Dashboard */}
-          <Link 
-            to="/dashboard" 
+          <Link
+            to="/dashboard"
             className={cn(
               "nav-link group",
               isActive('/dashboard') ? "nav-link-active" : "text-white/90 hover:text-white"
@@ -137,7 +153,7 @@ export function Sidebar() {
               <span className="transition-all duration-300 text-white font-medium">แบบฟอร์มขอสวัสดิการ</span>
             )}
           </Link>
-          
+
           {/* Approval Page */}
           {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (
             <Link to="/approve" className={cn(
@@ -163,7 +179,7 @@ export function Sidebar() {
               )}
             </Link>
           )}
-          
+
           {/* Notifications */}
           <Link to="/notifications" className={cn(
             "nav-link group",
@@ -174,20 +190,56 @@ export function Sidebar() {
               <span className="transition-all duration-300 text-white font-medium">การแจ้งเตือน</span>
             )}
           </Link>
-          
+
           {/* Admin */}
           {profile?.role === 'admin' && (
-            <Link to="/admin#users" className={cn(
-              "nav-link group",
-              isActive('/admin') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <ShieldCheck className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">ผู้ดูแลระบบ</span>
+            <div className="relative">
+              <div
+                className={cn(
+                  "nav-link group cursor-pointer",
+                  isSubmenuActive(['/admin']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                )}
+                onClick={() => isOpen && toggleSubmenu('admin')}
+                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, admin: true }))}
+                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, admin: false }))}
+              >
+                <ShieldCheck className="h-5 w-5 flex-shrink-0" />
+                {isOpen && (
+                  <>
+                    <span className="transition-all duration-300 text-white font-medium">ผู้ดูแลระบบ</span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      openSubmenus.admin && "rotate-180"
+                    )} />
+                  </>
+                )}
+              </div>
+
+              {/* Submenu */}
+              {(openSubmenus.admin || !isOpen) && (
+                <div className={cn(
+                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                )}>
+                  <Link to="/admin#users" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <UserPlus className="h-4 w-4" />
+                    <span>จัดการผู้ใช้</span>
+                  </Link>
+                  <Link to="/admin/report" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <BarChart3 className="h-4 w-4" />
+                    <span>รายงาน</span>
+                  </Link>
+                  
+                </div>
               )}
-            </Link>
+            </div>
           )}
-          
+
           {/* Settings */}
           <Link to="/settings" className={cn(
             "nav-link group",
@@ -199,7 +251,7 @@ export function Sidebar() {
             )}
           </Link>
         </nav>
-        
+
         {/* User profile & logout */}
         <div className="p-4 border-t border-white/20 bg-white/5">
           <div className={cn(
@@ -212,7 +264,7 @@ export function Sidebar() {
               "shadow-md"
             )}>
               {displayInitial}
-              
+
               {/* Tooltip for collapsed state */}
               {!isOpen && (
                 <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-all duration-200 z-50 shadow-xl">
@@ -225,7 +277,7 @@ export function Sidebar() {
                 </div>
               )}
             </div>
-            
+
             {isOpen && (
               <div className="overflow-hidden">
                 <p className="text-base font-semibold text-white truncate">{displayName}</p>
@@ -242,13 +294,13 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          
-          <Button 
-            variant="ghost" 
+
+          <Button
+            variant="ghost"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              
+
               // Add a small delay to ensure the click is processed
               setTimeout(() => {
                 signOut().catch(error => {
@@ -275,7 +327,7 @@ export function Sidebar() {
 function ChevronLeft({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="m15 18-6-6 6-6"/>
+      <path d="m15 18-6-6 6-6" />
     </svg>
   );
 }
@@ -283,7 +335,7 @@ function ChevronLeft({ className }: { className?: string }) {
 function ChevronRight({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="m9 18 6-6-6-6"/>
+      <path d="m9 18 6-6-6-6" />
     </svg>
   );
 }

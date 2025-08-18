@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WelfareType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,7 +162,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         setEmployeeBudget(budgetResult);
       }
     } else if (type !== 'training') {
-      setValue('amount', limitAmount);
+      setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
 
     // ถ้ามี editId ให้ดึงข้อมูลมา prefill
@@ -223,8 +223,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   // Update amount when birth type changes
   useEffect(() => {
     if (type === 'childbirth' && birthType) {
-      const amount = birthType === 'natural' ? 4000 : 6000;
-      setValue('amount', amount);
+      const amount = birthType === 'natural' ? 4000.00 : 6000.00;
+      setValue('amount', parseFloat(amount.toFixed(2)));
     }
   }, [birthType, type, setValue]);
 
@@ -686,27 +686,27 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (grossAmount > remainingNum) {
       // --- กรณีเกินงบประมาณ ---
       excessAmountValue = grossAmount - remainingNum;
-      netNum = grossAmount;
+      netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
 
       companyPaymentValue = excessAmountValue / 2;
-      employeePaymentValue = (excessAmountValue / 2) + withholding;
+      employeePaymentValue = (excessAmountValue / 2) + withholding; // พนักงานต้องจ่ายส่วนเกิน + ภาษี ณ ที่จ่าย
 
     } else {
       // --- กรณีไม่เกินงบประมาณ ---
-      netNum = grossAmount + withholding;
+      netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
       excessAmountValue = 0;
       companyPaymentValue = 0;
-      employeePaymentValue = 0;
+      employeePaymentValue = withholding; // พนักงานจ่ายเฉพาะภาษี ณ ที่จ่าย
     }
 
     // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
-    setValue('totalAmount', total);
-    setValue('tax7Percent', Math.round(vat * 100) / 100);
-    setValue('withholdingTax3Percent', Math.round(withholding * 100) / 100);
-    setValue('netAmount', Math.round(netNum * 100) / 100);
-    setValue('excessAmount', Math.round(excessAmountValue * 100) / 100); // ตั้งค่า Field ใหม่
-    setValue('companyPayment', Math.round(companyPaymentValue * 100) / 100);
-    setValue('employeePayment', Math.round(employeePaymentValue * 100) / 100);
+    setValue('totalAmount', parseFloat(total.toFixed(2)));
+    setValue('tax7Percent', parseFloat(vat.toFixed(2)));
+    setValue('withholdingTax3Percent', parseFloat(withholding.toFixed(2)));
+    setValue('netAmount', parseFloat(netNum.toFixed(2)));
+    setValue('excessAmount', parseFloat(excessAmountValue.toFixed(2))); // ตั้งค่า Field ใหม่
+    setValue('companyPayment', parseFloat(companyPaymentValue.toFixed(2)));
+    setValue('employeePayment', parseFloat(employeePaymentValue.toFixed(2)));
   };
 
   // ฟังก์ชันคำนวณสำหรับ welfare types อื่น ๆ (ไม่ใช่ training)
@@ -738,10 +738,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
 
     // อัปเดตค่าทั้งหมดไปยังฟอร์ม
-    setValue('totalAmount', total);
-    setValue('tax7Percent', Math.round(vat * 100) / 100);
-    setValue('withholdingTax3Percent', Math.round(withholding * 100) / 100);
-    setValue('netAmount', Math.round(netAmount * 100) / 100);
+    setValue('totalAmount', parseFloat(total.toFixed(2)));
+    setValue('tax7Percent', parseFloat(vat.toFixed(2)));
+    setValue('withholdingTax3Percent', parseFloat(withholding.toFixed(2)));
+    setValue('netAmount', parseFloat(netAmount.toFixed(2)));
   };
 
   // Add function to calculate total days
@@ -936,8 +936,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <Input
                   id="amount"
                   type="number"
+                  step="0.01"
                   className="form-input"
                   placeholder="ระบุจำนวนเงิน"
+                  value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
@@ -980,6 +982,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    value={watch('tax7Percent') ? Number(watch('tax7Percent')).toFixed(2) : ''}
                     {...register('tax7Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1003,6 +1006,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    value={watch('withholdingTax3Percent') ? Number(watch('withholdingTax3Percent')).toFixed(2) : ''}
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1023,8 +1027,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   <label className="form-label">จำนวนเงินสุทธิ</label>
                   <Input
                     type="number"
+                    step="0.01"
                     className="form-input bg-gray-100"
                     readOnly
+                    value={watch('netAmount') ? Number(watch('netAmount')).toFixed(2) : ''}
                     {...register('netAmount')}
                   />
                 </div>
@@ -1035,8 +1041,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
                 <Input
                   type="number"
+                  step="0.01"
                   className="form-input bg-gray-100"
                   readOnly
+                  value={watch('excessAmount') ? Number(watch('excessAmount')).toFixed(2) : ''}
                   {...register('excessAmount')}
                 />
               </div>
@@ -1046,8 +1054,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   <label className="form-label">บริษัทจ่าย</label>
                   <Input
                     type="number"
+                    step="0.01"
                     className="form-input bg-gray-100"
                     readOnly
+                    value={watch('companyPayment') ? Number(watch('companyPayment')).toFixed(2) : ''}
                     {...register('companyPayment')}
                   />
                 </div>
@@ -1055,8 +1065,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   <label className="form-label">พนักงานจ่าย</label>
                   <Input
                     type="number"
+                    step="0.01"
                     className="form-input bg-gray-100"
                     readOnly
+                    value={watch('employeePayment') ? Number(watch('employeePayment')).toFixed(2) : ''}
                     {...register('employeePayment')}
                   />
                 </div>
@@ -1099,8 +1111,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <Input
                   id="amount"
                   type="number"
+                  step="0.01"
                   className="form-input"
                   placeholder="ระบุจำนวนเงิน"
+                  value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
@@ -1149,6 +1163,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    value={watch('tax7Percent') ? Number(watch('tax7Percent')).toFixed(2) : ''}
                     {...register('tax7Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1172,6 +1187,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    value={watch('withholdingTax3Percent') ? Number(watch('withholdingTax3Percent')).toFixed(2) : ''}
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1192,8 +1208,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   <label className="form-label">จำนวนเงินสุทธิ</label>
                   <Input
                     type="number"
+                    step="0.01"
                     className="form-input bg-gray-100"
                     readOnly
+                    value={watch('netAmount') ? Number(watch('netAmount')).toFixed(2) : ''}
                     {...register('netAmount')}
                   />
                 </div>
@@ -1223,7 +1241,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
           {/* File Upload */}
           <div className="space-y-2">
-            <label htmlFor="attachments" className="form-label">แนบเอกสาร (ใบเสร็จรับเงิน, เอกสารประกอบ)</label>
+            <label htmlFor="attachments" className="form-label flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              แนบเอกสาร (ใบเสร็จรับเงิน, เอกสารประกอบ)
+            </label>
             <div className="flex items-center gap-2">
               <Input
                 id="attachments"

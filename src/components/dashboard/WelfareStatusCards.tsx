@@ -13,9 +13,10 @@ export function WelfareStatusCards() {
   const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
   const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
+  const rejectedHRCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
       <StatusCard
         title="รออนุมัติโดยหัวหน้า"
         count={pendingManagerCount}
@@ -45,6 +46,12 @@ export function WelfareStatusCards() {
         count={rejectedManagerCount}
         status="rejected_manager"
         icon={<XCircle className="h-5 w-5 text-red-700" />}
+      />
+      <StatusCard
+        title="ปฏิเสธโดย HR"
+        count={rejectedHRCount}
+        status="rejected_hr"
+        icon={<XCircle className="h-5 w-5 text-purple-700" />}
       />
       <StatusCard
         title="ปฏิเสธโดยบัญชี"

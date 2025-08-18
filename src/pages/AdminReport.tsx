@@ -765,6 +765,142 @@ const AdminReport = () => {
           </Modal>
         )}
 
+        {/* Individual Employee Welfare Usage - Show when viewing all departments and all employees */}
+        {departmentFilter === 'all' && employeeFilter === 'all' && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                รายชื่อพนักงานและการใช้สวัสดิการ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <tr>
+                      <th className="font-semibold text-blue-700 py-4 px-4 text-left sticky left-0 bg-blue-50 z-10 border-r border-blue-200">
+                        ชื่อพนักงาน
+                      </th>
+                      <th className="font-semibold text-blue-700 py-4 px-3 text-left min-w-[120px]">แผนก</th>
+                      {Object.entries(welfareTypeLabels).map(([type, label]) => (
+                        <th key={type} className="font-semibold text-blue-700 py-4 px-3 text-right min-w-[100px]">
+                          <div className="flex items-center justify-end gap-2">
+                            <span 
+                              className="inline-block w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: barColors[type] || '#3b82f6' }}
+                            />
+                            <span className="text-xs leading-tight">{label}</span>
+                          </div>
+                        </th>
+                      ))}
+                      <th className="font-semibold text-blue-700 py-4 px-4 text-right min-w-[120px] bg-blue-100">
+                        รวมทั้งหมด
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Sort employees by department (Management first), then by name
+                      const sortedEmployees = [...employees].sort((a, b) => {
+                        const deptA = a.Team || 'ไม่ระบุ';
+                        const deptB = b.Team || 'ไม่ระบุ';
+                        
+                        if (deptA !== deptB) {
+                          if (deptA.toLowerCase().includes('management')) return -1;
+                          if (deptB.toLowerCase().includes('management')) return 1;
+                          return deptA.localeCompare(deptB, 'th');
+                        }
+                        return (a.Name || '').localeCompare(b.Name || '', 'th');
+                      });
+
+                      return sortedEmployees.map((emp, index) => {
+                        const empRequests = filteredRequests.filter(req => req.userName === emp.Name);
+                        const welfareUsage: Record<string, number> = {};
+
+                        // Initialize all welfare types
+                        Object.keys(welfareTypeLabels).forEach(type => {
+                          welfareUsage[type] = 0;
+                        });
+
+                        // Calculate usage for each type (only completed requests)
+                        empRequests.forEach(req => {
+                          if (req.status === 'completed') {
+                            welfareUsage[req.type] = (welfareUsage[req.type] || 0) + req.amount;
+                          }
+                        });
+
+                        const totalUsage = Object.values(welfareUsage).reduce((sum, amount) => sum + amount, 0);
+                        const hasUsage = totalUsage > 0;
+
+                        return (
+                          <tr 
+                            key={emp.id} 
+                            className={`border-b border-gray-100 transition-colors ${
+                              hasUsage ? 'hover:bg-blue-50/30' : 'hover:bg-gray-50/50'
+                            } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
+                          >
+                            <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-200">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${hasUsage ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                <span className="truncate max-w-[150px]" title={emp.Name}>
+                                  {emp.Name || `ID: ${emp.id}`}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-gray-600 text-xs">
+                              <span className="inline-block px-2 py-1 bg-gray-100 rounded-full">
+                                {emp.Team || 'ไม่ระบุ'}
+                              </span>
+                            </td>
+                            {Object.keys(welfareTypeLabels).map(type => {
+                              const amount = welfareUsage[type];
+                              return (
+                                <td key={type} className="py-3 px-3 text-right">
+                                  {amount > 0 ? (
+                                    <span className="font-semibold text-green-600">
+                                      {amount.toLocaleString()}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td className="py-3 px-4 text-right bg-blue-50/50">
+                              {totalUsage > 0 ? (
+                                <div className="font-bold text-blue-600 text-base">
+                                  {totalUsage.toLocaleString()}
+                                  <div className="text-xs text-gray-500 font-normal">บาท</div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-sm">ไม่มีการใช้</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span>มีการใช้สวัสดิการ</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-300" />
+                  <span>ยังไม่มีการใช้สวัสดิการ</span>
+                </div>
+                <div className="ml-auto text-gray-500">
+                  แสดงเฉพาะคำร้องที่อนุมัติแล้ว
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Employee Summary */}
         {employeeFilter !== 'all' && employeeWelfareSummary && (
           <Card>

@@ -20,6 +20,7 @@ import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock } fr
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
+import LoadingPopup from '@/components/forms/LoadingPopup';
 
 import { supabase } from '@/lib/supabase';
 
@@ -44,6 +45,7 @@ export const HRApprovalPage = () => {
   const [bulkApprovalQueue, setBulkApprovalQueue] = useState<WelfareRequest[]>([]);
   const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('pending');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -246,6 +248,7 @@ export const HRApprovalPage = () => {
     if (!user || !pendingApprovalRequest) return;
 
     setIsLoading(true);
+    setIsProcessing(true);
     try {
       const currentDateTime = new Date().toISOString();
 
@@ -367,6 +370,7 @@ export const HRApprovalPage = () => {
       setIsSignaturePopupOpen(false);
     } finally {
       setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -854,6 +858,9 @@ export const HRApprovalPage = () => {
         }
         approverName={profile?.display_name || user?.email || ''}
       />
+
+      {/* Loading Popup */}
+      <LoadingPopup open={isProcessing} />
     </Layout>
   );
 };
