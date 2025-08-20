@@ -59,12 +59,12 @@ function exportReportToCSV({
     const sortedEmployees = [...employees].sort((a, b) => {
       const deptA = a.Team || 'ไม่ระบุ';
       const deptB = b.Team || 'ไม่ระบุ';
-      
+
       if (deptA !== deptB) {
         // Management department comes first
         if (deptA.toLowerCase().includes('management')) return -1;
         if (deptB.toLowerCase().includes('management')) return 1;
-        
+
         // Then sort other departments alphabetically
         return deptA.localeCompare(deptB, 'th');
       }
@@ -92,9 +92,9 @@ function exportReportToCSV({
       csv += `"${emp.Name}","${emp.Team || 'ไม่ระบุ'}"`;
       Object.keys(welfareTypeLabels).forEach(type => {
         const amount = welfareUsage[type];
-        csv += `,"${amount > 0 ? amount.toLocaleString() : '0'}"`;
+        csv += `,"${amount > 0 ? amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}"`;
       });
-      csv += `,"${totalUsage.toLocaleString()}"\r\n`;
+      csv += `,"${totalUsage.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
     });
     csv += '\r\n';
   }
@@ -103,7 +103,7 @@ function exportReportToCSV({
   csv += 'สรุปการใช้สวัสดิการแยกตามประเภท\r\n';
   csv += 'ประเภทสวัสดิการ,จำนวนคำร้อง (รายการ),ยอดเงินที่ใช้ไป (บาท)\r\n';
   summaryByType.forEach((row: any) => {
-    csv += `"${welfareTypeLabels[row.type as WelfareType] || row.type}","${row.count.toLocaleString()}","${row.used.toLocaleString()}"\r\n`;
+    csv += `"${welfareTypeLabels[row.type as WelfareType] || row.type}","${row.count.toLocaleString()}","${row.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
   });
 
   csv += '\r\nสรุปสถานะคำร้อง\r\n';
@@ -115,14 +115,14 @@ function exportReportToCSV({
   csv += '\r\nสรุปการใช้สวัสดิการตามแผนก\r\n';
   csv += 'ชื่อแผนก,จำนวนคำร้อง (รายการ),ยอดเงินที่ใช้ไป (บาท)\r\n';
   departmentSummary.forEach((row: any) => {
-    csv += `"${row.department}","${row.count.toLocaleString()}","${row.used.toLocaleString()}"\r\n`;
+    csv += `"${row.department}","${row.count.toLocaleString()}","${row.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
   });
 
   // รายละเอียดคำร้องทั้งหมด
   csv += '\r\nรายละเอียดคำร้องทั้งหมด\r\n';
   csv += 'วันที่ยื่นคำร้อง,รหัสคำร้อง,ชื่อพนักงาน,แผนก,ประเภทสวัสดิการ,จำนวนเงิน (บาท),สถานะ,หมายเหตุ\r\n';
   filteredRequests.forEach((req: any) => {
-    csv += `"${new Date(req.date).toLocaleDateString('th-TH')}","${req.id || 'ไม่ระบุ'}","${req.userName}","${req.userDepartment || 'ไม่ระบุ'}","${welfareTypeLabels[req.type] || req.type}","${req.amount.toLocaleString()}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.description || 'ไม่มี'}"\r\n`;
+    csv += `"${new Date(req.date).toLocaleDateString('th-TH')}","${req.id || 'ไม่ระบุ'}","${req.userName}","${req.userDepartment || 'ไม่ระบุ'}","${welfareTypeLabels[req.type] || req.type}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.description || 'ไม่มี'}"\r\n`;
   });
 
   // ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยถูก
@@ -340,7 +340,7 @@ const AdminReport = () => {
         displayColors: true,
         callbacks: {
           label: function (context: any) {
-            return `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString()} บาท`;
+            return `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
           }
         }
       },
@@ -370,7 +370,7 @@ const AdminReport = () => {
           },
           color: '#6b7280',
           callback: function (value: any) {
-            return Number(value).toLocaleString() + ' บาท';
+            return Number(value).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
           }
         },
       },
@@ -478,7 +478,7 @@ const AdminReport = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium">ใช้ไปแล้ว</p>
-                  <p className="text-2xl font-bold">{totalUsed.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{totalUsed.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   <p className="text-xs text-green-100">บาท</p>
                 </div>
                 <div className="bg-green-400/30 p-3 rounded-full">
@@ -657,7 +657,7 @@ const AdminReport = () => {
                       <span className="text-gray-700 font-medium">{d.department}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-gray-900 font-bold">{d.used.toLocaleString()} บาท</div>
+                      <div className="text-gray-900 font-bold">{d.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</div>
                       <div className="text-gray-500 text-sm">{d.count} รายการ</div>
                     </div>
                   </div>
@@ -670,7 +670,7 @@ const AdminReport = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
+
                 ประเภทสวัสดิการยอดนิยม
               </CardTitle>
             </CardHeader>
@@ -682,8 +682,8 @@ const AdminReport = () => {
                   .map((item) => (
                     <div key={item.type} className="p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border">
                       <div className="flex items-center gap-2 mb-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
+                        <div
+                          className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: barColors[item.type] || '#3b82f6' }}
                         />
                         <span className="text-gray-700 text-sm font-medium truncate">
@@ -691,7 +691,7 @@ const AdminReport = () => {
                         </span>
                       </div>
                       <div className="text-gray-900 font-bold text-lg">
-                        {item.used.toLocaleString()}
+                        {item.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div className="text-gray-500 text-xs">
                         {item.count} รายการ
@@ -711,8 +711,8 @@ const AdminReport = () => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   รายการคำร้องสถานะ {statusSummary.find(s => s.status === modalStatus)?.label || modalStatus}
                 </h2>
-                <button 
-                  onClick={() => setModalOpen(false)} 
+                <button
+                  onClick={() => setModalOpen(false)}
                   className="text-gray-500 hover:text-red-500 text-2xl transition-colors"
                 >
                   ✕
@@ -750,7 +750,7 @@ const AdminReport = () => {
                                 {welfareTypeLabels[r.type] || r.type}
                               </td>
                               <td className="py-3 px-4 text-right text-green-600 font-bold">
-                                {Number(r.amount).toLocaleString()} บาท
+                                {Number(r.amount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
                               </td>
                               <td className="py-3 px-4 text-gray-700">{r.userDepartment || '-'}</td>
                             </tr>
@@ -786,8 +786,8 @@ const AdminReport = () => {
                       {Object.entries(welfareTypeLabels).map(([type, label]) => (
                         <th key={type} className="font-semibold text-blue-700 py-4 px-3 text-right min-w-[100px]">
                           <div className="flex items-center justify-end gap-2">
-                            <span 
-                              className="inline-block w-3 h-3 rounded-full" 
+                            <span
+                              className="inline-block w-3 h-3 rounded-full"
                               style={{ backgroundColor: barColors[type] || '#3b82f6' }}
                             />
                             <span className="text-xs leading-tight">{label}</span>
@@ -805,7 +805,7 @@ const AdminReport = () => {
                       const sortedEmployees = [...employees].sort((a, b) => {
                         const deptA = a.Team || 'ไม่ระบุ';
                         const deptB = b.Team || 'ไม่ระบุ';
-                        
+
                         if (deptA !== deptB) {
                           if (deptA.toLowerCase().includes('management')) return -1;
                           if (deptB.toLowerCase().includes('management')) return 1;
@@ -834,11 +834,10 @@ const AdminReport = () => {
                         const hasUsage = totalUsage > 0;
 
                         return (
-                          <tr 
-                            key={emp.id} 
-                            className={`border-b border-gray-100 transition-colors ${
-                              hasUsage ? 'hover:bg-blue-50/30' : 'hover:bg-gray-50/50'
-                            } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
+                          <tr
+                            key={emp.id}
+                            className={`border-b border-gray-100 transition-colors ${hasUsage ? 'hover:bg-blue-50/30' : 'hover:bg-gray-50/50'
+                              } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
                           >
                             <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-200">
                               <div className="flex items-center gap-2">
@@ -859,7 +858,7 @@ const AdminReport = () => {
                                 <td key={type} className="py-3 px-3 text-right">
                                   {amount > 0 ? (
                                     <span className="font-semibold text-green-600">
-                                      {amount.toLocaleString()}
+                                      {amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                   ) : (
                                     <span className="text-gray-400">-</span>
@@ -870,7 +869,7 @@ const AdminReport = () => {
                             <td className="py-3 px-4 text-right bg-blue-50/50">
                               {totalUsage > 0 ? (
                                 <div className="font-bold text-blue-600 text-base">
-                                  {totalUsage.toLocaleString()}
+                                  {totalUsage.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   <div className="text-xs text-gray-500 font-normal">บาท</div>
                                 </div>
                               ) : (
@@ -929,22 +928,22 @@ const AdminReport = () => {
                       return (
                         <tr key={w.type} className="border-b border-gray-200 hover:bg-blue-50/50 transition-colors">
                           <td className="font-medium flex items-center gap-3 py-4 px-2">
-                            <span 
-                              className="inline-block w-4 h-4 rounded-full shadow-lg" 
+                            <span
+                              className="inline-block w-4 h-4 rounded-full shadow-lg"
                               style={{ background: barColors[w.type] || '#3b82f6' }}
                             />
                             <span className="text-gray-900 text-base">{w.label}</span>
                           </td>
                           <td className="text-right px-2 text-gray-700">
-                            {w.limit.toLocaleString()} 
+                            {w.limit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             <span className="text-xs text-gray-400 ml-1">บาท</span>
                           </td>
                           <td className="text-right px-2 text-green-600 font-semibold">
-                            {w.used.toLocaleString()} 
+                            {w.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             <span className="text-xs text-gray-400 ml-1">บาท</span>
                           </td>
                           <td className="text-right px-2 text-blue-600 font-semibold">
-                            {w.remaining.toLocaleString()} 
+                            {w.remaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             <span className="text-xs text-gray-400 ml-1">บาท</span>
                           </td>
                           <td className="text-center px-2">
@@ -952,9 +951,9 @@ const AdminReport = () => {
                               <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
                                 <div
                                   className="h-full rounded-full transition-all duration-500 shadow-sm"
-                                  style={{ 
-                                    width: `${percentUsed}%`, 
-                                    background: `linear-gradient(90deg, ${barColors[w.type] || '#3b82f6'}, ${barColors[w.type] || '#3b82f6'}dd)` 
+                                  style={{
+                                    width: `${percentUsed}%`,
+                                    background: `linear-gradient(90deg, ${barColors[w.type] || '#3b82f6'}, ${barColors[w.type] || '#3b82f6'}dd)`
                                   }}
                                 />
                               </div>

@@ -71,7 +71,7 @@ const numberToThaiText = (num: number): string => {
     return result + 'บาทถ้วน';
   }
 
-  return num.toLocaleString() + 'บาทถ้วน';
+  return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'บาทถ้วน';
 };
 
 // Function to convert image to base64
@@ -244,7 +244,7 @@ const createTrainingFormHTML = (
         <!-- Cost Information -->
         <div style="margin-bottom: 20px; font-size: 12px;">
           <div style="margin-bottom: 10px;">
-            ทั้งนี้ค่าใช้จ่ายในการอบรม ในวงเงิน ...................${welfareData.amount?.toLocaleString() || 0}................... บาท และคงเหลือค่าอบรมจำนวน .....${remainingBudget.toLocaleString()}.....บาท
+            ทั้งนี้ค่าใช้จ่ายในการอบรม ในวงเงิน ...................${welfareData.amount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}................... บาท และคงเหลือค่าอบรมจำนวน .....${remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.....บาท
           </div>
           <div style="margin-bottom: 15px;">
             สำหรับรายละเอียดค่าใช้จ่ายการฝึกอบรม ในครั้งนี้ มีดังนี้
@@ -257,7 +257,7 @@ const createTrainingFormHTML = (
                 ค่าใช้จ่ายค่าอบรมหลักสูตร
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: right; background-color: #f0f0f0;">
-                ${welfareData.amount?.toLocaleString() || 0} บาท
+                ${welfareData.amount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
               </td>
             </tr>
             <tr>
@@ -265,7 +265,7 @@ const createTrainingFormHTML = (
                 ภาษีมูลค่าเพิ่ม 7%
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: right;">
-                ${tax7Percent.toLocaleString()} บาท
+                ${tax7Percent.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
               </td>
             </tr>
             <tr>
@@ -273,7 +273,7 @@ const createTrainingFormHTML = (
                 หัก ภาษี ณ ที่จ่าย 3%
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: right;">
-                ${withholdingTax3Percent.toLocaleString()} บาท
+                ${withholdingTax3Percent.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
               </td>
             </tr>
             <tr>
@@ -281,7 +281,7 @@ const createTrainingFormHTML = (
                 ยอดสุทธิ
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold;">
-                ${netAmount.toLocaleString()} บาท
+                ${netAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
               </td>
             </tr>
             <tr>

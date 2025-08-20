@@ -154,9 +154,9 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
                           <span className="inline-block w-3 h-3 rounded-full" style={{background: barColors[benefit.type]}}></span>
                           {welfareTypeLabels[benefit.type] || benefit.type}
                         </TableCell>
-                        <TableCell>{benefit.totalLimit.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></TableCell>
-                        <TableCell>{benefit.used.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></TableCell>
-                        <TableCell>{benefit.remaining.toLocaleString()} <span className="text-xs text-gray-400">บาท</span></TableCell>
+                        <TableCell>{benefit.totalLimit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400">บาท</span></TableCell>
+                        <TableCell>{benefit.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400">บาท</span></TableCell>
+                        <TableCell>{benefit.remaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400">บาท</span></TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className={`h-2 w-full rounded-full overflow-hidden ${
@@ -204,7 +204,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
                 tooltip: {
                   callbacks: {
                     label: function(context) {
-                      return `${context.dataset.label}: ${context.parsed.y.toLocaleString()} บาท`;
+                      return `${context.dataset.label}: ${context.parsed.y.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
                     }
                   }
                 }

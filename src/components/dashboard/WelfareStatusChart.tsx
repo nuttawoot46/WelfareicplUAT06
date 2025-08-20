@@ -86,6 +86,30 @@ const getStatusClass = (status: string) => {
   }
 };
 
+const getRequestTypeText = (requestType: string) => {
+  if (!requestType) return 'ไม่ระบุ';
+  switch (requestType.toLowerCase()) {
+    case 'wedding':
+      return 'ค่าแต่งงาน';
+    case 'training':
+      return 'ค่าอบรม';
+    case 'childbirth':
+      return 'ค่าคลอดบุตร';
+    case 'funeral':
+      return 'ค่าช่วยเหลืองานศพ';
+    case 'glasses':
+      return 'ค่าตัดแว่น';
+    case 'dental':
+      return 'ค่าทำฟัน';
+    case 'fitness':
+      return 'ค่าออกกำลังกาย';
+    case 'medical':
+      return 'ค่าของเยี่ยมกรณีเจ็บป่วย';
+    default:
+      return requestType;
+  }
+};
+
 // ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
 const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv") => {
   if (!data || data.length === 0) return;
@@ -104,7 +128,7 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
   const rows = data.map(row => [
     formatDate(row.created_at),
     row.employee_name || '',
-    row.request_type || '',
+    getRequestTypeText(row.request_type),
     row.amount?.toString() || '',
     getStatusText(row.status),
     row.details || '',
@@ -409,7 +433,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                         {formatDate(request.created_at)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {request.request_type || 'ไม่ระบุ'}
+                        {getRequestTypeText(request.request_type)}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         {formatCurrency(request.amount || 0)}

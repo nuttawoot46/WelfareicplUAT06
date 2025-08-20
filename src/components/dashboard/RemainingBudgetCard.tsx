@@ -49,8 +49,8 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
         <div className="space-y-3">
           <div className="text-xs">
             <div className="flex justify-between mb-1">
-              <span>ค่ารักษาทางทันตกรรมหรือค่าตัดแว่นสายตา: สูงสุด {dentalGlassesLimit?.toLocaleString()} บาท/ปี (หลังทำงานครบ 180 วัน)</span>
-              <span className="font-medium text-welfare-blue">คงเหลือ {dentalGlassesRemaining.toLocaleString()} บาท</span>
+              <span>ค่ารักษาทางทันตกรรมหรือค่าตัดแว่นสายตา: สูงสุด {dentalGlassesLimit?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี (หลังทำงานครบ 180 วัน)</span>
+              <span className="font-medium text-welfare-blue">คงเหลือ {dentalGlassesRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </div>
             <Progress value={dentalGlassesPercentage} className="h-1" />
           </div>
@@ -71,16 +71,16 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
           
           <div className="text-xs">
             <div className="flex justify-between mb-1">
-              <span>ค่าอบรม: สูงสุด {trainingLimit?.toLocaleString()} บาท/ปี</span>
-              <span className="font-medium text-welfare-blue">คงเหลือ {trainingRemaining.toLocaleString()} บาท</span>
+              <span>ค่าอบรม: สูงสุด {trainingLimit?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี</span>
+              <span className="font-medium text-welfare-blue">คงเหลือ {trainingRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </div>
             <Progress value={trainingPercentage} className="h-1" />
           </div>
           
           <div className="text-xs">
             <div className="flex justify-between mb-1">
-              <span>เงินช่วยเหลือกรณีแต่งงาน: {weddingLimit?.toLocaleString()} บาท</span>
-              <span className="font-medium text-welfare-blue">คงเหลือ {weddingRemaining.toLocaleString()} บาท</span>
+              <span>เงินช่วยเหลือกรณีแต่งงาน: {weddingLimit?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
+              <span className="font-medium text-welfare-blue">คงเหลือ {weddingRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </div>
             <Progress value={weddingPercentage} className="h-1" />
           </div>
@@ -102,7 +102,7 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
           <div className="text-xs">
             <div className="flex justify-between mb-1">
               <span>ค่าออกกำลังกาย: {fitnessMonthlyLimit} บาท/เดือน หรือ {fitnessYearlyLimit} บาท/ปี</span>
-              <span className="font-medium text-welfare-blue">คงเหลือ {fitnessRemaining.toLocaleString()} บาท</span>
+              <span className="font-medium text-welfare-blue">คงเหลือ {fitnessRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </div>
             <Progress value={fitnessPercentage} className="h-1" />
           </div>

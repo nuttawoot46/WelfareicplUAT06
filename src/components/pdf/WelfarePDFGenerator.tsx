@@ -527,7 +527,7 @@ const createWelfareFormHTML = (
             <div style="display: flex; align-items: center;">
               <span>เป็นจำนวนเงินทั้งหมด</span>
               <span style="display: inline-block; width: 100px; margin: 0 10px; text-align: center;">
-                ${welfareData.amount ? welfareData.amount.toLocaleString() : ''}
+                ${welfareData.amount ? welfareData.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
               </span>
               <span>บาท</span>
             </div>
@@ -586,30 +586,34 @@ export const generateWelfarePDF = async (
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '794px'; // Fixed width for consistent rendering
+  tempDiv.style.height = '1123px'; // Fixed height for A4
   document.body.appendChild(tempDiv);
 
   try {
-    // Convert HTML to canvas with optimized settings for faster generation
+    // Convert HTML to canvas with optimized settings for smaller file size
     const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
-      scale: 1.5, // Reduced scale for faster processing
+      scale: 1, // Reduced scale for smaller file size
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       width: 794, // A4 width in pixels at 96 DPI
       height: 1123, // A4 height in pixels at 96 DPI
-      timeout: 10000, // 10 second timeout
-      logging: false // Disable logging for better performance
+      timeout: 10000,
+      logging: false
     });
 
     // Create PDF
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgData = canvas.toDataURL('image/png');
+
+    // Use JPEG with compression for smaller file size
+    const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
 
     // Calculate dimensions to fit A4
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
     // Return PDF as Blob instead of downloading
     return pdf.output('blob');

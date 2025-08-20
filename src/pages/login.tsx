@@ -1,5 +1,4 @@
 import { EmployeeSelect } from '@/components/EmployeeSelect'
-import FlowerAnimation from '@/components/animation/FlowerAnimation'
 
 export default function LoginPage() {
   return (
@@ -42,9 +41,6 @@ export default function LoginPage() {
           </div>
         </form>
       </div>
-      
-      {/* Flower Animation */}
-      <FlowerAnimation />
     </div>
   )
 } 

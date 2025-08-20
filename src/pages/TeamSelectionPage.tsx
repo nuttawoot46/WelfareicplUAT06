@@ -1,6 +1,6 @@
 import { WelcomeBanner } from '@/components/teamSelection/WelcomeBanner';
 import { supabase } from '@/integrations/supabase/client';
-import FlowerAnimation from '@/components/animation/FlowerAnimation';
+import Loader from '@/components/animation/Loader';
 
 const TeamSelectionPage = () => {
   return (
@@ -39,6 +39,9 @@ const TeamSelectionPage = () => {
             <span>Login with Microsoft</span>
           </button>
           {/* End Microsoft Login Button */}
+          
+          {/* Cloud and Sun Animation */}
+          <Loader />
         </div>
 
 
@@ -46,9 +49,6 @@ const TeamSelectionPage = () => {
 
       {/* Right side - Decorative Background */}
       <WelcomeBanner />
-      
-      {/* Flower Animation */}
-      <FlowerAnimation />
     </div>
   );
 };

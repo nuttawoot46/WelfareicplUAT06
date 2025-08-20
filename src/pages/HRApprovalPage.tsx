@@ -45,7 +45,6 @@ export const HRApprovalPage = () => {
   const [bulkApprovalQueue, setBulkApprovalQueue] = useState<WelfareRequest[]>([]);
   const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('pending');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -248,7 +247,6 @@ export const HRApprovalPage = () => {
     if (!user || !pendingApprovalRequest) return;
 
     setIsLoading(true);
-    setIsProcessing(true);
     try {
       const currentDateTime = new Date().toISOString();
 
@@ -370,7 +368,6 @@ export const HRApprovalPage = () => {
       setIsSignaturePopupOpen(false);
     } finally {
       setIsLoading(false);
-      setIsProcessing(false);
     }
   };
 
@@ -403,8 +400,17 @@ export const HRApprovalPage = () => {
     }
   };
 
-  if (isAuthLoading || isLoading || !user) {
-    return <div>Loading...</div>;
+  if (isAuthLoading || !user) {
+    return (
+      <Layout>
+        <LoadingPopup open={isAuthLoading} />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-gray-600">Loading authentication...</p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -860,7 +866,8 @@ export const HRApprovalPage = () => {
       />
 
       {/* Loading Popup */}
-      <LoadingPopup open={isProcessing} />
+      <LoadingPopup open={isLoading} />
+
     </Layout>
   );
 };

@@ -137,7 +137,7 @@ export const UserManagement = () => {
           .insert(employeeData)
           .select()
           .single();
-        
+
         if (insertError) {
           console.error('Employee Insert Error:', insertError);
           throw insertError;
@@ -150,7 +150,7 @@ export const UserManagement = () => {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
             const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-user', {
-              body: { 
+              body: {
                 employeeData: {
                   email_user: editingEmployee['email_user'],
                   password: 'changeme123!'
@@ -168,7 +168,7 @@ export const UserManagement = () => {
                   .from('Employee')
                   .update({ auth_uid: functionResult.auth_uid })
                   .eq('id', insertData.id);
-                
+
                 console.log('Auth user created via Edge Function and linked successfully');
               }
             } else {
@@ -194,7 +194,7 @@ export const UserManagement = () => {
                   .from('Employee')
                   .update({ auth_uid: authData.user.id })
                   .eq('id', insertData.id);
-                
+
                 console.log('Auth user created via admin client and linked successfully');
               } else {
                 console.warn('Failed to create auth user via admin client:', authError);
@@ -215,18 +215,18 @@ export const UserManagement = () => {
         const { error: updateError } = await supabase.from('Employee').update(editingEmployee).eq('id', editingEmployee.id);
         error = updateError;
         console.log('Supabase Update Operation Result:', { updateError });
-        
+
         if (error) {
           console.error('Supabase Operation Error:', error);
           throw error;
         }
       }
 
-      toast({ 
-        title: 'สำเร็จ', 
-        description: isCreateMode 
-          ? `สร้างพนักงานใหม่เรียบร้อยแล้ว รหัสผ่านเริ่มต้น: changeme123!` 
-          : `บันทึกข้อมูลพนักงานเรียบร้อยแล้ว` 
+      toast({
+        title: 'สำเร็จ',
+        description: isCreateMode
+          ? `สร้างพนักงานใหม่เรียบร้อยแล้ว รหัสผ่านเริ่มต้น: changeme123!`
+          : `บันทึกข้อมูลพนักงานเรียบร้อยแล้ว`
       });
       fetchEmployees(); // Refresh data
       handleModalClose();
@@ -265,62 +265,64 @@ export const UserManagement = () => {
 
   const renderFormField = (key: keyof Employee, value: any) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        const isNumberField = typeof editingEmployee?.[name as keyof Employee] === 'number';
-        setEditingEmployee(prev => prev ? { ...prev, [name]: isNumberField ? Number(value) : value } : null);
+      const { name, value } = e.target;
+      const isNumberField = typeof editingEmployee?.[name as keyof Employee] === 'number';
+      setEditingEmployee(prev => prev ? { ...prev, [name]: isNumberField ? Number(value) : value } : null);
     };
 
     // Skip system fields in create mode
     if (isCreateMode && (key === 'id' || key === 'auth_uid' || key === 'created_at' || key === 'manager_id' || key === 'Pin')) {
-        return null;
+      return null;
     }
 
     if (key === 'id' || key === 'auth_uid' || key === 'created_at') {
-        return <Input name={key} value={value || ''} onChange={handleChange} disabled />;
+      return <Input name={key} value={value || ''} onChange={handleChange} disabled />;
     }
-    
+
     if (key === 'Role') {
-        return (
-            <Select name={key} value={value || 'user'} onValueChange={(val) => setEditingEmployee(prev => prev ? { ...prev, Role: val } : null)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="hr">HR</SelectItem>
-                    <SelectItem value="accounting">Accounting</SelectItem>
-                    <SelectItem value="accountingandmanager">AccountingAndManager</SelectItem>
-                </SelectContent>
-            </Select>
-        );
+      return (
+        <Select name={key} value={value || 'user'} onValueChange={(val) => setEditingEmployee(prev => prev ? { ...prev, Role: val } : null)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="hr">HR</SelectItem>
+            <SelectItem value="accounting">Accounting</SelectItem>
+            <SelectItem value="accountingandmanager">AccountingAndManager</SelectItem>
+          </SelectContent>
+        </Select>
+      );
     }
 
     if (key === 'Team') {
-        return (
-            <Select name={key} value={value || 'General'} onValueChange={(val) => setEditingEmployee(prev => prev ? { ...prev, Team: val } : null)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="General">General</SelectItem>
-                    <SelectItem value="Management">Management</SelectItem>
-                    <SelectItem value="Strategy">Strategy</SelectItem>
-                    <SelectItem value="IT">IT</SelectItem>
-                    <SelectItem value="HR">HR</SelectItem>
-                    <SelectItem value="Accounting">Accounting</SelectItem>
-                    <SelectItem value="Sales">Sales</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                </SelectContent>
-            </Select>
-        );
+      return (
+        <Select name={key} value={value || 'General'} onValueChange={(val) => setEditingEmployee(prev => prev ? { ...prev, Team: val } : null)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Inspiration (IS)">Inspiration (IS)</SelectItem>
+            <SelectItem value="Management">Management</SelectItem>
+            <SelectItem value="Strategy">Strategy</SelectItem>
+            <SelectItem value="Account">Account</SelectItem>
+            <SelectItem value="Marketing(PES)">Marketing(PES)</SelectItem>
+            <SelectItem value="Marketing(DIS)">Marketing(DIS)</SelectItem>
+            <SelectItem value="Marketing(COP)">Marketing(COP)</SelectItem>
+            <SelectItem value="Marketing(PD)">Marketing(PD)</SelectItem>
+            <SelectItem value="Procurement">Procurement</SelectItem>
+            <SelectItem value="Registration">Registration</SelectItem>
+          </SelectContent>
+        </Select>
+      );
     }
 
     // Required fields styling
     const isRequired = ['Name', 'email_user', 'Team', 'Email.Manager'].includes(key);
     const inputClassName = isRequired ? 'border-red-200 focus:border-red-500' : '';
 
-    return <Input 
-      name={key} 
-      value={value || ''} 
-      onChange={handleChange} 
+    return <Input
+      name={key}
+      value={value || ''}
+      onChange={handleChange}
       placeholder={`${key}${isRequired ? ' *' : ''}`}
       className={inputClassName}
       type={key === 'email_user' || key === 'Email.Manager' ? 'email' : 'text'}
@@ -341,7 +343,7 @@ export const UserManagement = () => {
           </Button>
           <Link to="/admin/report">
             <Button variant="outline" className="flex items-center gap-2">
-              
+
               Report ภาพรวม
             </Button>
           </Link>
@@ -349,56 +351,56 @@ export const UserManagement = () => {
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>ชื่อ</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>ตำแหน่ง</TableHead>
-                    <TableHead>ทีม</TableHead>
-                    <TableHead>บทบาท</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {loading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center">กำลังโหลด...</TableCell></TableRow>
-                ) : employees.length > 0 ? (
-                    employees.map((employee) => (
-                    <TableRow key={employee.id} onDoubleClick={() => handleModalOpen(employee)}>
-                        <TableCell>{employee.id}</TableCell>
-                        <TableCell className="font-medium">{employee.Name}</TableCell>
-                        <TableCell>{employee["email_user"]}</TableCell>
-                        <TableCell>{employee.Position}</TableCell>
-                        <TableCell>{employee.Team}</TableCell>
-                        <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${employee.Role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
-                                {employee.Role}
-                            </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Toggle menu</span>
-                                </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onSelect={() => handleModalOpen(employee)}>แก้ไข</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleDelete(employee.id, employee.auth_uid)} className="text-destructive">ลบ</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                    ))
-                ) : (
-                    <TableRow><TableCell colSpan={7} className="text-center">ไม่พบข้อมูลพนักงาน</TableCell></TableRow>
-                )}
-                </TableBody>
-            </Table>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>ชื่อ</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>ตำแหน่ง</TableHead>
+                <TableHead>ทีม</TableHead>
+                <TableHead>บทบาท</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={7} className="text-center">กำลังโหลด...</TableCell></TableRow>
+              ) : employees.length > 0 ? (
+                employees.map((employee) => (
+                  <TableRow key={employee.id} onDoubleClick={() => handleModalOpen(employee)}>
+                    <TableCell>{employee.id}</TableCell>
+                    <TableCell className="font-medium">{employee.Name}</TableCell>
+                    <TableCell>{employee["email_user"]}</TableCell>
+                    <TableCell>{employee.Position}</TableCell>
+                    <TableCell>{employee.Team}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${employee.Role === 'admin' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                        {employee.Role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => handleModalOpen(employee)}>แก้ไข</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleDelete(employee.id, employee.auth_uid)} className="text-destructive">ลบ</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow><TableCell colSpan={7} className="text-center">ไม่พบข้อมูลพนักงาน</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
 
@@ -411,15 +413,15 @@ export const UserManagement = () => {
               {Object.entries(editingEmployee).map(([key, value]) => {
                 const fieldComponent = renderFormField(key as keyof Employee, value);
                 if (!fieldComponent) return null;
-                
+
                 const isRequired = ['Name', 'email_user', 'Team', 'Email.Manager'].includes(key);
-                const displayName = key === 'email_user' ? 'อีเมล' : 
-                                  key === 'Email.Manager' ? 'อีเมลผู้จัดการ' :
-                                  key === 'Name' ? 'ชื่อ' :
-                                  key === 'Team' ? 'ทีม' :
-                                  key === 'Position' ? 'ตำแหน่ง' :
-                                  key === 'Role' ? 'บทบาท' : key;
-                
+                const displayName = key === 'email_user' ? 'อีเมล' :
+                  key === 'Email.Manager' ? 'อีเมลผู้จัดการ' :
+                    key === 'Name' ? 'ชื่อ' :
+                      key === 'Team' ? 'ทีม' :
+                        key === 'Position' ? 'ตำแหน่ง' :
+                          key === 'Role' ? 'บทบาท' : key;
+
                 return (
                   <div className="grid grid-cols-4 items-center gap-4" key={key}>
                     <label className={`text-right font-medium ${isRequired ? 'text-red-600' : ''}`}>

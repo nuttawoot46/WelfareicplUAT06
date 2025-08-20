@@ -69,7 +69,7 @@ export function WelfareTypeChart() {
       return (
         <div className="bg-white p-3 border border-gray-200 shadow-md rounded-md">
           <p className="font-medium">{item.name}</p>
-          <p className="text-sm">{`วงเงิน: ${item.value?.toLocaleString()} บาท`}</p>
+          <p className="text-sm">{`วงเงิน: ${item.value?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`}</p>
         </div>
       );
     }

@@ -13,7 +13,7 @@ export const createInitialPDF = async (
 ): Promise<string | null> => {
   try {
     console.log('Creating initial PDF for request:', request.id);
-    
+
     // Generate PDF Blob with user signature only
     const pdfBlob = await generateWelfarePDF(
       request,
@@ -21,7 +21,7 @@ export const createInitialPDF = async (
       employeeData,
       request.userSignature // Include user signature in initial PDF
     );
-    
+
     // Convert Blob to base64 for database storage
     const pdfBase64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -32,23 +32,23 @@ export const createInitialPDF = async (
       reader.onerror = reject;
       reader.readAsDataURL(pdfBlob);
     });
-    
+
     if (pdfBase64) {
       // Save initial PDF to database (user signature only)
       const { error } = await supabase
         .from('welfare_requests')
         .update({ pdf_base64: pdfBase64 })
         .eq('id', request.id);
-        
+
       if (error) {
         console.error('Error saving initial PDF:', error);
         return null;
       }
-      
+
       console.log('Initial PDF created and saved successfully');
       return pdfBase64;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error creating initial PDF:', error);
@@ -69,26 +69,26 @@ export const addSignatureToPDF = async (
     console.log(`🔄 Starting addSignatureToPDF for ${signatureType} signature, request:`, requestId);
     console.log(`📝 Signature length:`, signature?.length || 0);
     console.log(`👤 Approver name:`, approverName);
-    
+
     // Get current request data
     const { data: requestData, error: fetchError } = await supabase
       .from('welfare_requests')
       .select('*')
       .eq('id', requestId)
       .single();
-      
+
     if (fetchError || !requestData) {
       console.error('❌ Error fetching request data:', fetchError);
       return false;
     }
-    
+
     console.log('✅ Request data fetched successfully:', {
       id: requestData.id,
       employee_id: requestData.employee_id,
       request_type: requestData.request_type,
       status: requestData.status
     });
-    
+
     // Update signature fields in database
     const updateData: any = {};
     if (signatureType === 'manager') {
@@ -96,36 +96,36 @@ export const addSignatureToPDF = async (
     } else if (signatureType === 'hr') {
       updateData.hr_signature = signature;
     }
-    
+
     const { error: updateError } = await supabase
       .from('welfare_requests')
       .update(updateData)
       .eq('id', requestId);
-      
+
     if (updateError) {
       console.error('❌ Error updating signature:', updateError);
       return false;
     }
-    
+
     console.log(`✅ ${signatureType} signature updated in database successfully`);
-    
+
     // Get updated request data with new signature
     const { data: updatedRequestData, error: updatedFetchError } = await supabase
       .from('welfare_requests')
       .select('*')
       .eq('id', requestId)
       .single();
-      
+
     if (updatedFetchError || !updatedRequestData) {
       console.error('Error fetching updated request data:', updatedFetchError);
       return false;
     }
-    
+
     // Regenerate PDF with new signature
     console.log('🔍 Getting employee data with:', updatedRequestData.employee_id?.toString() || updatedRequestData.userId);
     const employeeData = await getEmployeeData(updatedRequestData.employee_id?.toString() || updatedRequestData.userId);
     console.log('🔍 Retrieved employeeData:', employeeData);
-    
+
     // Ensure employeeData has the correct name
     if (employeeData) {
       const actualName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
@@ -134,12 +134,12 @@ export const addSignatureToPDF = async (
         employeeData.Name = actualName;
       }
     }
-    
+
     // Create a minimal user object for PDF generation
     // Get actual employee name first
     const actualEmployeeNameForUser = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
     console.log('🔍 User object - Actual employee name:', actualEmployeeNameForUser);
-    
+
     const userForPDF: User = {
       id: updatedRequestData.employee_id?.toString() || updatedRequestData.userId || '',
       email: employeeData?.Name || '',
@@ -149,14 +149,14 @@ export const addSignatureToPDF = async (
       department: employeeData?.Team || updatedRequestData.department_user || '',
       budget_fitness: 0
     };
-    
+
     // Convert database fields to WelfareRequest format
     // Use actual employee name from Employee table, not the one from request which might be wrong
     const actualEmployeeName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
     console.log('🔍 PDF Generation - Actual employee name:', actualEmployeeName);
     console.log('🔍 PDF Generation - Employee data name:', employeeData?.Name);
     console.log('🔍 PDF Generation - Request employee name:', updatedRequestData.employee_name);
-    
+
     const welfareRequestForPDF: WelfareRequest = {
       id: updatedRequestData.id,
       userId: updatedRequestData.employee_id?.toString() || updatedRequestData.userId || '',
@@ -181,13 +181,13 @@ export const addSignatureToPDF = async (
       birth_type: updatedRequestData.birth_type,
       department_user: updatedRequestData.department_user
     };
-    
+
     console.log('🔄 Generating PDF with signatures...');
     console.log('📋 PDF Data Summary:');
     console.log('  - welfareRequestForPDF.userName:', welfareRequestForPDF.userName);
     console.log('  - userForPDF.name:', userForPDF.name);
     console.log('  - employeeData?.Name:', employeeData?.Name);
-    
+
     const newPdfBase64 = await generateWelfarePDFAsBase64(
       welfareRequestForPDF,
       userForPDF,
@@ -196,13 +196,13 @@ export const addSignatureToPDF = async (
       updatedRequestData.manager_signature,
       updatedRequestData.hr_signature
     );
-    
+
     console.log('📄 PDF generated, base64 length:', newPdfBase64?.length || 0);
-    
+
     if (newPdfBase64) {
       // Update PDF in appropriate database column based on signature type
       const updateData: any = {};
-      
+
       // Convert base64 back to blob for upload (common for both manager and HR)
       const byteCharacters = atob(newPdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -211,33 +211,33 @@ export const addSignatureToPDF = async (
       }
       const byteArray = new Uint8Array(byteNumbers);
       const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
-      
+
       if (signatureType === 'manager') {
         // Upload to Supabase Storage bucket "welfare-pdfs-manager" when Manager approves
         try {
           // Create safe filename for storage using actual employee name
           const actualEmployeeName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
           console.log('🔍 Actual employee name from DB:', actualEmployeeName);
-          
+
           // Use actual employee name, fallback to employeeData, then request data
           const employeeName = actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || 'user';
           console.log('🔍 Final employee name for filename:', employeeName);
-          
+
           // Create safe filename - remove all non-ASCII characters for Supabase compatibility
           const safeEmployeeName = employeeName
             .replace(/\s+/g, '_')  // Replace spaces with underscores
             .replace(/[^\x00-\x7F]/g, '')  // Remove all non-ASCII characters (including Thai)
             .replace(/[^a-zA-Z0-9_]/g, '')  // Keep only alphanumeric and underscore
             .substring(0, 50) || 'employee';  // Limit length and provide fallback
-          
+
           const timestamp = Date.now();
           const filename = `welfare_${updatedRequestData.request_type}_${safeEmployeeName}_manager_approved_${timestamp}.pdf`;
           console.log('🔍 Generated filename:', filename);
-          
+
           // Upload to manager bucket
           const { uploadPDFToManagerBucket } = await import('@/utils/pdfUtils');
           const storageUrl = await uploadPDFToManagerBucket(pdfBlob, filename, updatedRequestData.employee_id?.toString());
-          
+
           if (storageUrl) {
             // Store only the URL, not the base64 data
             updateData.pdf_request_manager = storageUrl;
@@ -250,33 +250,33 @@ export const addSignatureToPDF = async (
           console.error('Error uploading PDF to storage (Manager):', uploadError);
           return false; // Fail if upload fails
         }
-        
+
       } else if (signatureType === 'hr') {
         // Upload to Supabase Storage bucket "welfare-pdfs-hr" when HR approves
         try {
           // Create safe filename for storage using actual employee name
           const actualEmployeeName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
           console.log('🔍 Actual employee name from DB:', actualEmployeeName);
-          
+
           // Use actual employee name, fallback to employeeData, then request data
           const employeeName = actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || 'user';
           console.log('🔍 Final employee name for filename:', employeeName);
-          
+
           // Create safe filename - remove all non-ASCII characters for Supabase compatibility
           const safeEmployeeName = employeeName
             .replace(/\s+/g, '_')  // Replace spaces with underscores
             .replace(/[^\x00-\x7F]/g, '')  // Remove all non-ASCII characters (including Thai)
             .replace(/[^a-zA-Z0-9_]/g, '')  // Keep only alphanumeric and underscore
             .substring(0, 50) || 'employee';  // Limit length and provide fallback
-          
+
           const timestamp = Date.now();
           const filename = `welfare_${updatedRequestData.request_type}_${safeEmployeeName}_hr_approved_${timestamp}.pdf`;
           console.log('🔍 Generated filename:', filename);
-          
+
           // Upload to HR bucket
           const { uploadPDFToHRBucket } = await import('@/utils/pdfUtils');
           const storageUrl = await uploadPDFToHRBucket(pdfBlob, filename, updatedRequestData.employee_id?.toString());
-          
+
           if (storageUrl) {
             // Store only the URL, not the base64 data
             updateData.pdf_request_hr = storageUrl;
@@ -290,22 +290,22 @@ export const addSignatureToPDF = async (
           return false; // Fail if upload fails
         }
       }
-      
+
       const { error: pdfUpdateError } = await supabase
         .from('welfare_requests')
         .update(updateData)
         .eq('id', requestId);
-        
+
       if (pdfUpdateError) {
         console.error('Error updating PDF:', pdfUpdateError);
         return false;
       }
-      
+
       console.log(`🎉 ${signatureType} signature added to PDF successfully in column: ${signatureType === 'manager' ? 'pdf_request_manager' : 'pdf_request_hr'}`);
       console.log('📊 Final update data:', Object.keys(updateData));
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error(`Error adding ${signatureType} signature to PDF:`, error);
@@ -321,10 +321,10 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
     console.log('🔍 getActualEmployeeName: No employeeId provided');
     return null;
   }
-  
+
   try {
     console.log('🔍 getActualEmployeeName called with employeeId:', employeeId);
-    
+
     // Try to find by employee ID first (if employeeId is numeric)
     const numericId = parseInt(employeeId, 10);
     if (!isNaN(numericId)) {
@@ -334,15 +334,15 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
         .select('Name')
         .eq('id', numericId)
         .single();
-        
+
       console.log('🔍 Employee by ID result:', { data: employeeById, error: errorById });
-        
+
       if (!errorById && employeeById) {
         console.log('✅ Found employee name by ID:', employeeById.Name);
         return employeeById.Name;
       }
     }
-    
+
     // Fallback to email_user lookup
     console.log('🔍 Fallback: Searching employee by email_user:', employeeId);
     const { data, error } = await supabase
@@ -350,14 +350,14 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
       .select('Name')
       .eq('"email_user"', employeeId)
       .single();
-      
+
     console.log('🔍 Employee by email result:', { data, error });
-      
+
     if (error || !data) {
       console.log('❌ No employee name found for employeeId:', employeeId);
       return null;
     }
-    
+
     console.log('✅ Found employee name by email:', data.Name);
     return data.Name;
   } catch (error) {
@@ -372,7 +372,7 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
 const getEmployeeData = async (userId: string): Promise<{ Name: string; Position: string; Team: string } | undefined> => {
   try {
     console.log('🔍 getEmployeeData called with userId:', userId);
-    
+
     // Try to find by employee ID first (if userId is numeric)
     const numericId = parseInt(userId, 10);
     if (!isNaN(numericId)) {
@@ -382,9 +382,9 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
         .select('Name, Position, Team')
         .eq('id', numericId)
         .single();
-        
+
       console.log('🔍 Employee by ID result:', { data: employeeById, error: errorById });
-        
+
       if (!errorById && employeeById) {
         console.log('✅ Found employee by ID:', employeeById.Name);
         return {
@@ -394,7 +394,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
         };
       }
     }
-    
+
     // Fallback to email_user lookup
     console.log('🔍 Fallback: Searching by email_user:', userId);
     const { data, error } = await supabase
@@ -402,14 +402,14 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
       .select('Name, Position, Team')
       .eq('"email_user"', userId)
       .single();
-      
+
     console.log('🔍 Employee by email result:', { data, error });
-      
+
     if (error || !data) {
       console.log('❌ No employee data found for userId:', userId);
       return undefined;
     }
-    
+
     console.log('✅ Found employee by email:', data.Name);
     return {
       Name: data.Name,
@@ -436,7 +436,7 @@ const generateWelfarePDFAsBase64 = async (
   try {
     // Generate PDF as Blob
     const pdfBlob = await generateWelfarePDF(welfareData, userData, employeeData, userSignature, managerSignature, hrSignature);
-    
+
     // Convert Blob to base64
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -473,22 +473,22 @@ export const downloadPDFFromDatabase = async (requestId: number): Promise<void> 
       .select('pdf_request_manager, pdf_request_hr, employee_name, employee_id, request_type, status')
       .eq('id', requestId)
       .single();
-      
+
     if (error || !data) {
       console.error('Error fetching PDF or PDF not found:', error);
       return;
     }
-    
+
     // Use appropriate PDF URL based on status
     const pdfUrl = data.pdf_request_hr || data.pdf_request_manager;
     const pdfType = data.pdf_request_hr ? 'hr_approved' : 'manager_approved';
-    
+
     if (!pdfUrl) {
       console.error('No PDF found for request:', requestId);
       alert('ไม่พบไฟล์ PDF');
       return;
     }
-    
+
     // Check if it's a URL or base64 data
     if (pdfUrl.startsWith('http')) {
       // It's a URL, download directly
@@ -514,7 +514,7 @@ export const downloadPDFFromDatabase = async (requestId: number): Promise<void> 
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'application/pdf' });
-      
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -531,7 +531,7 @@ export const downloadPDFFromDatabase = async (requestId: number): Promise<void> 
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
-    
+
   } catch (error) {
     console.error('Error downloading PDF:', error);
   }
@@ -550,12 +550,12 @@ export const debugPDFColumns = async (requestId: number): Promise<void> => {
       .select('pdf_request_manager, pdf_request_hr, status, employee_name')
       .eq('id', requestId)
       .single();
-      
+
     if (error || !data) {
       console.error('Error fetching PDF columns:', error);
       return;
     }
-    
+
     console.log(`PDF Columns Debug for Request ${requestId} (${data.employee_name}):`, {
       status: data.status,
       pdf_request_manager: data.pdf_request_manager ? `${data.pdf_request_manager.length} chars` : 'null',
@@ -578,13 +578,13 @@ export const previewPDFFromDatabase = async (requestId: number): Promise<void> =
       .single();
 
     console.log('Fetched data for preview:', data);
-      
+
     if (error || !data) {
       console.error('Error fetching PDF data or request not found:', error);
       alert('ไม่พบข้อมูลคำขอ หรือเกิดข้อผิดพลาดในการโหลด');
       return;
     }
-    
+
     // 2. ตรวจสอบว่ามีลายเซ็นอยู่หรือไม่
     if (!data.manager_signature && !data.hr_signature) {
       alert('ยังไม่มีลายเซ็นในเอกสารให้ตรวจสอบ');
@@ -593,14 +593,14 @@ export const previewPDFFromDatabase = async (requestId: number): Promise<void> =
 
     // 3. เลือก PDF ที่เหมาะสม (ใช้ Manager PDF)
     const pdfData = data.pdf_request_manager;
-    
+
     if (pdfData) {
       // Check if it's a URL or base64 data
       if (pdfData.startsWith('http')) {
         // It's a URL, open directly
         console.log('Opening PDF from Storage URL:', pdfData);
         const newWindow = window.open(pdfData, '_blank');
-        
+
         if (!newWindow) {
           alert('ไม่สามารถเปิดหน้าต่างใหม่ได้ กรุณาตรวจสอบการตั้งค่า Pop-up Blocker ของเบราว์เซอร์');
         }
@@ -614,14 +614,14 @@ export const previewPDFFromDatabase = async (requestId: number): Promise<void> =
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        
+
         const url = URL.createObjectURL(blob);
         const newWindow = window.open(url, '_blank');
-        
+
         if (!newWindow) {
           alert('ไม่สามารถเปิดหน้าต่างใหม่ได้ กรุณาตรวจสอบการตั้งค่า Pop-up Blocker ของเบราว์เซอร์');
         }
-        
+
         // Clean up the URL after a delay
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
@@ -629,7 +629,7 @@ export const previewPDFFromDatabase = async (requestId: number): Promise<void> =
       console.error('No PDF data found for request:', requestId);
       alert('ไม่พบข้อมูล PDF สำหรับคำขอนี้');
     }
-    
+
   } catch (error) {
     console.error('Error previewing PDF:', error);
     alert('เกิดข้อผิดพลาดในการแสดงตัวอย่าง PDF');

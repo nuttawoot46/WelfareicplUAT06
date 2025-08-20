@@ -76,7 +76,7 @@ export function RequestReviewCard({ request }: RequestReviewCardProps) {
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle className="text-lg mb-1">{welfareTypeLabels[request.type]}</CardTitle>
-          <p className="text-xl font-bold">{request.amount.toLocaleString()} บาท</p>
+          <p className="text-xl font-bold">{request.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</p>
         </div>
         <Badge variant="outline" className={cn('text-xs', statusConfig[request.status].className)}>
           {statusConfig[request.status].label}

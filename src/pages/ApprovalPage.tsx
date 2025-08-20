@@ -16,11 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, BarChart3, TrendingUp, Users, DollarSign, Download } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
 import { usePDFOperations } from '@/hooks/usePDFOperations';
+import LoadingPopup from '@/components/forms/LoadingPopup';
 
 
 
@@ -47,6 +48,8 @@ export const ApprovalPage = () => {
   const [pendingBulkApproval, setPendingBulkApproval] = useState<WelfareRequest[]>([]);
   const [isBulkApproval, setIsBulkApproval] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
+  const [reportDateRange, setReportDateRange] = useState<{ from: Date | null; to: Date | null } | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const { downloadPDF, previewPDF, isLoading: isPDFLoading } = usePDFOperations();
 
   // Cleanup function to reset states
@@ -70,29 +73,27 @@ export const ApprovalPage = () => {
         type: 'error',
       });
       navigate('/dashboard', { replace: true });
-    } else if (profile?.role === 'manager' && profile.employee_id) {
-      fetchTeamMemberIds(profile.employee_id);
+    } else if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && profile.display_name) {
+      fetchTeamMemberIds(profile.display_name);
     } else if (profile?.role === 'admin') {
-      console.log('Admin user, will see all requests.');
+      // Admin user will see all requests
     }
   }, [user, profile, isAuthLoading, navigate, addNotification]);
 
-  const fetchTeamMemberIds = async (managerId: number) => {
+  const fetchTeamMemberIds = async (managerName: string) => {
     try {
-      console.log('Fetching team members for manager ID:', managerId);
       const { data, error } = await supabase
         .from('Employee')
         .select('id')
-        .eq('manager_id', managerId);
+        .eq('manager_name', managerName);
 
       if (error) {
-        console.error('Error fetching team members by manager ID:', error);
+        console.error('Error fetching team members by manager name:', error);
         return;
       }
 
       if (data) {
         const memberIds = data.map(member => member.id);
-        console.log('Team member IDs:', memberIds);
         setTeamMemberIds(memberIds);
       }
     } catch (err) {
@@ -102,6 +103,11 @@ export const ApprovalPage = () => {
 
   // Filter requests based on active tab
   const filteredRequests = useMemo(() => {
+    // Skip filtering for reports tab as it has its own filtering logic
+    if (activeTab === 'reports') {
+      return [];
+    }
+    
     let base = allRequests;
     if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
       base = allRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
@@ -214,8 +220,6 @@ export const ApprovalPage = () => {
       return;
     }
 
-    console.log('Opening signature popup for bulk approval:', requestsToApprove);
-    
     // Set pending bulk approval requests and open signature popup
     setPendingBulkApproval(requestsToApprove);
     setIsBulkApproval(true);
@@ -281,8 +285,6 @@ export const ApprovalPage = () => {
       console.error('Request not found:', requestId);
       return;
     }
-    
-    console.log('Opening signature popup for request:', request);
     
     // Set pending request and open signature popup
     setPendingApprovalRequest(request);
@@ -357,7 +359,7 @@ export const ApprovalPage = () => {
                   // Continue with other PDFs even if one fails
                 }
               }
-              console.log('PDF signatures added successfully in background for bulk approval');
+              // PDF signatures added successfully in background for bulk approval
             } catch (pdfError) {
               console.error('Error adding signatures to PDFs (background):', pdfError);
               // Don't show error to user since main approval was successful
@@ -412,7 +414,7 @@ export const ApprovalPage = () => {
             );
             // Debug PDF columns after adding signature
             await debugPDFColumns(requestId);
-            console.log('PDF signature added successfully in background');
+            // PDF signature added successfully in background
           } catch (pdfError) {
             console.error('Error adding signature to PDF (background):', pdfError);
             // Don't show error to user since main approval was successful
@@ -474,12 +476,218 @@ export const ApprovalPage = () => {
     );
   }
 
+  // Helper functions for reports
+  const getTeamRequests = () => {
+    let teamRequests = [];
+    
+    // First, filter by role and team membership
+    if (profile?.role === 'admin') {
+      // Admin can see all requests
+      teamRequests = allRequests;
+    } else if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
+      // Manager can only see their team members' requests
+      teamRequests = allRequests.filter(req => {
+        if (!req.userId) return false;
+        
+        // Try both string and number comparison
+        const userIdAsNumber = parseInt(req.userId, 10);
+        const userIdAsString = req.userId.toString();
+        
+        return teamMemberIds.includes(userIdAsNumber) || 
+               teamMemberIds.map(id => id.toString()).includes(userIdAsString);
+      });
+    } else {
+      // If no team members loaded yet or not authorized, return empty array
+      return [];
+    }
+    
+    // Apply date filter if set
+    if (reportDateRange?.from && reportDateRange?.to) {
+      teamRequests = teamRequests.filter(req => {
+        const reqDate = new Date(req.date);
+        const fromDate = new Date(reportDateRange.from!);
+        const toDate = new Date(reportDateRange.to!);
+        fromDate.setHours(0, 0, 0, 0);
+        toDate.setHours(23, 59, 59, 999);
+        return reqDate >= fromDate && reqDate <= toDate;
+      });
+    }
+    
+    // Apply employee filter if set
+    if (selectedEmployee !== 'all') {
+      teamRequests = teamRequests.filter(req => req.userName === selectedEmployee);
+    }
+    
+    // Apply search term if set
+    if (searchTerm) {
+      teamRequests = teamRequests.filter(req => 
+        req.userName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return teamRequests;
+  };
+
+  const getTeamReportData = () => {
+    const teamRequests = getTeamRequests();
+    const totalRequests = teamRequests.length;
+    const totalAmount = teamRequests.reduce((sum, req) => sum + (req.amount || 0), 0);
+    const activeMembers = new Set(teamRequests.map(req => req.userName)).size;
+    const approvedRequests = teamRequests.filter(req => 
+      ['approved', 'completed', 'pending_hr', 'pending_accounting'].includes(req.status)
+    ).length;
+    const approvalRate = totalRequests > 0 ? Math.round((approvedRequests / totalRequests) * 100) : 0;
+    
+    return {
+      totalRequests,
+      totalAmount,
+      activeMembers,
+      approvalRate
+    };
+  };
+
+  const getWelfareTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      wedding: 'สวัสดิการงานสมรส',
+      training: 'ค่าอบรม',
+      childbirth: 'ค่าคลอดบุตร',
+      funeral: 'ค่าช่วยเหลืองานศพ',
+      glasses: 'ค่าตัดแว่น',
+      dental: 'ค่าทำฟัน',
+      fitness: 'ค่าออกกำลังกาย',
+      medical: 'ของเยี่ยมกรณีเจ็บป่วย'
+    };
+    return labels[type] || type;
+  };
+
+  const getWelfareTypeSummary = () => {
+    const teamRequests = getTeamRequests();
+    const summary: Record<string, { count: number; amount: number }> = {};
+    
+    teamRequests.forEach(req => {
+      if (!summary[req.type]) {
+        summary[req.type] = { count: 0, amount: 0 };
+      }
+      summary[req.type].count++;
+      summary[req.type].amount += req.amount || 0;
+    });
+    
+    return Object.entries(summary)
+      .map(([type, data]) => ({ type, ...data }))
+      .sort((a, b) => b.amount - a.amount);
+  };
+
+  const getIndividualEmployeeReport = () => {
+    const teamRequests = getTeamRequests();
+    const employeeMap: Record<string, {
+      name: string;
+      department: string;
+      totalRequests: number;
+      approved: number;
+      pending: number;
+      rejected: number;
+      totalAmount: number;
+    }> = {};
+    
+    teamRequests.forEach(req => {
+      if (!employeeMap[req.userName]) {
+        employeeMap[req.userName] = {
+          name: req.userName,
+          department: req.userDepartment || req.department_user || '-',
+          totalRequests: 0,
+          approved: 0,
+          pending: 0,
+          rejected: 0,
+          totalAmount: 0
+        };
+      }
+      
+      const emp = employeeMap[req.userName];
+      emp.totalRequests++;
+      emp.totalAmount += req.amount || 0;
+      
+      if (['approved', 'completed'].includes(req.status)) {
+        emp.approved++;
+      } else if (req.status.includes('pending')) {
+        emp.pending++;
+      } else if (req.status.includes('rejected')) {
+        emp.rejected++;
+      }
+    });
+    
+    return Object.values(employeeMap).sort((a, b) => b.totalAmount - a.totalAmount);
+  };
+
+  const exportTeamReport = () => {
+    const teamRequests = getTeamRequests();
+    const reportData = getTeamReportData();
+    const welfareTypeSummary = getWelfareTypeSummary();
+    const individualReport = getIndividualEmployeeReport();
+    
+    let csv = '';
+    
+    // Header information
+    csv += 'Team Welfare Report\r\n';
+    csv += `Generated on: ${new Date().toLocaleDateString()}\r\n`;
+    csv += `Manager: ${profile?.display_name || user?.email || ''}\r\n`;
+    if (reportDateRange?.from && reportDateRange?.to) {
+      csv += `Period: ${format(reportDateRange.from, 'PP')} - ${format(reportDateRange.to, 'PP')}\r\n`;
+    }
+    csv += '\r\n';
+    
+    // Summary
+    csv += 'SUMMARY\r\n';
+    csv += `Total Requests,${reportData.totalRequests}\r\n`;
+    csv += `Total Amount,${reportData.totalAmount.toLocaleString()}\r\n`;
+    csv += `Active Members,${reportData.activeMembers}\r\n`;
+    csv += `Approval Rate,${reportData.approvalRate}%\r\n`;
+    csv += '\r\n';
+    
+    // Welfare Type Summary
+    csv += 'WELFARE TYPE SUMMARY\r\n';
+    csv += 'Type,Count,Amount\r\n';
+    welfareTypeSummary.forEach(item => {
+      csv += `"${getWelfareTypeLabel(item.type)}",${item.count},"${item.amount.toLocaleString()}"\r\n`;
+    });
+    csv += '\r\n';
+    
+    // Individual Employee Report
+    csv += 'INDIVIDUAL EMPLOYEE REPORT\r\n';
+    csv += 'Employee,Department,Total Requests,Approved,Pending,Rejected,Total Amount\r\n';
+    individualReport.forEach(emp => {
+      csv += `"${emp.name}","${emp.department}",${emp.totalRequests},${emp.approved},${emp.pending},${emp.rejected},"${emp.totalAmount.toLocaleString()}"\r\n`;
+    });
+    csv += '\r\n';
+    
+    // Detailed Requests
+    csv += 'DETAILED REQUESTS\r\n';
+    csv += 'Date,Employee,Department,Type,Amount,Status,Details\r\n';
+    teamRequests.forEach(req => {
+      csv += `"${format(new Date(req.date), 'PP')}","${req.userName}","${req.userDepartment || req.department_user || '-'}","${getWelfareTypeLabel(req.type)}","${(req.amount || 0).toLocaleString()}","${req.status}","${req.details || ''}"\r\n`;
+    });
+    
+    // Create and download file
+    const csvWithBom = '\uFEFF' + csv;
+    const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = reportDateRange?.from && reportDateRange?.to
+      ? `${format(reportDateRange.from, 'yyyy-MM-dd')}_${format(reportDateRange.to, 'yyyy-MM-dd')}`
+      : format(new Date(), 'yyyy-MM-dd');
+    link.download = `team_welfare_report_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) {
     return (
       <Layout>
+        <LoadingPopup open={isLoading} />
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Processing approval...</p>
           </div>
         </div>
@@ -499,7 +707,7 @@ export const ApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="pending" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Pending Approval
@@ -507,6 +715,10 @@ export const ApprovalPage = () => {
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
                 History
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Reports
               </TabsTrigger>
             </TabsList>
             
@@ -631,131 +843,343 @@ export const ApprovalPage = () => {
                 </Popover>
               </div>
             </TabsContent>
-          </Tabs>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {activeTab === 'pending' && (
-                  <TableHead>
-                    <Checkbox 
-                      onCheckedChange={handleSelectAll}
-                      checked={
-                        filteredRequests.length > 0 && selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_manager').length
-                          ? true
-                          : selectedRequests.length > 0
-                          ? 'indeterminate'
-                          : false
-                      }
-                      aria-label="Select all"
+            
+            <TabsContent value="reports" className="space-y-6">
+              {/* Report Filters */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search by employee..." 
+                      className="pl-8" 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                  </TableHead>
-                )}
-                <TableHead>Employee</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Welfare Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Submission Date</TableHead>
-                <TableHead>Status</TableHead>
-                {activeTab === 'history' && <TableHead>Processed Date</TableHead>}
-                <TableHead className="text-center">Attachment</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.map((req: WelfareRequest) => (
-                <TableRow key={req.id}>
-                  {activeTab === 'pending' && (
-                    <TableCell>
-                      <Checkbox 
-                        onCheckedChange={() => handleSelectRequest(req.id)}
-                        checked={selectedRequests.includes(req.id)}
-                        aria-label={`Select request ${req.id}`}
-                        disabled={req.status !== 'pending_manager'}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell>{req.userName}</TableCell>
-                  <TableCell>{req.userDepartment || '-'}</TableCell>
-                  <TableCell>{req.type}</TableCell>
-                  <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
-                  <TableCell>
-                    {req.status === 'pending_manager' ? (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                        Pending Manager
-                      </Badge>
-                    ) : req.status === 'pending_hr' ? (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                        Pending HR
-                      </Badge>
-                    ) : req.status === 'pending_accounting' ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        Pending Accounting
-                      </Badge>
-                    ) : req.status === 'approved' ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Approved
-                      </Badge>
-                    ) : req.status === 'rejected_manager' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected by Manager
-                      </Badge>
-                    ) : req.status === 'rejected_hr' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected by HR
-                      </Badge>
-                    ) : req.status === 'rejected_accounting' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected by Accounting
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">
-                        {req.status}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  {activeTab === 'history' && (
-                    <TableCell>
-                      {req.managerApprovedAt ? format(new Date(req.managerApprovedAt), 'PP') : 
-                       req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
-                    </TableCell>
-                  )}
-                  <TableCell className="text-center">
-                    {req.attachments && req.attachments.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {req.attachments.map((file, idx) => (
-                          <Button asChild variant="ghost" size="icon" key={idx}>
-                            <a
-                              href={file}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`View attachment ${idx + 1}`}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </a>
-                          </Button>
+                  </div>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Team Members</SelectItem>
+                      {Array.from(new Set(allRequests
+                        .filter(req => {
+                          // For managers, only show their team members
+                          if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
+                            if (!req.userId) return false;
+                            
+                            // Try both string and number comparison
+                            const userIdAsNumber = parseInt(req.userId, 10);
+                            const userIdAsString = req.userId.toString();
+                            
+                            return teamMemberIds.includes(userIdAsNumber) || 
+                                   teamMemberIds.map(id => id.toString()).includes(userIdAsString);
+                          }
+                          // For admin, show all
+                          return profile?.role === 'admin';
+                        })
+                        .map(req => req.userName)))
+                        .sort()
+                        .map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
                         ))}
+                    </SelectContent>
+                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {reportDateRange?.from && reportDateRange?.to 
+                          ? `${format(reportDateRange.from, 'PP')} - ${format(reportDateRange.to, 'PP')}`
+                          : <span>Pick date range</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        selected={reportDateRange ? { from: reportDateRange.from || undefined, to: reportDateRange.to || undefined } : undefined}
+                        onSelect={(range) => setReportDateRange(range ? { from: range.from || null, to: range.to || null } : null)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportTeamReport()}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Report
+                </Button>
+              </div>
+
+              {/* Loading state for managers */}
+              {(profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading team members...</p>
+                </div>
+              )}
+
+
+
+              {/* Show content only when team data is loaded or user is admin */}
+              {(profile?.role === 'admin' || ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0)) && (
+                <>
+                  {/* Team Overview Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Requests</p>
+                        <p className="text-2xl font-bold">{getTeamReportData().totalRequests}</p>
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      <div className="bg-blue-400/30 p-2 rounded-full">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-500 to-green-600 border-0 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Total Amount</p>
+                        <p className="text-2xl font-bold">{getTeamReportData().totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</p>
+                      </div>
+                      <div className="bg-green-400/30 p-2 rounded-full">
+                        <DollarSign className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                
+              </div>
+
+              {/* Welfare Type Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Welfare Type Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {getWelfareTypeSummary().map((item) => (
+                      <div key={item.type} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <span className="font-medium">{getWelfareTypeLabel(item.type)}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold">{item.amount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</div>
+                          <div className="text-sm text-gray-500">{item.count} requests</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Individual Employee Report */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Individual Employee Report
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Employee</TableHead>
+                          <TableHead>Department</TableHead>
+                          <TableHead className="text-center">Total Requests</TableHead>
+                          <TableHead className="text-center">Approved</TableHead>
+                          <TableHead className="text-center">Pending</TableHead>
+                          <TableHead className="text-center">Rejected</TableHead>
+                          <TableHead className="text-right">Total Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {getIndividualEmployeeReport().map((employee) => (
+                          <TableRow key={employee.name}>
+                            <TableCell className="font-medium">{employee.name}</TableCell>
+                            <TableCell>{employee.department}</TableCell>
+                            <TableCell className="text-center">{employee.totalRequests}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                {employee.approved}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                                {employee.pending}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                {employee.rejected}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {employee.totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {getIndividualEmployeeReport().length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No team members found or no requests in the selected period.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
           
-          {filteredRequests.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {activeTab === 'pending' 
-                ? 'No requests pending manager approval at this time.'
-                : 'No processed requests found.'
-              }
-            </div>
+          {/* Table - only show for pending and history tabs */}
+          {activeTab !== 'reports' && (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {activeTab === 'pending' && (
+                      <TableHead>
+                        <Checkbox 
+                          onCheckedChange={handleSelectAll}
+                          checked={
+                            filteredRequests.length > 0 && selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_manager').length
+                              ? true
+                              : selectedRequests.length > 0
+                              ? 'indeterminate'
+                              : false
+                          }
+                          aria-label="Select all"
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Welfare Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Submission Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    {activeTab === 'history' && <TableHead>Processed Date</TableHead>}
+                    <TableHead className="text-center">Attachment</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map((req: WelfareRequest) => (
+                    <TableRow key={req.id}>
+                      {activeTab === 'pending' && (
+                        <TableCell>
+                          <Checkbox 
+                            onCheckedChange={() => handleSelectRequest(req.id)}
+                            checked={selectedRequests.includes(req.id)}
+                            aria-label={`Select request ${req.id}`}
+                            disabled={req.status !== 'pending_manager'}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell>{req.userName}</TableCell>
+                      <TableCell>{req.userDepartment || '-'}</TableCell>
+                      <TableCell>{req.type}</TableCell>
+                      <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
+                      <TableCell>
+                        {req.status === 'pending_manager' ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                            Pending Manager
+                          </Badge>
+                        ) : req.status === 'pending_hr' ? (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Pending HR
+                          </Badge>
+                        ) : req.status === 'pending_accounting' ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            Pending Accounting
+                          </Badge>
+                        ) : req.status === 'approved' ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Approved
+                          </Badge>
+                        ) : req.status === 'rejected_manager' ? (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Rejected by Manager
+                          </Badge>
+                        ) : req.status === 'rejected_hr' ? (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Rejected by HR
+                          </Badge>
+                        ) : req.status === 'rejected_accounting' ? (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Rejected by Accounting
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            {req.status}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      {activeTab === 'history' && (
+                        <TableCell>
+                          {req.managerApprovedAt ? format(new Date(req.managerApprovedAt), 'PP') : 
+                           req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
+                        </TableCell>
+                      )}
+                      <TableCell className="text-center">
+                        {req.attachments && req.attachments.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {req.attachments.map((file, idx) => (
+                              <Button asChild variant="ghost" size="icon" key={idx}>
+                                <a
+                                  href={file}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`View attachment ${idx + 1}`}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {filteredRequests.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  {activeTab === 'pending' 
+                    ? 'No requests pending manager approval at this time.'
+                    : 'No processed requests found.'
+                  }
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -854,10 +1278,7 @@ export const ApprovalPage = () => {
               {selectedRequest.status === 'pending_manager' && (
                 <>
                   <Button 
-                    onClick={() => {
-                      console.log('Approve button clicked for request:', selectedRequest);
-                      handleApprove(selectedRequest.id);
-                    }}
+                    onClick={() => handleApprove(selectedRequest.id)}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Approve
@@ -908,6 +1329,9 @@ export const ApprovalPage = () => {
               : undefined
         }
       />
+
+      {/* Loading Popup */}
+      <LoadingPopup open={isLoading} />
     </Layout>
   );
 };

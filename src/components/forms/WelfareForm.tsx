@@ -90,6 +90,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const [userSignature, setUserSignature] = useState<string>('');
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
+  const [workDaysError, setWorkDaysError] = useState<string>('');
 
   const {
     register,
@@ -121,7 +122,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       try {
         const { data, error } = await supabase
           .from('Employee')
-          .select('id, Name, Position, Team')
+          .select('id, Name, Position, Team, start_date')
           .eq('email_user', user.email)
           .single();
 
@@ -135,6 +136,29 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     fetchEmployeeData();
   }, [user?.email]);
+
+  // Helper function to calculate work days
+  const calculateWorkDays = (startDate: string): number => {
+    if (!startDate) return 0;
+    const start = new Date(startDate);
+    const today = new Date();
+    const diffTime = today.getTime() - start.getTime();
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Check work days eligibility for training
+  const checkTrainingEligibility = (employeeData: any): boolean => {
+    if (type !== 'training' || !employeeData?.start_date) return true;
+    
+    const workDays = calculateWorkDays(employeeData.start_date);
+    if (workDays < 180) {
+      setWorkDaysError(`ไม่สามารถเบิกสวัสดิการอบรมได้ เนื่องจากอายุงานยังไม่ถึง 180 วัน (ปัจจุบันทำงานมาแล้ว ${workDays} วัน)`);
+      return false;
+    }
+    
+    setWorkDaysError('');
+    return true;
+  };
 
   // 1. ตั้งค่าขีดจำกัดและเงื่อนไขของสวัสดิการตาม type ทุกครั้งที่ type หรือ user เปลี่ยน
   useEffect(() => {
@@ -161,7 +185,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       } else {
         setEmployeeBudget(budgetResult);
       }
-    } else if (type !== 'training') {
+    } else if (type !== 'training' && limitAmount) {
       setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
 
@@ -217,6 +241,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     fetchEditData();
   }, [type, user, getWelfareLimit, setValue, trainingBudget, editId, reset]);
 
+  // Check training eligibility when employeeData changes
+  useEffect(() => {
+    if (employeeData) {
+      checkTrainingEligibility(employeeData);
+    }
+  }, [employeeData, type]);
+
   // For childbirth form
   const birthType = watch('birthType');
 
@@ -234,12 +265,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (type === 'training') {
       // สมมติว่า remainingBudget ใช้ trainingBudget
       const remainingBudget = trainingBudget ?? 0;
-      if (amount !== undefined && amount !== null && amount !== '') {
+      if (amount !== undefined && amount !== null && amount !== '' && !isNaN(Number(amount))) {
         calculateTrainingAmounts(Number(amount), Number(remainingBudget));
       }
     } else if (type !== 'training') {
       // คำนวณสำหรับ welfare types อื่น ๆ
-      if (amount !== undefined && amount !== null && amount !== '') {
+      if (amount !== undefined && amount !== null && amount !== '' && !isNaN(Number(amount))) {
         calculateNonTrainingAmounts(Number(amount));
       }
     }
@@ -361,6 +392,17 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       });
       return;
     }
+
+    // Check training eligibility before submission
+    if (type === 'training' && !checkTrainingEligibility(employeeData)) {
+      toast({
+        title: 'ไม่สามารถส่งคำร้องได้',
+        description: workDaysError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setPendingFormData({ data, employeeData });
     setShowSignatureModal(true);
   };
@@ -650,6 +692,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
   // 3. อัปเดตฟังก์ชัน calculateTrainingAmounts
   const calculateTrainingAmounts = (total: number, remainingBudget: number, customVat?: number, customWithholding?: number) => {
+    // ตรวจสอบค่าที่ส่งเข้ามา
+    if (typeof total !== 'number' || isNaN(total) || total < 0) return;
+    if (typeof remainingBudget !== 'number' || isNaN(remainingBudget)) remainingBudget = 0;
+    
     // ถ้าเลือก checkbox ว่า "จำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว"
     let vat = 0;
     let withholding = 0;
@@ -657,13 +703,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     if (!isVatIncluded) {
       // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
-      if (customVat !== undefined) {
+      if (customVat !== undefined && !isNaN(customVat)) {
         vat = customVat;
       } else {
         vat = total * 0.07; // default 7%
       }
 
-      if (customWithholding !== undefined) {
+      if (customWithholding !== undefined && !isNaN(customWithholding)) {
         withholding = customWithholding;
       } else {
         withholding = total * 0.03; // default 3%
@@ -676,7 +722,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       withholding = 0;
       grossAmount = total;
     }
-    const remainingNum = Number(remainingBudget);
+    const remainingNum = Number(remainingBudget) || 0;
 
     let netNum = 0;
     let excessAmountValue = 0;
@@ -700,30 +746,33 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
 
     // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
-    setValue('totalAmount', parseFloat(total.toFixed(2)));
-    setValue('tax7Percent', parseFloat(vat.toFixed(2)));
-    setValue('withholdingTax3Percent', parseFloat(withholding.toFixed(2)));
-    setValue('netAmount', parseFloat(netNum.toFixed(2)));
-    setValue('excessAmount', parseFloat(excessAmountValue.toFixed(2))); // ตั้งค่า Field ใหม่
-    setValue('companyPayment', parseFloat(companyPaymentValue.toFixed(2)));
-    setValue('employeePayment', parseFloat(employeePaymentValue.toFixed(2)));
+    setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
+    setValue('tax7Percent', parseFloat((vat || 0).toFixed(2)));
+    setValue('withholdingTax3Percent', parseFloat((withholding || 0).toFixed(2)));
+    setValue('netAmount', parseFloat((netNum || 0).toFixed(2)));
+    setValue('excessAmount', parseFloat((excessAmountValue || 0).toFixed(2))); // ตั้งค่า Field ใหม่
+    setValue('companyPayment', parseFloat((companyPaymentValue || 0).toFixed(2)));
+    setValue('employeePayment', parseFloat((employeePaymentValue || 0).toFixed(2)));
   };
 
   // ฟังก์ชันคำนวณสำหรับ welfare types อื่น ๆ (ไม่ใช่ training)
   const calculateNonTrainingAmounts = (total: number, customVat?: number, customWithholding?: number) => {
+    // ตรวจสอบค่าที่ส่งเข้ามา
+    if (typeof total !== 'number' || isNaN(total) || total < 0) return;
+    
     let vat = 0;
     let withholding = 0;
     let netAmount = total;
 
     if (!isVatIncluded) {
       // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
-      if (customVat !== undefined) {
+      if (customVat !== undefined && !isNaN(customVat)) {
         vat = customVat;
       } else {
         vat = total * 0.07; // default 7%
       }
 
-      if (customWithholding !== undefined) {
+      if (customWithholding !== undefined && !isNaN(customWithholding)) {
         withholding = customWithholding;
       } else {
         withholding = total * 0.03; // default 3%
@@ -738,10 +787,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
 
     // อัปเดตค่าทั้งหมดไปยังฟอร์ม
-    setValue('totalAmount', parseFloat(total.toFixed(2)));
-    setValue('tax7Percent', parseFloat(vat.toFixed(2)));
-    setValue('withholdingTax3Percent', parseFloat(withholding.toFixed(2)));
-    setValue('netAmount', parseFloat(netAmount.toFixed(2)));
+    setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
+    setValue('tax7Percent', parseFloat((vat || 0).toFixed(2)));
+    setValue('withholdingTax3Percent', parseFloat((withholding || 0).toFixed(2)));
+    setValue('netAmount', parseFloat((netAmount || 0).toFixed(2)));
   };
 
   // Add function to calculate total days
@@ -779,7 +828,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 {type === 'childbirth' ? (
                   <>คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</>
                 ) : (
-                  <>วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString()} บาท/ปี`}</>
+                  <>วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี`}</>
                 )}
                 {condition && <> ({condition})</>}
               </AlertDescription>
@@ -789,7 +838,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         {user && type !== 'training' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
-              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString()} บาท</span>
+              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </p>
           </div>
         )}
@@ -798,15 +847,31 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
-                วงเงินสูงสุด: {maxAmount?.toLocaleString() || '0'} บาท
+                วงเงินสูงสุด: {maxAmount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
               </AlertDescription>
             </Alert>
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
-                งบประมาณคงเหลือ: {remainingBudget?.toLocaleString() || '0'} บาท
+                งบประมาณคงเหลือ: {remainingBudget?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
               </AlertDescription>
             </Alert>
+            {workDaysError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  {workDaysError}
+                </AlertDescription>
+              </Alert>
+            )}
+            {employeeData?.start_date && !workDaysError && (
+              <Alert>
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  อายุงาน: {calculateWorkDays(employeeData.start_date)} วัน (เข้าทำงานวันที่ {new Date(employeeData.start_date).toLocaleDateString('th-TH')})
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 
@@ -1301,7 +1366,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           <Button
             type="submit"
             className="w-full btn-hover-effect"
-            disabled={isLoading || isSubmitting}
+            disabled={isLoading || isSubmitting || (type === 'training' && workDaysError)}
           >
             {isLoading ? (
               <>
