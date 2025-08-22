@@ -21,6 +21,7 @@ import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
 import LoadingPopup from '@/components/forms/LoadingPopup';
+import { getWelfareTypeLabel } from '@/lib/utils';
 
 import { supabase } from '@/lib/supabase';
 
@@ -584,6 +585,7 @@ export const HRApprovalPage = () => {
                 <TableHead>Status</TableHead>
                 {activeTab === 'history' && <TableHead>HR Processed Date</TableHead>}
                 <TableHead className="text-center">Attachment</TableHead>
+                {activeTab === 'history' && <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -602,7 +604,7 @@ export const HRApprovalPage = () => {
                   )}
                   <TableCell>{req.userName}</TableCell>
                   <TableCell>{req.userDepartment || '-'}</TableCell>
-                  <TableCell>{req.type}</TableCell>
+                  <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
                   <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
                   <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
                   <TableCell>
@@ -669,6 +671,28 @@ export const HRApprovalPage = () => {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  {activeTab === 'history' && (
+                    <TableCell className="text-center">
+                      {(req.managerSignature || req.hrSignature) ? (
+                        <div className="flex gap-1 justify-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={async () => {
+                              const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
+                              await downloadPDFFromDatabase(req.id);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            PDF
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">ยังไม่อนุมัติ</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
                   </TableCell>
@@ -700,7 +724,7 @@ export const HRApprovalPage = () => {
                   <div>
                     <p><strong>Employee:</strong> {selectedRequest.userName}</p>
                     <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
-                    <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
+                    <p><strong>Welfare Type:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
                     <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
                   </div>
                   <div>

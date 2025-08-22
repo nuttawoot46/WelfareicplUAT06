@@ -49,7 +49,7 @@ export const updatePDFWithSignature = async (
       console.log('Searching for employee with email_user:', request.userId);
       const { data, error } = await supabase
         .from('Employee')
-        .select('Name, Position, Team')
+        .select('Name, Position, Team, start_date')
         .eq('"email_user"', request.userId)
         .single();
       
@@ -59,7 +59,8 @@ export const updatePDFWithSignature = async (
         employeeData = {
           Name: data.Name,
           Position: data.Position,
-          Team: data.Team
+          Team: data.Team,
+          start_date: data.start_date
         };
       }
     }
@@ -275,7 +276,7 @@ export const generateFinalPDF = async (
     if (request.userId) {
       const { data } = await supabase
         .from('Employee')
-        .select('Name, Position, Team')
+        .select('Name, Position, Team, start_date')
         .eq('"email_user"', request.userId)
         .single();
       
@@ -283,7 +284,8 @@ export const generateFinalPDF = async (
         employeeData = {
           Name: data.Name,
           Position: data.Position,
-          Team: data.Team
+          Team: data.Team,
+          start_date: data.start_date
         };
       }
     }

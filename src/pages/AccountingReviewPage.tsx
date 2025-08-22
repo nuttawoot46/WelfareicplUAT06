@@ -25,7 +25,8 @@ interface WelfareRequestItem {
   attachment_url?: string;
   attachments?: string[];
   pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
-  department_user?: string; // แผนก/ฝ่ายของพนักงาน
+  department_user?: string; // แผนก/ฝ่ายของพนักงาน (legacy)
+  department_request?: string; // แผนก/ฝ่ายของพนักงาน (current)
   // HR approval fields
   hr_approver_id?: string;
   hr_approver_name?: string;
@@ -60,6 +61,7 @@ const initialFilter: FilterState = {
 
 import { Layout } from '@/components/layout/Layout';
 import { ArrowLeft } from 'lucide-react';
+import { getWelfareTypeLabel } from '@/lib/utils';
 
 const AccountingReviewPage: React.FC = () => {
   const { profile } = useAuth();
@@ -78,6 +80,8 @@ const AccountingReviewPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [selectedYear, setSelectedYear] = useState(format(new Date(), 'yyyy'));
   const [reportData, setReportData] = useState<any[]>([]);
+  const [filteredReportData, setFilteredReportData] = useState<any[]>([]);
+  const [reportEmployeeFilter, setReportEmployeeFilter] = useState('');
   const [reportSummary, setReportSummary] = useState<{
     totalAmount: number;
     totalRequests: number;
@@ -98,11 +102,15 @@ const AccountingReviewPage: React.FC = () => {
     }
   }, [showReport, reportPeriod, selectedMonth, selectedYear]);
 
+  useEffect(() => {
+    filterReportData();
+  }, [reportData, reportEmployeeFilter]);
+
   const fetchRequests = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('welfare_requests')
-      .select('*')
+      .select('*, department_request, department_user')
       .in('status', showHistory ? ['pending_accounting', 'completed', 'rejected_accounting'] : ['pending_accounting']);
     
     console.log('AccountingReviewPage - Fetched data:', data);
@@ -134,6 +142,32 @@ const AccountingReviewPage: React.FC = () => {
     setFilteredRequests(filtered);
   };
 
+  const filterReportData = () => {
+    let filtered = [...reportData];
+    if (reportEmployeeFilter) {
+      filtered = filtered.filter(r =>
+        r.employee_name?.toLowerCase().includes(reportEmployeeFilter.toLowerCase())
+      );
+    }
+    setFilteredReportData(filtered);
+    
+    // คำนวณสรุปข้อมูลใหม่สำหรับข้อมูลที่ถูกกรอง
+    const totalAmount = filtered.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const totalRequests = filtered.length;
+    
+    const byType: { [key: string]: { count: number; amount: number } } = {};
+    filtered.forEach(item => {
+      const type = item.request_type || 'ไม่ระบุ';
+      if (!byType[type]) {
+        byType[type] = { count: 0, amount: 0 };
+      }
+      byType[type].count += 1;
+      byType[type].amount += item.amount || 0;
+    });
+
+    setReportSummary({ totalAmount, totalRequests, byType });
+  };
+
   const fetchReportData = async () => {
     setIsLoading(true);
     
@@ -150,7 +184,7 @@ const AccountingReviewPage: React.FC = () => {
 
     const { data, error } = await supabase
       .from('welfare_requests')
-      .select('*')
+      .select('*, department_request, department_user')
       .eq('status', 'completed')
       .gte('accounting_approved_at', startDate.toISOString())
       .lte('accounting_approved_at', endDate.toISOString())
@@ -158,36 +192,25 @@ const AccountingReviewPage: React.FC = () => {
 
     if (data && !error) {
       setReportData(data);
-      
-      // คำนวณสรุปข้อมูล
-      const totalAmount = data.reduce((sum, item) => sum + (item.amount || 0), 0);
-      const totalRequests = data.length;
-      
-      const byType: { [key: string]: { count: number; amount: number } } = {};
-      data.forEach(item => {
-        const type = item.request_type || 'ไม่ระบุ';
-        if (!byType[type]) {
-          byType[type] = { count: 0, amount: 0 };
-        }
-        byType[type].count += 1;
-        byType[type].amount += item.amount || 0;
-      });
-
-      setReportSummary({ totalAmount, totalRequests, byType });
+      // การกรองและคำนวณสรุปจะทำใน filterReportData ที่จะถูกเรียกจาก useEffect
     }
     
     setIsLoading(false);
   };
 
   const exportReportToCSV = () => {
-    if (!reportData.length) return;
-    const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้อนุมัติ (บัญชี)'];
-    const rows = reportData.map(r => [
+    if (!filteredReportData.length) return;
+    const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR อนุมัติ', 'วันที่ HR อนุมัติ', 'ผู้อนุมัติ (บัญชี)'];
+    const rows = filteredReportData.map(r => [
       r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy', { locale: th }) : '',
       r.employee_name,
-      r.department_user || '',
-      r.request_type,
+      r.department_request || r.department_user || '',
+      getWelfareTypeLabel(r.request_type),
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
+      r.manager_approver_name || r.manager_name || '',
+      r.manager_approved_at ? format(new Date(r.manager_approved_at), 'dd/MM/yyyy HH:mm', { locale: th }) : '',
+      r.hr_approver_name || 'HR อนุมัติแล้ว',
+      r.hr_approved_at ? format(new Date(r.hr_approved_at), 'dd/MM/yyyy HH:mm', { locale: th }) : '',
       r.accounting_approver_name || 'บัญชี'
     ]);
     const csv = [header, ...rows].map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(",")).join("\r\n");
@@ -259,8 +282,8 @@ const AccountingReviewPage: React.FC = () => {
     const rows = filteredRequests.map(r => [
       format(new Date(r.created_at), 'dd MMM yyyy', { locale: th }),
       r.employee_name,
-      r.department_user || '',
-      r.request_type,
+      r.department_request || r.department_user || '',
+      getWelfareTypeLabel(r.request_type),
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
       r.manager_approver_name || r.manager_name || '',
       r.manager_approved_at ? format(new Date(r.manager_approved_at), 'dd MMM yyyy HH:mm', { locale: th }) : '',
@@ -368,7 +391,17 @@ const AccountingReviewPage: React.FC = () => {
                 </div>
               )}
               
-              <Button variant="outline" onClick={exportReportToCSV} disabled={reportData.length === 0}>
+              <div className="flex items-center gap-2">
+                <span>ชื่อพนักงาน:</span>
+                <Input 
+                  placeholder="ค้นหาชื่อพนักงาน" 
+                  value={reportEmployeeFilter}
+                  onChange={e => setReportEmployeeFilter(e.target.value)}
+                  className="w-48"
+                />
+              </div>
+              
+              <Button variant="outline" onClick={exportReportToCSV} disabled={filteredReportData.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Export รายงาน
               </Button>
@@ -376,7 +409,7 @@ const AccountingReviewPage: React.FC = () => {
           </div>
 
           {/* Report Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="text-blue-600 text-sm font-medium">จำนวนการเบิกทั้งหมด</div>
               <div className="text-2xl font-bold text-blue-800">{reportSummary.totalRequests} รายการ</div>
@@ -385,15 +418,6 @@ const AccountingReviewPage: React.FC = () => {
               <div className="text-green-600 text-sm font-medium">ยอดเงินที่เบิกทั้งหมด</div>
               <div className="text-2xl font-bold text-green-800">
                 {reportSummary.totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
-              </div>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <div className="text-purple-600 text-sm font-medium">ยอดเฉลี่ยต่อรายการ</div>
-              <div className="text-2xl font-bold text-purple-800">
-                {reportSummary.totalRequests > 0 
-                  ? (reportSummary.totalAmount / reportSummary.totalRequests).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })
-                  : '฿0'
-                }
               </div>
             </div>
           </div>
@@ -442,7 +466,7 @@ const AccountingReviewPage: React.FC = () => {
             <div className="px-4 py-3 bg-gray-50 border-b">
               <h3 className="text-lg font-semibold">รายละเอียดการเบิก</h3>
             </div>
-            {reportData.length > 0 ? (
+            {filteredReportData.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -456,7 +480,7 @@ const AccountingReviewPage: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reportData.map(r => (
+                    {filteredReportData.map(r => (
                       <TableRow key={r.id}>
                         <TableCell>
                           {r.accounting_approved_at 
@@ -465,8 +489,8 @@ const AccountingReviewPage: React.FC = () => {
                           }
                         </TableCell>
                         <TableCell>{r.employee_name}</TableCell>
-                        <TableCell>{r.department_user || '-'}</TableCell>
-                        <TableCell>{r.request_type}</TableCell>
+                        <TableCell>{r.department_request || r.department_user || '-'}</TableCell>
+                        <TableCell>{getWelfareTypeLabel(r.request_type)}</TableCell>
                         <TableCell className="text-right">
                           {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                         </TableCell>
@@ -522,8 +546,8 @@ const AccountingReviewPage: React.FC = () => {
                     <TableCell>{!showHistory && <input type="checkbox" checked={selectedIds.includes(r.id)} onChange={() => handleSelect(r.id)} />}</TableCell>
                     <TableCell>{format(new Date(r.created_at), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>{r.employee_name}</TableCell>
-                    <TableCell>{r.department_user || '-'}</TableCell>
-                    <TableCell>{r.request_type}</TableCell>
+                    <TableCell>{r.department_request || r.department_user || '-'}</TableCell>
+                    <TableCell>{getWelfareTypeLabel(r.request_type)}</TableCell>
                     <TableCell>{r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -621,8 +645,8 @@ const AccountingReviewPage: React.FC = () => {
           {selectedRequest && (
             <div className="space-y-2 text-sm">
               <div><b>ชื่อพนักงาน:</b> {selectedRequest.employee_name}</div>
-              <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_user || '-'}</div>
-              <div><b>ประเภทสวัสดิการ:</b> {selectedRequest.request_type}</div>
+              <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_request || selectedRequest.department_user || '-'}</div>
+              <div><b>ประเภทสวัสดิการ:</b> {getWelfareTypeLabel(selectedRequest.request_type)}</div>
               <div><b>จำนวนเงิน:</b> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</div>
               <div><b>วันที่ยื่น:</b> {format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</div>
               <div><b>ผู้จัดการที่อนุมัติ:</b> {selectedRequest.manager_approver_name || selectedRequest.manager_name || '-'}</div>

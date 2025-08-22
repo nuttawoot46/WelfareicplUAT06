@@ -98,8 +98,19 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               hrApproverId: row.hr_approver_id,
               hrApproverName: row.hr_approver_name,
               hrApprovedAt: row.hr_approved_at,
-              // ลายเซ็นดิจิทัล
-              userSignature: row.user_signature,
+              // ลายเซ็นดิจิทัล - แก้ไข JSON parse error
+              userSignature: (() => {
+                try {
+                  if (typeof row.user_signature === 'string' && row.user_signature.startsWith('data:image')) {
+                    return row.user_signature; // ถ้าเป็น data URL ให้ใช้ตรงๆ
+                  } else if (typeof row.user_signature === 'string') {
+                    return JSON.parse(row.user_signature);
+                  }
+                  return row.user_signature;
+                } catch {
+                  return row.user_signature; // ถ้า parse ไม่ได้ให้ใช้ค่าเดิม
+                }
+              })(),
               managerSignature: row.manager_signature,
               hrSignature: row.hr_signature,
             };

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WelfareType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
+import { useInternalTraining } from '@/context/InternalTrainingContext';
 import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -48,7 +49,60 @@ interface FormValues {
   courseName?: string;
   organizer?: string;
   isVatIncluded?: boolean; // เพิ่ม field สำหรับ checkbox
+
+  // Internal Training fields
+  department?: string;
+  branch?: string;
+  startTime?: string;
+  endTime?: string;
+  totalHours?: number;
+  venue?: string;
+  participants?: { team: string; count: number }[];
+  totalParticipants?: number;
+  instructorFee?: number;
+  roomFoodBeverage?: number;
+  otherExpenses?: number;
+  withholdingTax?: number;
+  vat?: number;
+  averageCostPerPerson?: number;
+  taxCertificateName?: string;
+  withholdingTaxAmount?: number;
+  additionalNotes?: string;
 }
+
+// Available teams/departments for internal training
+const TEAMS = [
+  'Management',
+  'Accounting',
+  'Inspiration (IS)',
+  'Marketing(PES)',
+  'Marketing(DIS)',
+  'Marketing(COP)',
+  'Marketing(PD)',
+  'Procurement',
+  'Strategy',
+];
+
+// Employee levels for internal training (ตาม PDF)
+const EMPLOYEE_LEVELS = [
+  'พนักงาน',
+  'เจ้าหน้าที่',
+  'ผู้ช่วยหัวหน้างาน',
+  'หัวหน้างาน',
+  'ผู้ช่วยผู้จัดการ',
+  'ผู้จัดการ',
+  'รองกรรมการผู้จัดการ',
+  'กรรมการผู้จัดการ / ประธาน'
+];
+
+const DEPARTMENTS = [
+  'ทรัพยากรบุคคล',
+];
+
+const BRANCHES = [
+  'สำนักงานสุรวงศ์',
+  'โรงงานนครปฐม',
+  ];
 
 // Helper to get form title by welfare type
 const getFormTitle = (type: WelfareType): string => {
@@ -61,6 +115,7 @@ const getFormTitle = (type: WelfareType): string => {
     dental: 'แบบฟอร์มขอสวัสดิการค่าทำฟัน',
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
+    internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
   };
 
   return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
@@ -79,6 +134,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   }
   const { user, profile } = useAuth();
   const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests } = useWelfare();
+  const { submitRequest: submitInternalTrainingRequest, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [files, setFiles] = useState<string[]>([]);
   const { toast } = useToast();
   const [maxAmount, setMaxAmount] = useState<number | null>(null);
@@ -102,7 +158,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     formState: { errors }
   } = useForm<FormValues>({
     defaultValues: {
-      trainingTopics: [{ value: '' }, { value: '' }]
+      trainingTopics: [{ value: '' }, { value: '' }],
+      participants: [{ team: '', count: 0 }]
     }
   });
 
@@ -112,6 +169,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "trainingTopics"
+  });
+
+  const { fields: participantFields, append: appendParticipant, remove: removeParticipant } = useFieldArray({
+    control,
+    name: "participants"
   });
 
   // Fetch employee data when component mounts
@@ -286,6 +348,83 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [watch('startDate'), watch('endDate'), setValue]);
 
+  // Calculate total participants for internal training
+  useEffect(() => {
+    if (type === 'internal_training') {
+      const participants = watch('participants') || [];
+      const total = participants.reduce((sum, p) => sum + (Number(p.count) || 0), 0);
+      setValue('totalParticipants', total);
+    }
+  }, [watch('participants'), setValue, type]);
+
+  // Watch for changes in participant counts and update total immediately
+  const watchedParticipants = watch('participants');
+  useEffect(() => {
+    if (type === 'internal_training' && watchedParticipants) {
+      const total = watchedParticipants.reduce((sum, p) => sum + (Number(p?.count) || 0), 0);
+      setValue('totalParticipants', total);
+    }
+  }, [watchedParticipants, setValue, type]);
+
+  // Calculate total hours for internal training
+  useEffect(() => {
+    if (type === 'internal_training') {
+      const startTime = watch('startTime');
+      const endTime = watch('endTime');
+      const startDate = watch('startDate');
+      const endDate = watch('endDate');
+
+      if (startTime && endTime && startDate && endDate) {
+        const start = new Date(`${startDate}T${startTime}`);
+        const end = new Date(`${endDate}T${endTime}`);
+        
+        if (end > start) {
+          const diffMs = end.getTime() - start.getTime();
+          const diffHours = diffMs / (1000 * 60 * 60);
+          setValue('totalHours', Math.round(diffHours * 100) / 100);
+        }
+      }
+    }
+  }, [watch('startTime'), watch('endTime'), watch('startDate'), watch('endDate'), setValue, type]);
+
+  // Calculate internal training costs
+  useEffect(() => {
+    if (type === 'internal_training') {
+      const instructorFee = Number(watch('instructorFee')) || 0;
+      const roomFoodBeverage = Number(watch('roomFoodBeverage')) || 0;
+      const otherExpenses = Number(watch('otherExpenses')) || 0;
+      const totalParticipants = Number(watch('totalParticipants')) || 0;
+      const isVatIncluded = watch('isVatIncluded');
+
+      const subtotal = instructorFee + roomFoodBeverage + otherExpenses;
+      
+      let autoWithholding = 0;
+      let autoVat = 0;
+      let total = 0;
+
+      if (!isVatIncluded) {
+        // กรณีที่ยังไม่รวม VAT และภาษี ณ ที่จ่าย
+        autoWithholding = subtotal * 0.03;
+        autoVat = subtotal * 0.07;
+        total = subtotal + autoVat - autoWithholding;
+      } else {
+        // กรณีที่รวม VAT และภาษี ณ ที่จ่ายแล้ว
+        autoWithholding = 0;
+        autoVat = 0;
+        total = subtotal;
+      }
+
+      const average = totalParticipants > 0 ? total / totalParticipants : 0;
+
+      setValue('withholdingTax', Math.round(autoWithholding * 100) / 100);
+      setValue('vat', Math.round(autoVat * 100) / 100);
+      setValue('totalAmount', Math.round(total * 100) / 100);
+      setValue('amount', Math.round(total * 100) / 100);
+      setValue('averageCostPerPerson', Math.round(average * 100) / 100);
+      setValue('withholdingTaxAmount', Math.round(autoWithholding * 100) / 100);
+    }
+  }, [watch('instructorFee'), watch('roomFoodBeverage'), watch('otherExpenses'), watch('totalParticipants'), watch('isVatIncluded'), setValue, type]);
+
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
@@ -417,7 +556,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       // First, fetch the employee data to get the correct department and name
       const { data: employeeData, error: employeeError } = await supabase
         .from('Employee')
-        .select('id, Name, Position, Team')
+        .select('id, Name, Position, Team, start_date')
         .eq('email_user', user.email)
         .single();
 
@@ -566,7 +705,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       try {
         const { data: fetchedEmployeeData, error } = await supabase
           .from('Employee')
-          .select('id, Name, Position, Team')
+          .select('id, Name, Position, Team, start_date')
           .eq('email_user', user!.email)
           .single();
 
@@ -580,7 +719,56 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       }
     }
 
-    // CREATE NEW REQUEST
+    // Handle Internal Training differently
+    if (type === 'internal_training') {
+      // Debug logs removed for production
+      
+      const internalTrainingData = {
+        employee_id: finalEmployeeData.id,
+        employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
+        request_type: 'internal_training',
+        status: 'pending_manager',
+        title: data.courseName || '',
+        details: data.additionalNotes || data.details || '',
+        amount: Number(data.totalAmount || data.amount || 0),
+        department_request: finalEmployeeData.Team || 'Unknown Department',
+        branch: data.branch || null,
+        course_name: data.courseName || '',
+        start_date: data.startDate || null,
+        end_date: data.endDate || null,
+        start_time: data.startTime || null,
+        end_time: data.endTime || null,
+        total_hours: Number(data.totalHours || 0),
+        venue: data.venue || null,
+        participants: data.participants ? JSON.stringify(data.participants) : null,
+        total_participants: Number(data.totalParticipants || 0),
+        instructor_fee: Number(data.instructorFee || 0),
+        room_food_beverage: Number(data.roomFoodBeverage || 0),
+        other_expenses: Number(data.otherExpenses || 0),
+        withholding_tax: Number(data.withholdingTax || 0),
+        vat: Number(data.vat || 0),
+        total_amount: Number(data.totalAmount || 0),
+        average_cost_per_person: Number(data.averageCostPerPerson || 0),
+        tax_certificate_name: data.taxCertificateName || null,
+        withholding_tax_amount: Number(data.withholdingTaxAmount || 0),
+        additional_notes: data.additionalNotes || null,
+        is_vat_included: Boolean(data.isVatIncluded),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Debug logs removed for production
+
+      const result = await submitInternalTrainingRequest(internalTrainingData);
+      if (!result) {
+        throw new Error('Failed to submit internal training request');
+      }
+
+      await refreshInternalTrainingRequests();
+      return result;
+    }
+
+    // CREATE NEW REQUEST (for other welfare types)
     const requestData = {
       userId: profile.employee_id.toString(),
       userName: finalEmployeeData?.Name || profile?.name || user?.name || 'Unknown User',
@@ -820,7 +1008,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         </div>
 
         {/* Display welfare limits for non-training types */}
-        {maxAmount !== null && type !== 'training' && (
+        {maxAmount !== null && type !== 'training' && type !== 'internal_training' && (
           <div className="mb-6">
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -835,7 +1023,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </Alert>
           </div>
         )}
-        {user && type !== 'training' && (
+        {user && type !== 'training' && type !== 'internal_training' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
               งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
@@ -1167,8 +1355,408 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </div>
           )}
 
+          {/* Internal Training specific fields */}
+          {type === 'internal_training' && (
+            <>
+              {/* ส่วนที่ 1: รายละเอียดการอบรม */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 1: รายละเอียดการอบรม</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">ฝ่าย/แผนกผู้ขออนุมัติ</label>
+                    <Select
+                      onValueChange={(value) => setValue('department', value)}
+                      defaultValue={watch('department')}
+                    >
+                      <SelectTrigger className="form-input">
+                        <SelectValue placeholder="เลือกฝ่าย/แผนก" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">สาขา</label>
+                    <Select
+                      onValueChange={(value) => setValue('branch', value)}
+                      defaultValue={watch('branch')}
+                    >
+                      <SelectTrigger className="form-input">
+                        <SelectValue placeholder="เลือกสาขา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BRANCHES.map((branch) => (
+                          <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label">ชื่อหลักสูตร/หัวข้ออบรม</label>
+                  <Input
+                    placeholder="ระบุชื่อหลักสูตรหรือหัวข้ออบรม"
+                    className="form-input"
+                    {...register('courseName', {
+                      required: 'กรุณาระบุชื่อหลักสูตรหรือหัวข้ออบรม'
+                    })}
+                  />
+                  {errors.courseName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.courseName.message}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">วันที่เริ่มอบรม</label>
+                    <Input
+                      type="date"
+                      className="form-input"
+                      {...register('startDate', {
+                        required: 'กรุณาระบุวันที่เริ่มอบรม'
+                      })}
+                    />
+                    {errors.startDate && (
+                      <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">วันที่สิ้นสุดอบรม</label>
+                    <Input
+                      type="date"
+                      className="form-input"
+                      {...register('endDate', {
+                        required: 'กรุณาระบุวันที่สิ้นสุดอบรม',
+                        validate: value => {
+                          const startDate = watch('startDate');
+                          return !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
+                        }
+                      })}
+                    />
+                    {errors.endDate && (
+                      <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">เวลาเริ่ม</label>
+                    <Input
+                      type="time"
+                      className="form-input"
+                      {...register('startTime', {
+                        required: 'กรุณาระบุเวลาเริ่ม'
+                      })}
+                    />
+                    {errors.startTime && (
+                      <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">เวลาสิ้นสุด</label>
+                    <Input
+                      type="time"
+                      className="form-input"
+                      {...register('endTime', {
+                        required: 'กรุณาระบุเวลาสิ้นสุด'
+                      })}
+                    />
+                    {errors.endTime && (
+                      <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">รวมระยะเวลาการอบรม (ชั่วโมง)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="form-input bg-gray-100"
+                      readOnly
+                      value={watch('totalHours') ? Number(watch('totalHours')).toFixed(2) : ''}
+                      {...register('totalHours')}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label">สถานที่ฝึกอบรม</label>
+                  <Input
+                    placeholder="ระบุสถานที่ฝึกอบรม"
+                    className="form-input"
+                    {...register('venue', {
+                      required: 'กรุณาระบุสถานที่ฝึกอบรม'
+                    })}
+                  />
+                  {errors.venue && (
+                    <p className="text-red-500 text-sm mt-1">{errors.venue.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม</h3>
+                
+                <div className="space-y-4">
+                  <label className="form-label">ส่วนนี้ใช้สำหรับกรอกจำนวนพนักงานในแต่ละระดับที่จะเข้าร่วม</label>
+                  <div className="space-y-3">
+                    {participantFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-2 border-b pb-2">
+                        <span className="text-sm font-medium text-gray-600 w-8">{index + 1}.</span>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <label className="text-sm text-gray-600 mb-1 block">เลือกทีม:</label>
+                            <Select
+                              onValueChange={(value) => setValue(`participants.${index}.team`, value)}
+                              defaultValue={watch(`participants.${index}.team`)}
+                            >
+                              <SelectTrigger className="form-input w-[600px]">
+                                <SelectValue placeholder="เลือกทีม" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TEAMS.map((team) => (
+                                  <SelectItem key={team} value={team}>{team}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1 block">จำนวน:</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                className="form-input w-24 text-center"
+                                placeholder="0"
+                                {...register(`participants.${index}.count` as const, {
+                                  min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                                  valueAsNumber: true,
+                                  onChange: () => {
+                                    // Trigger recalculation
+                                    setTimeout(() => {
+                                      const participants = watch('participants') || [];
+                                      const total = participants.reduce((sum, p) => sum + (Number(p?.count) || 0), 0);
+                                      setValue('totalParticipants', total);
+                                    }, 0);
+                                  }
+                                })}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-600 mt-6">คน</span>
+                            {participantFields.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeParticipant(index)}
+                                className="mt-6"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      onClick={() => appendParticipant({ team: '', count: 0 })}
+                      className="mt-2"
+                      variant="outline"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      เพิ่มทีม
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label font-semibold">รวมจำนวนผู้เข้าอบรมทั้งหมด</label>
+                  <Input
+                    type="number"
+                    className="form-input bg-gray-100 font-bold text-lg text-center w-[151px]"
+                    readOnly
+                    value={watch('totalParticipants') || 0}
+                    {...register('totalParticipants')}
+                  />
+                </div>
+              </div>
+
+              {/* ส่วนที่ 3: งบประมาณและค่าใช้จ่าย */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 3: งบประมาณและค่าใช้จ่าย</h3>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">ค่าวิทยากร</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={watch('instructorFee') ? Number(watch('instructorFee')).toFixed(2) : ''}
+                      {...register('instructorFee', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.instructorFee && (
+                      <p className="text-red-500 text-sm mt-1">{errors.instructorFee.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">ค่าห้อง อาหารและเครื่องดื่ม</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={watch('roomFoodBeverage') ? Number(watch('roomFoodBeverage')).toFixed(2) : ''}
+                      {...register('roomFoodBeverage', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.roomFoodBeverage && (
+                      <p className="text-red-500 text-sm mt-1">{errors.roomFoodBeverage.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">ค่าใช้จ่ายอื่นๆ</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={watch('otherExpenses') ? Number(watch('otherExpenses')).toFixed(2) : ''}
+                      {...register('otherExpenses', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.otherExpenses && (
+                      <p className="text-red-500 text-sm mt-1">{errors.otherExpenses.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
+                <div className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    id="isVatIncluded-internal"
+                    {...register('isVatIncluded')}
+                    className="mr-2"
+                  />
+                  <label htmlFor="isVatIncluded-internal" className="form-label text-gray-700">
+                    กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="form-input bg-gray-100"
+                      readOnly
+                      value={watch('withholdingTax') ? Number(watch('withholdingTax')).toFixed(2) : ''}
+                      {...register('withholdingTax')}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">ภาษีมูลค่าเพิ่ม (VAT 7%)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="form-input bg-gray-100"
+                      readOnly
+                      value={watch('vat') ? Number(watch('vat')).toFixed(2) : ''}
+                      {...register('vat')}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">รวมเป็นเงินทั้งสิ้น</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="form-input bg-gray-100"
+                      readOnly
+                      value={watch('totalAmount') ? Number(watch('totalAmount')).toFixed(2) : ''}
+                      {...register('totalAmount')}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label">เฉลี่ยค่าใช้จ่ายต่อคน</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="form-input bg-gray-100"
+                    readOnly
+                    value={watch('averageCostPerPerson') ? Number(watch('averageCostPerPerson')).toFixed(2) : ''}
+                    {...register('averageCostPerPerson')}
+                  />
+                </div>
+              </div>
+
+              {/* ส่วนที่ 4: หมายเหตุ */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 4: หมายเหตุ</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">ออกหนังสือรับรองหักภาษี ณ ที่จ่ายในนาม</label>
+                    <Input
+                      placeholder="ระบุชื่อที่ต้องการออกหนังสือรับรอง"
+                      className="form-input"
+                      {...register('taxCertificateName')}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="form-label">จำนวนเงินที่ต้องหัก ณ ที่จ่าย</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="form-input bg-gray-100"
+                      readOnly
+                      value={watch('withholdingTaxAmount') ? Number(watch('withholdingTaxAmount')).toFixed(2) : ''}
+                      {...register('withholdingTaxAmount')}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label">หมายเหตุเพิ่มเติม</label>
+                  <Textarea
+                    className="form-input min-h-[100px]"
+                    placeholder="กรอกรายละเอียดเพิ่มเติมถ้ามี"
+                    {...register('additionalNotes')}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Continue with existing fields for other welfare types */}
-          {type !== 'training' && (
+          {type !== 'training' && type !== 'internal_training' && (
             <>
               {/* Original amount field */}
               <div className="space-y-2">

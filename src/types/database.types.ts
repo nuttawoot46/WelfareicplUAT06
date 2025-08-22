@@ -291,6 +291,43 @@ export type Database = {
           request_type: string | null
           status: string | null
           title: string | null
+          // Internal training specific columns
+          branch: string | null
+          start_time: string | null
+          end_time: string | null
+          total_hours: number | null
+          venue: string | null
+          participants: Json | null
+          total_participants: number | null
+          instructor_fee: number | null
+          room_food_beverage: number | null
+          other_expenses: number | null
+          withholding_tax: number | null
+          vat: number | null
+          average_cost_per_person: number | null
+          tax_certificate_name: string | null
+          withholding_tax_amount: number | null
+          additional_notes: string | null
+          is_vat_included: boolean | null
+          funeral_type: string | null
+          // PDF and signature columns
+          pdf_request: string | null
+          pdf_url: string | null
+          pdf_base64: string | null
+          user_signature: string | null
+          manager_signature: string | null
+          hr_signature: string | null
+          manager_approved_at: string | null
+          hr_approved_at: string | null
+          manager_approver_name: string | null
+          hr_approver_name: string | null
+          manager_approver_id: string | null
+          hr_approver_id: string | null
+          // Additional welfare fields
+          start_date: string | null
+          end_date: string | null
+          course_name: string | null
+          department_request: string | null
         }
         Insert: {
           amount?: number | null
@@ -307,6 +344,43 @@ export type Database = {
           request_type?: string | null
           status?: string | null
           title?: string | null
+          // Internal training specific columns
+          branch?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          total_hours?: number | null
+          venue?: string | null
+          participants?: Json | null
+          total_participants?: number | null
+          instructor_fee?: number | null
+          room_food_beverage?: number | null
+          other_expenses?: number | null
+          withholding_tax?: number | null
+          vat?: number | null
+          average_cost_per_person?: number | null
+          tax_certificate_name?: string | null
+          withholding_tax_amount?: number | null
+          additional_notes?: string | null
+          is_vat_included?: boolean | null
+          funeral_type?: string | null
+          // PDF and signature columns
+          pdf_request?: string | null
+          pdf_url?: string | null
+          pdf_base64?: string | null
+          user_signature?: string | null
+          manager_signature?: string | null
+          hr_signature?: string | null
+          manager_approved_at?: string | null
+          hr_approved_at?: string | null
+          manager_approver_name?: string | null
+          hr_approver_name?: string | null
+          manager_approver_id?: string | null
+          hr_approver_id?: string | null
+          // Additional welfare fields
+          start_date?: string | null
+          end_date?: string | null
+          course_name?: string | null
+          department_request?: string | null
         }
         Update: {
           amount?: number | null
@@ -323,6 +397,43 @@ export type Database = {
           request_type?: string | null
           status?: string | null
           title?: string | null
+          // Internal training specific columns
+          branch?: string | null
+          start_time?: string | null
+          end_time?: string | null
+          total_hours?: number | null
+          venue?: string | null
+          participants?: Json | null
+          total_participants?: number | null
+          instructor_fee?: number | null
+          room_food_beverage?: number | null
+          other_expenses?: number | null
+          withholding_tax?: number | null
+          vat?: number | null
+          average_cost_per_person?: number | null
+          tax_certificate_name?: string | null
+          withholding_tax_amount?: number | null
+          additional_notes?: string | null
+          is_vat_included?: boolean | null
+          funeral_type?: string | null
+          // PDF and signature columns
+          pdf_request?: string | null
+          pdf_url?: string | null
+          pdf_base64?: string | null
+          user_signature?: string | null
+          manager_signature?: string | null
+          hr_signature?: string | null
+          manager_approved_at?: string | null
+          hr_approved_at?: string | null
+          manager_approver_name?: string | null
+          hr_approver_name?: string | null
+          manager_approver_id?: string | null
+          hr_approver_id?: string | null
+          // Additional welfare fields
+          start_date?: string | null
+          end_date?: string | null
+          course_name?: string | null
+          department_request?: string | null
         }
         Relationships: [
           {

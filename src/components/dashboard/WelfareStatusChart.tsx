@@ -105,6 +105,8 @@ const getRequestTypeText = (requestType: string) => {
       return 'ค่าออกกำลังกาย';
     case 'medical':
       return 'ค่าของเยี่ยมกรณีเจ็บป่วย';
+    case 'internal_training':
+      return 'ค่าอบรมภายใน';
     default:
       return requestType;
   }

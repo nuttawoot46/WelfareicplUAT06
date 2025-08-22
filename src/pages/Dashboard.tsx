@@ -43,6 +43,8 @@ const displayInitial = displayName.charAt(0).toUpperCase();
       <div className="mb-10">
         <WelfareStatusCards />
       </div>
+
+
       
       {user?.role === 'employee' && (
         <div className="mb-8 flex justify-center">

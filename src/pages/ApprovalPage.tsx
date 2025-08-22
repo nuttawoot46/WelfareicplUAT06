@@ -22,6 +22,7 @@ import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
 import { usePDFOperations } from '@/hooks/usePDFOperations';
 import LoadingPopup from '@/components/forms/LoadingPopup';
+import { getWelfareTypeLabel } from '@/lib/utils';
 
 
 
@@ -546,20 +547,6 @@ export const ApprovalPage = () => {
     };
   };
 
-  const getWelfareTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      wedding: 'สวัสดิการงานสมรส',
-      training: 'ค่าอบรม',
-      childbirth: 'ค่าคลอดบุตร',
-      funeral: 'ค่าช่วยเหลืองานศพ',
-      glasses: 'ค่าตัดแว่น',
-      dental: 'ค่าทำฟัน',
-      fitness: 'ค่าออกกำลังกาย',
-      medical: 'ของเยี่ยมกรณีเจ็บป่วย'
-    };
-    return labels[type] || type;
-  };
-
   const getWelfareTypeSummary = () => {
     const teamRequests = getTeamRequests();
     const summary: Record<string, { count: number; amount: number }> = {};
@@ -1080,6 +1067,7 @@ export const ApprovalPage = () => {
                     <TableHead>Status</TableHead>
                     {activeTab === 'history' && <TableHead>Processed Date</TableHead>}
                     <TableHead className="text-center">Attachment</TableHead>
+                    {activeTab === 'history' && <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>}
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1098,7 +1086,7 @@ export const ApprovalPage = () => {
                       )}
                       <TableCell>{req.userName}</TableCell>
                       <TableCell>{req.userDepartment || '-'}</TableCell>
-                      <TableCell>{req.type}</TableCell>
+                      <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
                       <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
                       <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
                       <TableCell>
@@ -1163,6 +1151,26 @@ export const ApprovalPage = () => {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      {activeTab === 'history' && (
+                        <TableCell className="text-center">
+                          {(req.managerSignature || req.hrSignature) ? (
+                            <div className="flex gap-1 justify-center">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => downloadPDF(req.id)}
+                                disabled={isPDFLoading}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                PDF
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">ยังไม่อนุมัติ</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
                       </TableCell>
@@ -1194,7 +1202,7 @@ export const ApprovalPage = () => {
               <div className="space-y-2">
                 <p><strong>Employee:</strong> {selectedRequest.userName}</p>
                 <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
-                <p><strong>Welfare Type:</strong> {selectedRequest.type}</p>
+                <p><strong>Welfare Type:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
                 <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
                 <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
                 <p><strong>Status:</strong> {selectedRequest.status}</p>
@@ -1323,9 +1331,9 @@ export const ApprovalPage = () => {
         approverName={profile?.display_name || user?.email || ''}
         requestDetails={
           isBulkApproval 
-            ? `คำขอที่จะอนุมัติ: ${pendingBulkApproval.map(req => `${req.userName} (${req.type})`).join(', ')}`
+            ? `คำขอที่จะอนุมัติ: ${pendingBulkApproval.map(req => `${req.userName} (${getWelfareTypeLabel(req.type)})`).join(', ')}`
             : pendingApprovalRequest 
-              ? `คำขอของ: ${pendingApprovalRequest.userName} (${pendingApprovalRequest.type})`
+              ? `คำขอของ: ${pendingApprovalRequest.userName} (${getWelfareTypeLabel(pendingApprovalRequest.type)})`
               : undefined
         }
       />

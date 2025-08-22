@@ -59,3 +59,19 @@ export const getWelfareTypeColor = (type: string) => {
       return 'bg-gray-500 text-white';
   }
 };
+
+export const getWelfareTypeLabel = (type: string): string => {
+  const welfareTypeLabels: Record<string, string> = {
+    'wedding': 'สวัสดิการงานสมรส',
+    'training': 'ค่าอบรม',
+    'childbirth': 'ค่าคลอดบุตร',
+    'funeral': 'ค่าช่วยเหลืองานศพ',
+    'glasses': 'ค่าตัดแว่น',
+    'dental': 'ค่าทำฟัน',
+    'fitness': 'ค่าออกกำลังกาย',
+    'medical': 'ของเยี่ยมกรณีเจ็บป่วย',
+    'internal_training': 'อบรมภายใน'
+  };
+  
+  return welfareTypeLabels[type] || type;
+};

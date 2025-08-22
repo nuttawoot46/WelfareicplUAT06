@@ -150,9 +150,11 @@ export function Sidebar() {
           )}>
             <File className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">แบบฟอร์มขอสวัสดิการ</span>
+              <span className="transition-all duration-300 text-white font-medium">แบบฟอร์มขอสวัสดิการและอบรม</span>
             )}
           </Link>
+
+
 
           {/* Approval Page */}
           {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (

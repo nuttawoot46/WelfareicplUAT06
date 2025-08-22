@@ -11,13 +11,14 @@ interface WelfarePDFGeneratorProps {
     Name: string;
     Position: string;
     Team: string;
+    start_date?: string;
   };
 }
 
 const createWelfareFormHTML = (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string },
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string
@@ -25,6 +26,7 @@ const createWelfareFormHTML = (
   const employeeName = employeeData?.Name || userData.name || '';
   const employeePosition = employeeData?.Position || userData.position || '';
   const employeeTeam = employeeData?.Team || userData.department || '';
+  const employeeStartDate = employeeData?.start_date || '';
   const details = welfareData.details || '';
 
   // ใช้วันที่ที่สร้างคำร้อง (วันที่กดเบิกสวัสดิการ)
@@ -34,6 +36,21 @@ const createWelfareFormHTML = (
     month: '2-digit',
     day: '2-digit'
   });
+  
+  // Format time for the request
+  const formattedTime = requestDate.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  // Format start date if available
+  const formattedStartDate = employeeStartDate ? 
+    new Date(employeeStartDate).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }) : '';
 
   return `
     <div style="
@@ -78,7 +95,10 @@ const createWelfareFormHTML = (
         <div style="margin-bottom: 25px; font-size: 13px; line-height: 1.8;">
           <div style="margin-bottom: 10px;">ชื่อ - สกุล.....................................${employeeName}.....................................</div>
           <div style="margin-bottom: 10px;">สังกัดฝ่าย.....................................${employeeTeam}.....................................</div>
-          <div style="margin-bottom: 10px;">ตำแหน่ง.....................................${employeePosition}..................................</div>
+          <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
+            <span>ตำแหน่ง.....................................${employeePosition}</span>
+            <span>วันที่เริ่มงาน.....................................${formattedStartDate}</span>
+          </div>
         </div>
 
         <!-- Welfare Type Selection -->
@@ -369,7 +389,7 @@ const createWelfareFormHTML = (
 
         <!-- Signature Section -->
         <div style="margin-bottom: 30px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
             <div style="display: flex; align-items: flex-end;">
               <span style="font-size: 12px;">ลงชื่อ</span>
               ${userSignature ? `
@@ -391,10 +411,13 @@ const createWelfareFormHTML = (
               `}
               <span style="font-size: 12px;">ผู้ขอเบิก</span>
             </div>
-            <div style="font-size: 12px;">วันที่ ${formattedDate}</div>
+            <div style="font-size: 12px;">วันที่ ${formattedDate} เวลา ${formattedTime} น.</div>
           </div>
-          <div style="text-align: center; margin-left: 80px; margin-right: 120px;">
-            <span style="font-size: 11px;">(${employeeName})</span>
+          <div style="display: flex; justify-content: flex-start; align-items: center;">
+            <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->
+            <div style="width: 200px; text-align: center; margin-left: -10mm; margin-right: 15px;">
+              <span style="font-size: 11px;">(${employeeName})</span>
+            </div>
           </div>
         </div>
 
@@ -467,13 +490,17 @@ const createWelfareFormHTML = (
               `}
               <span style="font-size: 12px;">ผู้บังคับบัญชา</span>
             </div>
-            <div style="font-size: 12px;">วันที่ ${welfareData.managerApprovedAt ? new Date(welfareData.managerApprovedAt).toLocaleDateString('th-TH') : '......./......./.......'}</div>
+            <div style="font-size: 12px;">วันที่ ${welfareData.managerApprovedAt ? 
+              new Date(welfareData.managerApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' + 
+              new Date(welfareData.managerApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.' 
+              : '......./......./........ เวลา ........ น.'}</div>
           </div>
-          ${managerSignature ? `
-            <div style="text-align: center; margin-top: 5px; margin-left: 80px; margin-right: 120px;">
+          <div style="display: flex; justify-content: flex-start; align-items: center; margin-top: 5px;">
+            <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->
+            <div style="width: 200px; text-align: center; margin-left: -10mm; margin-right: 15px;">
               <span style="font-size: 11px;">(${welfareData.managerApproverName || ''})</span>
             </div>
-          ` : ''}
+          </div>
         </div>
 
         <!-- HR Manager Approval Section -->
@@ -555,13 +582,17 @@ const createWelfareFormHTML = (
               `}
               <span style="font-size: 12px;">ผู้จัดการฝ่ายบุคคล</span>
             </div>
-            <div style="font-size: 12px;">วันที่ ${welfareData.hrApprovedAt ? new Date(welfareData.hrApprovedAt).toLocaleDateString('th-TH') : '......./......./.......'}</div>
+            <div style="font-size: 12px;">วันที่ ${welfareData.hrApprovedAt ? 
+              new Date(welfareData.hrApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' + 
+              new Date(welfareData.hrApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.' 
+              : '......./......./........ เวลา ........ น.'}</div>
           </div>
-          ${hrSignature ? `
-            <div style="text-align: center; margin-top: 5px; margin-left: 80px; margin-right: 120px;">
+          <div style="display: flex; justify-content: flex-start; align-items: center; margin-top: 5px;">
+            <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->
+            <div style="width: 200px; text-align: center; margin-left: -10mm; margin-right: 15px;">
               <span style="font-size: 11px;">(${welfareData.hrApproverName || ''})</span>
             </div>
-          ` : ''}
+          </div>
         </div>
 
       </div>
@@ -572,7 +603,7 @@ const createWelfareFormHTML = (
 export const generateWelfarePDF = async (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string },
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string
@@ -599,7 +630,6 @@ export const generateWelfarePDF = async (
       backgroundColor: '#ffffff',
       width: 794, // A4 width in pixels at 96 DPI
       height: 1123, // A4 height in pixels at 96 DPI
-      timeout: 10000,
       logging: false
     });
 
@@ -627,7 +657,7 @@ export const generateWelfarePDF = async (
 export const generateAndDownloadWelfarePDF = async (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string },
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string

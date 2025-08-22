@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { WelfareProvider } from "@/context/WelfareContext";
+import { InternalTrainingProvider } from "@/context/InternalTrainingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Toaster as HotToast } from 'react-hot-toast';
 
@@ -69,7 +70,8 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <WelfareProvider>
-              <NotificationProvider>
+              <InternalTrainingProvider>
+                <NotificationProvider>
                 <Toaster />
                 <Sonner />
                 <HotToast position="top-right" />
@@ -136,7 +138,8 @@ const App = () => (
                   {/* Catch-all Route สำหรับหน้า 404 */}
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-              </NotificationProvider>
+                </NotificationProvider>
+              </InternalTrainingProvider>
             </WelfareProvider>
           </AuthProvider>
         </BrowserRouter>

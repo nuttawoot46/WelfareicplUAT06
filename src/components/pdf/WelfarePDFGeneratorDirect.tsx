@@ -9,6 +9,7 @@ interface WelfarePDFGeneratorDirectProps {
     Name: string;
     Position: string;
     Team: string;
+    start_date?: string;
   };
 }
 

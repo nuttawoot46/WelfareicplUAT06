@@ -22,6 +22,7 @@ export interface Employee {
   'email_user': string | null;
   'Email.Manager'?: string | null;
   'Position'?: string | null;
+  start_date?: string | null; // Employee start date
   Pin?: string; // Password stored in the Pin column
   Role?: number;
   Budget_Training?: number;
@@ -50,7 +51,8 @@ export type WelfareType =
   | 'glasses'
   | 'dental'
   | 'fitness'
-  | 'medical';
+  | 'medical'
+  | 'internal_training';
 
 export interface WelfareRequest {
   id: number;
@@ -99,6 +101,27 @@ export interface WelfareRequest {
   hrSignature?: string; // HR's digital signature
   // PDF file storage
   pdfRequest?: string; // Base64 encoded PDF file that gets updated with signatures
+  // Internal training specific fields
+  branch?: string;
+  courseName?: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+  totalHours?: number;
+  totalParticipants?: number;
+  participants?: ParticipantGroup[] | string;
+  instructorFee?: number;
+  roomFoodBeverage?: number;
+  otherExpenses?: number;
+  withholdingTax?: number;
+  vat?: number;
+  averageCostPerPerson?: number;
+  taxCertificateName?: string;
+  withholdingTaxAmount?: number;
+  additionalNotes?: string;
+  isVatIncluded?: boolean;
 }
 
 export interface Notification {
@@ -109,4 +132,30 @@ export interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
   createdAt: string;
+}
+
+export interface ParticipantGroup {
+  team: string;
+  count: number;
+}
+
+export interface InternalTrainingRequest extends WelfareRequest {
+  // Internal training specific fields
+  branch?: string;
+  start_time?: string;
+  end_time?: string;
+  total_hours?: number;
+  venue?: string;
+  participants?: ParticipantGroup[] | string;
+  total_participants?: number;
+  instructor_fee?: number;
+  room_food_beverage?: number;
+  other_expenses?: number;
+  withholding_tax?: number;
+  vat?: number;
+  average_cost_per_person?: number;
+  tax_certificate_name?: string;
+  withholding_tax_amount?: number;
+  additional_notes?: string;
+  is_vat_included?: boolean;
 }

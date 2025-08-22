@@ -11,6 +11,7 @@ import { Download, Filter, TrendingUp, Users, DollarSign, FileText, BookOpen } f
 import { WelfareType, StatusType } from '@/types';
 import { saveAs } from 'file-saver';
 import { useNavigate } from 'react-router-dom';
+
 import { fetchAllEmployees, SimpleEmployee } from '@/services/employeeApi';
 import { getBenefitLimitsByEmpId, BenefitLimit } from '@/services/welfareLimitApi';
 import Modal from '@/components/ui/modal';
@@ -59,54 +60,53 @@ function exportReportToCSV({
       csv += 'หลักสูตร,สถานที่,วันที่,ผู้เข้าอบรม,ชั่วโมง,ค่าใช้จ่าย,สถานะ,หมายเหตุ\r\n';
       
       filteredRequests.forEach((req: any) => {
-        csv += `"${req.courseName || req.title || req.details || 'ไม่ระบุ'}","${req.venue || 'ไม่ระบุ'}","${new Date(req.date).toLocaleDateString('th-TH')}","${req.totalParticipants || 0}","${req.totalHours || 0}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.additionalNotes || 'ไม่มี'}"\r\n`;
+        csv += `"${req.courseName || req.description || 'ไม่ระบุ'}","${req.venue || 'ไม่ระบุ'}","${new Date(req.date).toLocaleDateString('th-TH')}","${req.total_participants || 0}","${req.total_hours || 0}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.additional_notes || 'ไม่มี'}"\r\n`;
       });
     } else {
       csv += 'รายละเอียดการเบิกสวัสดิการของพนักงานทุกคน\r\n';
       csv += 'ชื่อพนักงาน,แผนก,ค่าแต่งงาน,ค่าอบรม,ค่าคลอดบุตร,ค่าช่วยเหลืองานศพ,ค่าตัดแว่น,ค่าทำฟัน,ค่าออกกำลังกาย,ค่ารักษาพยาบาล,รวมทั้งหมด\r\n';
 
-      // Sort employees by department first (Management first), then by name
-      const sortedEmployees = [...employees].sort((a, b) => {
-        const deptA = a.Team || 'ไม่ระบุ';
-        const deptB = b.Team || 'ไม่ระบุ';
+    // Sort employees by department first (Management first), then by name
+    const sortedEmployees = [...employees].sort((a, b) => {
+      const deptA = a.Team || 'ไม่ระบุ';
+      const deptB = b.Team || 'ไม่ระบุ';
 
-        if (deptA !== deptB) {
-          // Management department comes first
-          if (deptA.toLowerCase().includes('management')) return -1;
-          if (deptB.toLowerCase().includes('management')) return 1;
+      if (deptA !== deptB) {
+        // Management department comes first
+        if (deptA.toLowerCase().includes('management')) return -1;
+        if (deptB.toLowerCase().includes('management')) return 1;
 
-          // Then sort other departments alphabetically
-          return deptA.localeCompare(deptB, 'th');
+        // Then sort other departments alphabetically
+        return deptA.localeCompare(deptB, 'th');
+      }
+      return (a.Name || '').localeCompare(b.Name || '', 'th');
+    });
+
+    sortedEmployees.forEach((emp: SimpleEmployee) => {
+      const empRequests = filteredRequests.filter((req: any) => req.userName === emp.Name);
+      const welfareUsage: Record<string, number> = {};
+
+      // Initialize all welfare types
+      Object.keys(welfareTypeLabels).forEach(type => {
+        welfareUsage[type] = 0;
+      });
+
+      // Calculate usage for each type
+      empRequests.forEach((req: any) => {
+        if (req.status === 'completed') {
+          welfareUsage[req.type] = (welfareUsage[req.type] || 0) + req.amount;
         }
-        return (a.Name || '').localeCompare(b.Name || '', 'th');
       });
 
-      sortedEmployees.forEach((emp: SimpleEmployee) => {
-        const empRequests = filteredRequests.filter((req: any) => req.userName === emp.Name);
-        const welfareUsage: Record<string, number> = {};
+      const totalUsage = Object.values(welfareUsage).reduce((sum: number, amount: number) => sum + amount, 0);
 
-        // Initialize all welfare types
-        Object.keys(welfareTypeLabels).forEach(type => {
-          welfareUsage[type] = 0;
-        });
-
-        // Calculate usage for each type
-        empRequests.forEach((req: any) => {
-          if (req.status === 'completed') {
-            welfareUsage[req.type] = (welfareUsage[req.type] || 0) + req.amount;
-          }
-        });
-
-        const totalUsage = Object.values(welfareUsage).reduce((sum: number, amount: number) => sum + amount, 0);
-
-        csv += `"${emp.Name}","${emp.Team || 'ไม่ระบุ'}"`;
-        Object.keys(welfareTypeLabels).forEach(type => {
-          const amount = welfareUsage[type];
-          csv += `,"${amount > 0 ? amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}"`;
-        });
-        csv += `,"${totalUsage.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
+      csv += `"${emp.Name}","${emp.Team || 'ไม่ระบุ'}"`;
+      Object.keys(welfareTypeLabels).forEach(type => {
+        const amount = welfareUsage[type];
+        csv += `,"${amount > 0 ? amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}"`;
       });
-    }
+      csv += `,"${totalUsage.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
+    });
     csv += '\r\n';
   }
 
@@ -142,7 +142,7 @@ function exportReportToCSV({
   if (reportType === 'internal_training') {
     csv += 'วันที่,รหัสคำร้อง,หลักสูตร,สถานที่,ผู้เข้าอบรม,ชั่วโมง,ค่าใช้จ่าย (บาท),สถานะ,หมายเหตุ\r\n';
     filteredRequests.forEach((req: any) => {
-      csv += `"${new Date(req.date).toLocaleDateString('th-TH')}","${req.id || 'ไม่ระบุ'}","${req.courseName || req.title || req.details || 'ไม่ระบุ'}","${req.venue || 'ไม่ระบุ'}","${req.totalParticipants || 0}","${req.totalHours || 0}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.additionalNotes || 'ไม่มี'}"\r\n`;
+      csv += `"${new Date(req.date).toLocaleDateString('th-TH')}","${req.id || 'ไม่ระบุ'}","${req.courseName || req.description || 'ไม่ระบุ'}","${req.venue || 'ไม่ระบุ'}","${req.total_participants || 0}","${req.total_hours || 0}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.additional_notes || 'ไม่มี'}"\r\n`;
     });
   } else {
     csv += 'วันที่ยื่นคำร้อง,รหัสคำร้อง,ชื่อพนักงาน,แผนก,ประเภทสวัสดิการ,จำนวนเงิน (บาท),สถานะ,หมายเหตุ\r\n';
@@ -227,7 +227,7 @@ const AdminReport = () => {
       const map: Record<string, { count: number; used: number; remaining: number }> = {};
       
       filteredRequests.forEach((req) => {
-        const key = req.courseName || req.title || req.details || 'ไม่ระบุ';
+        const key = req.courseName || req.venue || 'ไม่ระบุ';
         if (!map[key]) map[key] = { count: 0, used: 0, remaining: 0 };
         map[key].count++;
         if (req.status === 'completed') {
@@ -298,6 +298,8 @@ const AdminReport = () => {
     });
     return Object.entries(map).map(([department, v]) => ({ department, ...v }));
   }, [filteredRequests]);
+
+
 
   const [benefitLimits, setBenefitLimits] = useState<BenefitLimit[] | null>(null);
 
@@ -880,7 +882,7 @@ const AdminReport = () => {
                               <td className="py-3 px-4 text-gray-700">
                                 {reportType === 'welfare' 
                                   ? (welfareTypeLabels[r.type] || r.type)
-                                  : (r.courseName || r.title || r.details || 'ไม่ระบุ')
+                                  : (r.courseName || r.venue || 'ไม่ระบุ')
                                 }
                               </td>
                               <td className="py-3 px-4 text-right text-green-600 font-bold">
@@ -890,10 +892,10 @@ const AdminReport = () => {
                               {reportType === 'internal_training' && (
                                 <>
                                   <td className="py-3 px-4 text-center text-gray-700">
-                                    {r.totalParticipants || '-'}
+                                    {r.total_participants || '-'}
                                   </td>
                                   <td className="py-3 px-4 text-center text-gray-700">
-                                    {r.totalHours || '-'}
+                                    {r.total_hours || '-'}
                                   </td>
                                 </>
                               )}
@@ -925,26 +927,26 @@ const AdminReport = () => {
                   <div className="flex justify-between items-center p-3 rounded-lg bg-blue-50">
                     <span className="text-gray-700 font-medium">รวมจำนวนหลักสูตร</span>
                     <span className="text-blue-600 font-bold text-lg">
-                      {new Set(filteredRequests.map(r => r.courseName || r.title || r.details)).size}
+                      {new Set(filteredRequests.map(r => r.courseName)).size}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-green-50">
                     <span className="text-gray-700 font-medium">รวมผู้เข้าอบรม</span>
                     <span className="text-green-600 font-bold text-lg">
-                      {filteredRequests.reduce((sum, r) => sum + (r.totalParticipants || 0), 0)} คน
+                      {filteredRequests.reduce((sum, r) => sum + (r.total_participants || 0), 0)} คน
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-purple-50">
                     <span className="text-gray-700 font-medium">รวมชั่วโมงการอบรม</span>
                     <span className="text-purple-600 font-bold text-lg">
-                      {filteredRequests.reduce((sum, r) => sum + (r.totalHours || 0), 0)} ชั่วโมง
+                      {filteredRequests.reduce((sum, r) => sum + (r.total_hours || 0), 0)} ชั่วโมง
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-orange-50">
                     <span className="text-gray-700 font-medium">ค่าใช้จ่ายเฉลี่ยต่อคน</span>
                     <span className="text-orange-600 font-bold text-lg">
                       {(() => {
-                        const totalParticipants = filteredRequests.reduce((sum, r) => sum + (r.totalParticipants || 0), 0);
+                        const totalParticipants = filteredRequests.reduce((sum, r) => sum + (r.total_participants || 0), 0);
                         const totalUsed = filteredRequests.reduce((sum, r) => r.status === 'completed' ? sum + r.amount : sum, 0);
                         return totalParticipants > 0 
                           ? (totalUsed / totalParticipants).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -972,7 +974,7 @@ const AdminReport = () => {
                       const venue = r.venue || 'ไม่ระบุสถานที่';
                       if (!venueMap[venue]) venueMap[venue] = { count: 0, participants: 0 };
                       venueMap[venue].count++;
-                      venueMap[venue].participants += r.totalParticipants || 0;
+                      venueMap[venue].participants += r.total_participants || 0;
                     });
 
                     return Object.entries(venueMap).map(([venue, data], index) => (
@@ -1174,8 +1176,8 @@ const AdminReport = () => {
                                 req.status === 'completed' ? 'bg-green-500' : 
                                 req.status.includes('pending') ? 'bg-yellow-500' : 'bg-red-500'
                               }`} />
-                              <span className="truncate max-w-[200px]" title={req.courseName || req.title || req.details}>
-                                {req.courseName || req.title || req.details || 'ไม่ระบุหลักสูตร'}
+                              <span className="truncate max-w-[200px]" title={req.courseName || req.description}>
+                                {req.courseName || req.description || 'ไม่ระบุหลักสูตร'}
                               </span>
                             </div>
                           </td>
@@ -1186,12 +1188,12 @@ const AdminReport = () => {
                           </td>
                           <td className="py-3 px-3 text-center">
                             <span className="font-semibold text-blue-600">
-                              {req.totalParticipants || '-'}
+                              {req.total_participants || '-'}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-center">
                             <span className="font-semibold text-purple-600">
-                              {req.totalHours || '-'}
+                              {req.total_hours || '-'}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">

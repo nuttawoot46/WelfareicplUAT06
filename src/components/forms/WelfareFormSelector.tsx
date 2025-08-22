@@ -83,6 +83,17 @@ const FitnessIcon = () => (
   </svg>
 );
 
+const InternalTrainingIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+    <path d="M12 11h4"/>
+    <path d="M12 16h4"/>
+    <path d="M8 11h.01"/>
+    <path d="M8 16h.01"/>
+  </svg>
+);
+
 export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [selected, setSelected] = useState<WelfareType | null>(null);
 
@@ -135,6 +146,13 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       icon: <img src="/Icon/medical_icon.png" alt="Medical Icon" style={{ width: 24, height: 24 }} />,
       color: 'text-welfare-red',
     },
+    {
+      id: 'internal_training',
+      title: 'อบรมภายใน',
+      description: 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร',
+      icon: <InternalTrainingIcon />,
+      color: 'text-welfare-indigo',
+    },
   ];
 
   const handleSelect = (type: WelfareType) => {
@@ -144,7 +162,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการ</h1>
+      <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการและอบรม</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {welfareOptions.map((option) => (
@@ -160,7 +178,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                 option.id === 'childbirth' ? 'pink' :
                 option.id === 'funeral' ? 'purple' :
                 option.id === 'glasses' ? 'blue' :
-                option.id === 'dental' ? 'orange' : 'green'}`
+                option.id === 'dental' ? 'orange' :
+                option.id === 'fitness' ? 'green' :
+                option.id === 'medical' ? 'red' :
+                option.id === 'internal_training' ? 'indigo' : 'blue'}`
             )}
             onClick={() => handleSelect(option.id)}
           >

@@ -9,7 +9,7 @@ import jsPDF from 'jspdf';
 export const createInitialPDF = async (
   request: WelfareRequest,
   user: User,
-  employeeData?: { Name: string; Position: string; Team: string }
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string }
 ): Promise<string | null> => {
   try {
     console.log('Creating initial PDF for request:', request.id);
@@ -369,7 +369,7 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
 /**
  * Get employee data for PDF generation
  */
-const getEmployeeData = async (userId: string): Promise<{ Name: string; Position: string; Team: string } | undefined> => {
+const getEmployeeData = async (userId: string): Promise<{ Name: string; Position: string; Team: string; start_date?: string } | undefined> => {
   try {
     console.log('🔍 getEmployeeData called with userId:', userId);
 
@@ -379,7 +379,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
       console.log('🔍 Searching by numeric ID:', numericId);
       const { data: employeeById, error: errorById } = await supabase
         .from('Employee')
-        .select('Name, Position, Team')
+        .select('Name, Position, Team, start_date')
         .eq('id', numericId)
         .single();
 
@@ -390,7 +390,8 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
         return {
           Name: employeeById.Name,
           Position: employeeById.Position,
-          Team: employeeById.Team
+          Team: employeeById.Team,
+          start_date: employeeById.start_date
         };
       }
     }
@@ -399,7 +400,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
     console.log('🔍 Fallback: Searching by email_user:', userId);
     const { data, error } = await supabase
       .from('Employee')
-      .select('Name, Position, Team')
+      .select('Name, Position, Team, start_date')
       .eq('"email_user"', userId)
       .single();
 
@@ -414,7 +415,8 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
     return {
       Name: data.Name,
       Position: data.Position,
-      Team: data.Team
+      Team: data.Team,
+      start_date: data.start_date
     };
   } catch (error) {
     console.error('❌ Error fetching employee data:', error);
@@ -428,7 +430,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
 const generateWelfarePDFAsBase64 = async (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string },
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string

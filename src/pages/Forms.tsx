@@ -20,8 +20,8 @@ const Forms = () => {
     <Layout>
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">แบบฟอร์มขอสวัสดิการ</h1>
-        <p className="text-gray-600">เลือกประเภทสวัสดิการที่ต้องการยื่นขอ</p>
+        <h1 className="text-3xl font-bold">แบบฟอร์มขอสวัสดิการและอบรม</h1>
+        <p className="text-gray-600">เลือกประเภทสวัสดิการหรือการอบรมที่ต้องการยื่นขอ</p>
       </div>
       
       {selectedType ? (
