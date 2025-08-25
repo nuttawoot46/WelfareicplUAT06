@@ -1192,7 +1192,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   step="0.01"
                   className="form-input"
                   placeholder="ระบุจำนวนเงิน"
-                  value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
@@ -1228,26 +1227,25 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
-                  <Input
-                    type="number"
-                    className="form-input"
-                    step="0.01"
-                    min="0"
-                    value={watch('tax7Percent') ? Number(watch('tax7Percent')).toFixed(2) : ''}
-                    {...register('tax7Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
-                      onChange: (e) => {
-                        const amount = watch('amount');
-                        const vatAmount = Number(e.target.value);
-                        const withholdingAmount = watch('withholdingTax3Percent');
-                        if (amount) {
-                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
+                                  <div className="space-y-2">
+                    <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                    <Input
+                      type="number"
+                      className="form-input"
+                      step="0.01"
+                      min="0"
+                      {...register('tax7Percent', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        onChange: (e) => {
+                          const amount = watch('amount');
+                          const vatAmount = Number(e.target.value);
+                          const withholdingAmount = watch('withholdingTax3Percent');
+                          if (amount) {
+                            calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
+                          }
                         }
-                      }
-                    })}
-                  />
+                      })}
+                    />
                   {errors.tax7Percent && (
                     <p className="text-red-500 text-sm mt-1">{errors.tax7Percent.message}</p>
                   )}
@@ -1259,7 +1257,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
-                    value={watch('withholdingTax3Percent') ? Number(watch('withholdingTax3Percent')).toFixed(2) : ''}
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1605,7 +1602,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       min="0"
                       className="form-input"
                       placeholder="0.00"
-                      value={watch('instructorFee') ? Number(watch('instructorFee')).toFixed(2) : ''}
                       {...register('instructorFee', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
                       })}
@@ -1623,7 +1619,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       min="0"
                       className="form-input"
                       placeholder="0.00"
-                      value={watch('roomFoodBeverage') ? Number(watch('roomFoodBeverage')).toFixed(2) : ''}
                       {...register('roomFoodBeverage', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
                       })}
@@ -1641,7 +1636,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       min="0"
                       className="form-input"
                       placeholder="0.00"
-                      value={watch('otherExpenses') ? Number(watch('otherExpenses')).toFixed(2) : ''}
                       {...register('otherExpenses', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
                       })}
@@ -1767,7 +1761,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   step="0.01"
                   className="form-input"
                   placeholder="ระบุจำนวนเงิน"
-                  value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
@@ -1787,7 +1780,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       calculateNonTrainingAmounts(amount);
                     }
                   })}
-
                 />
                 {errors.amount && (
                   <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
@@ -1816,7 +1808,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
-                    value={watch('tax7Percent') ? Number(watch('tax7Percent')).toFixed(2) : ''}
                     {...register('tax7Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
@@ -1840,7 +1831,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
-                    value={watch('withholdingTax3Percent') ? Number(watch('withholdingTax3Percent')).toFixed(2) : ''}
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {

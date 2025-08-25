@@ -61,6 +61,8 @@ const getStatusText = (status: string) => {
       return 'ปฏิเสธโดยหัวหน้า';
     case 'rejected_accounting':
       return 'ปฏิเสธโดยบัญชี';
+    case 'rejected_hr':
+      return 'ปฏิเสธโดย HR';  
     default:
       return 'สถานะไม่ทราบ';
   }
@@ -167,11 +169,13 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   const [editType, setEditType] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  // Double click handler for editing
+  // Double click handler for editing - เฉพาะสถานะ pending_manager เท่านั้น
   const handleDoubleClick = (request: WelfareRequestItem) => {
-    setEditId(request.id);
-    setEditType(request.request_type);
-    setEditModalOpen(true);
+    if (request.status === 'pending_manager') {
+      setEditId(request.id);
+      setEditType(request.request_type);
+      setEditModalOpen(true);
+    }
   };
 
   // Single click handler for edit button
@@ -428,7 +432,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                   {filteredRequests.map((request) => (
                     <TableRow 
                       key={request.id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className={`hover:bg-gray-50 ${request.status === 'pending_manager' ? 'cursor-pointer' : 'cursor-default'}`}
                       onDoubleClick={() => handleDoubleClick(request)}
                     >
                       <TableCell className="whitespace-nowrap">
@@ -559,17 +563,21 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                            <Button
-  variant="ghost"
-  size="icon"
-  onClick={e => {
-    e.stopPropagation();
-    handleEdit(request);
-  }}
->
-  <span className="sr-only">แก้ไข</span>
-  แก้ไข
-</Button>
+                        {request.status === 'pending_manager' ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleEdit(request);
+                            }}
+                          >
+                            <span className="sr-only">แก้ไข</span>
+                            แก้ไข
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

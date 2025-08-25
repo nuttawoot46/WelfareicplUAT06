@@ -110,20 +110,49 @@ const AccountingReviewPage: React.FC = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('welfare_requests')
-      .select('*, department_request, department_user')
-      .in('status', showHistory ? ['pending_accounting', 'completed', 'rejected_accounting'] : ['pending_accounting']);
+      .select('*, department_request')
+      .in('status', showHistory ? ['completed'] : ['pending_accounting']);
     
     console.log('AccountingReviewPage - Fetched data:', data);
     console.log('AccountingReviewPage - Error:', error);
     
     if (data) {
-      setRequests(data);
+      // Map attachment_url to attachments array with proper error handling
+      const mapped = data.map((req: any) => {
+        let attachments: string[] = [];
+        
+        try {
+          if (Array.isArray(req.attachment_url)) {
+            attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
+          } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
+            // Try to parse as JSON first
+            try {
+              const parsed = JSON.parse(req.attachment_url);
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(url => url && typeof url === 'string');
+              } else if (typeof parsed === 'string') {
+                attachments = [parsed];
+              }
+            } catch {
+              // If not JSON, treat as single URL
+              attachments = [req.attachment_url];
+            }
+          }
+        } catch (error) {
+          console.warn('Error processing attachments for request:', req.id, error);
+          attachments = [];
+        }
+        
+        return { ...req, attachments };
+      });
+      
+      setRequests(mapped as WelfareRequestItem[]);
     }
     setIsLoading(false);
   };
 
   const filterRequests = () => {
-    let filtered = [...(showHistory ? requests : requests.filter(r => r.status === 'pending_accounting'))];
+    let filtered = [...(showHistory ? requests.filter(r => r.status === 'completed') : requests.filter(r => r.status === 'pending_accounting'))];
     if (filter.search) {
       filtered = filtered.filter(r =>
         r.employee_name?.toLowerCase().includes(filter.search.toLowerCase()) ||
@@ -184,14 +213,41 @@ const AccountingReviewPage: React.FC = () => {
 
     const { data, error } = await supabase
       .from('welfare_requests')
-      .select('*, department_request, department_user')
+      .select('*, department_request')
       .eq('status', 'completed')
       .gte('accounting_approved_at', startDate.toISOString())
       .lte('accounting_approved_at', endDate.toISOString())
       .order('accounting_approved_at', { ascending: false });
 
     if (data && !error) {
-      setReportData(data);
+      // Map attachment_url to attachments array for report data too
+      const mapped = data.map((req: any) => {
+        let attachments: string[] = [];
+        
+        try {
+          if (Array.isArray(req.attachment_url)) {
+            attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
+          } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
+            try {
+              const parsed = JSON.parse(req.attachment_url);
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(url => url && typeof url === 'string');
+              } else if (typeof parsed === 'string') {
+                attachments = [parsed];
+              }
+            } catch {
+              attachments = [req.attachment_url];
+            }
+          }
+        } catch (error) {
+          console.warn('Error processing attachments for report request:', req.id, error);
+          attachments = [];
+        }
+        
+        return { ...req, attachments };
+      });
+      
+      setReportData(mapped as WelfareRequestItem[]);
       // การกรองและคำนวณสรุปจะทำใน filterReportData ที่จะถูกเรียกจาก useEffect
     }
     
@@ -200,18 +256,19 @@ const AccountingReviewPage: React.FC = () => {
 
   const exportReportToCSV = () => {
     if (!filteredReportData.length) return;
-    const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR อนุมัติ', 'วันที่ HR อนุมัติ', 'ผู้อนุมัติ (บัญชี)'];
+        const header = ['วันที่อนุมัติ', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR อนุมัติ', 'วันที่ HR อนุมัติ', 'ผู้อนุมัติ (บัญชี)', 'วันที่-เวลาที่บัญชีอนุมัติ'];
     const rows = filteredReportData.map(r => [
       r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy', { locale: th }) : '',
       r.employee_name,
-      r.department_request || r.department_user || '',
+      r.department_request || '',
       getWelfareTypeLabel(r.request_type),
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
       r.manager_approver_name || r.manager_name || '',
       r.manager_approved_at ? format(new Date(r.manager_approved_at), 'dd/MM/yyyy HH:mm', { locale: th }) : '',
       r.hr_approver_name || 'HR อนุมัติแล้ว',
       r.hr_approved_at ? format(new Date(r.hr_approved_at), 'dd/MM/yyyy HH:mm', { locale: th }) : '',
-      r.accounting_approver_name || 'บัญชี'
+      r.accounting_approver_name || 'บัญชี',
+      r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm', { locale: th }) : ''
     ]);
     const csv = [header, ...rows].map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(",")).join("\r\n");
     const csvWithBom = '\uFEFF' + csv;
@@ -278,18 +335,19 @@ const AccountingReviewPage: React.FC = () => {
 
   const exportToCSV = () => {
     if (!filteredRequests.length) return;
-    const header = ['วันที่ยื่น', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR ที่อนุมัติ', 'วันที่ HR อนุมัติ', 'สถานะ'];
+        const header = ['วันที่ยื่น', 'ชื่อพนักงาน', 'แผนก/ฝ่าย', 'ประเภทสวัสดิการ', 'จำนวนเงิน', 'ผู้จัดการที่อนุมัติ', 'วันที่ผู้จัดการอนุมัติ', 'HR ที่อนุมัติ', 'วันที่ HR อนุมัติ', 'สถานะ', 'วันที่-เวลาที่บัญชีอนุมัติ'];
     const rows = filteredRequests.map(r => [
       format(new Date(r.created_at), 'dd MMM yyyy', { locale: th }),
       r.employee_name,
-      r.department_request || r.department_user || '',
+      r.department_request || '',
       getWelfareTypeLabel(r.request_type),
       r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }),
       r.manager_approver_name || r.manager_name || '',
       r.manager_approved_at ? format(new Date(r.manager_approved_at), 'dd MMM yyyy HH:mm', { locale: th }) : '',
       r.hr_approver_name || 'HR อนุมัติแล้ว',
       r.hr_approved_at ? format(new Date(r.hr_approved_at), 'dd MMM yyyy HH:mm', { locale: th }) : '',
-      r.status
+      r.status,
+      r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd MMM yyyy HH:mm', { locale: th }) : ''
     ]);
     const csv = [header, ...rows].map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(",")).join("\r\n");
     const csvWithBom = '\uFEFF' + csv;
@@ -489,7 +547,7 @@ const AccountingReviewPage: React.FC = () => {
                           }
                         </TableCell>
                         <TableCell>{r.employee_name}</TableCell>
-                        <TableCell>{r.department_request || r.department_user || '-'}</TableCell>
+                        <TableCell>{r.department_request || '-'}</TableCell>
                         <TableCell>{getWelfareTypeLabel(r.request_type)}</TableCell>
                         <TableCell className="text-right">
                           {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
@@ -511,10 +569,8 @@ const AccountingReviewPage: React.FC = () => {
         <>
           {/* Search & Filter */}
           <div className="mb-4 flex flex-wrap gap-2 items-center">
-            <Input placeholder="ค้นหาชื่อ/ประเภทสวัสดิการ" value={filter.search} onChange={e => setFilter(f => ({ ...f, search: e.target.value }))} className="w-60" />
             <Input type="date" value={filter.dateFrom} onChange={e => setFilter(f => ({ ...f, dateFrom: e.target.value }))} />
             <Input type="date" value={filter.dateTo} onChange={e => setFilter(f => ({ ...f, dateTo: e.target.value }))} />
-            <Input placeholder="ประเภทสวัสดิการ" value={filter.welfareType} onChange={e => setFilter(f => ({ ...f, welfareType: e.target.value }))} className="w-40" />
             <Button variant="outline" onClick={exportToCSV} className="ml-auto"><Download className="mr-2 h-4 w-4" />Export</Button>
           </div>
           {/* Bulk Actions */}
@@ -527,6 +583,34 @@ const AccountingReviewPage: React.FC = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
+                {/* Search Row */}
+                <TableRow className="bg-gray-50">
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
+                  <TableHead>
+                    <Input 
+                      placeholder="ค้นหาชื่อพนักงาน" 
+                      value={filter.search} 
+                      onChange={e => setFilter(f => ({ ...f, search: e.target.value }))} 
+                      className="h-8 text-xs"
+                    />
+                  </TableHead>
+                  <TableHead></TableHead>
+                  <TableHead>
+                    <Input 
+                      placeholder="ประเภทสวัสดิการ" 
+                      value={filter.welfareType} 
+                      onChange={e => setFilter(f => ({ ...f, welfareType: e.target.value }))} 
+                      className="h-8 text-xs"
+                    />
+                  </TableHead>
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+                {/* Header Row */}
                 <TableRow>
                   <TableHead><input type="checkbox" checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0} onChange={handleSelectAll} /></TableHead>
                   <TableHead>วันที่ยื่น</TableHead>
@@ -546,7 +630,7 @@ const AccountingReviewPage: React.FC = () => {
                     <TableCell>{!showHistory && <input type="checkbox" checked={selectedIds.includes(r.id)} onChange={() => handleSelect(r.id)} />}</TableCell>
                     <TableCell>{format(new Date(r.created_at), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>{r.employee_name}</TableCell>
-                    <TableCell>{r.department_request || r.department_user || '-'}</TableCell>
+                    <TableCell>{r.department_request || '-'}</TableCell>
                     <TableCell>{getWelfareTypeLabel(r.request_type)}</TableCell>
                     <TableCell>{r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</TableCell>
                     <TableCell>
@@ -569,58 +653,67 @@ const AccountingReviewPage: React.FC = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 items-center">
-                        {/* เอกสารแนบต้นฉบับ */}
-                        {(r.attachment_url || (r.attachments && r.attachments.length > 0)) && (
-                          <div className="flex items-center">
-                            <FileText className="text-blue-600 h-4 w-4" title="เอกสารแนบต้นฉบับ" />
-                            <span className="text-xs text-gray-500 ml-1">ต้นฉบับ</span>
-                          </div>
-                        )}
+                    <TableCell className="text-center">
+                      <div className="flex flex-wrap gap-1 justify-center items-center">
+
+                        
+                        {/* เอกสารแนบหลายไฟล์ (attachments array) */}
+                        {r.attachments && r.attachments.length > 0 && r.attachments.map((file, idx) => (
+                          <Button asChild variant="ghost" size="icon" key={idx}>
+                            <a
+                              href={file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`View attachment ${idx + 1}`}
+                              className="text-blue-600 hover:text-blue-800"
+                              title={`ดูเอกสารแนบ ${idx + 1}`}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ))}
                         
                         {/* PDF ที่ HR approve แล้ว */}
                         {r.pdf_request_hr && (
-                          <div className="flex items-center ml-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // ตรวจสอบว่าเป็น URL หรือ base64
-                                if (r.pdf_request_hr!.startsWith('http')) {
-                                  // เป็น URL - เปิดในแท็บใหม่
-                                  window.open(r.pdf_request_hr, '_blank');
-                                } else {
-                                  // เป็น base64 - แปลงเป็น blob และดาวน์โหลด
-                                  try {
-                                    const byteCharacters = atob(r.pdf_request_hr!);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                    const url = URL.createObjectURL(blob);
-                                    window.open(url, '_blank');
-                                    // ทำความสะอาด URL หลังจากใช้งาน
-                                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                                  } catch (error) {
-                                    console.error('Error opening PDF:', error);
-                                    alert('ไม่สามารถเปิด PDF ได้');
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // ตรวจสอบว่าเป็น URL หรือ base64
+                              if (r.pdf_request_hr!.startsWith('http')) {
+                                // เป็น URL - เปิดในแท็บใหม่
+                                window.open(r.pdf_request_hr, '_blank');
+                              } else {
+                                // เป็น base64 - แปลงเป็น blob และดาวน์โหลด
+                                try {
+                                  const byteCharacters = atob(r.pdf_request_hr!);
+                                  const byteNumbers = new Array(byteCharacters.length);
+                                  for (let i = 0; i < byteCharacters.length; i++) {
+                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
                                   }
+                                  const byteArray = new Uint8Array(byteNumbers);
+                                  const blob = new Blob([byteArray], { type: 'application/pdf' });
+                                  const url = URL.createObjectURL(blob);
+                                  window.open(url, '_blank');
+                                  // ทำความสะอาด URL หลังจากใช้งาน
+                                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                                } catch (error) {
+                                  console.error('Error opening PDF:', error);
+                                  alert('ไม่สามารถเปิด PDF ได้');
                                 }
-                              }}
-                              className="text-green-600 hover:text-green-800 flex items-center"
-                              title="ดู PDF ที่ HR อนุมัติแล้ว"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span className="text-xs text-green-600 ml-1">HR อนุมัติ</span>
-                            </button>
-                          </div>
+                              }
+                            }}
+                            className="text-green-600 hover:text-green-800"
+                            title="ดู PDF ที่ HR อนุมัติแล้ว"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
                         )}
                         
                         {/* แสดง - เมื่อไม่มีเอกสารใด ๆ */}
-                        {!r.attachment_url && (!r.attachments || r.attachments.length === 0) && !r.pdf_request_hr && (
-                          <span>-</span>
+                        {(!r.attachments || r.attachments.length === 0) && !r.pdf_request_hr && (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </div>
                     </TableCell>
@@ -645,7 +738,7 @@ const AccountingReviewPage: React.FC = () => {
           {selectedRequest && (
             <div className="space-y-2 text-sm">
               <div><b>ชื่อพนักงาน:</b> {selectedRequest.employee_name}</div>
-              <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_request || selectedRequest.department_user || '-'}</div>
+              <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_request || '-'}</div>
               <div><b>ประเภทสวัสดิการ:</b> {getWelfareTypeLabel(selectedRequest.request_type)}</div>
               <div><b>จำนวนเงิน:</b> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</div>
               <div><b>วันที่ยื่น:</b> {format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</div>
@@ -666,7 +759,7 @@ const AccountingReviewPage: React.FC = () => {
                     <div>
                       <a href={selectedRequest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1">
                         <FileText className="h-4 w-4" />
-                        ดูเอกสารแนบต้นฉบับ
+View Attachment
                       </a>
                     </div>
                   )}

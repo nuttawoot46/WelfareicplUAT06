@@ -9,9 +9,9 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requirePinVerification = true 
+  requirePinVerification = false 
 }) => {
-  const { user, isAuthenticated, isPinVerified, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,14 +22,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If PIN verification is required but not yet verified
-  // If the route requires PIN verification and it's not verified, redirect.
-  if (requirePinVerification && !isPinVerified) {
-    // Redirect them to the login page, but save the current location they were
-    // trying to go to. This allows us to send them along to that page after
-    // they log in.
-    return <Navigate to="/" state={{ from: location }} replace />;
-  }
+  // PIN verification is currently disabled
+  // if (requirePinVerification && !isPinVerified) {
+  //   return <Navigate to="/" state={{ from: location }} replace />;
+  // }
 
   return <>{children}</>;
 };

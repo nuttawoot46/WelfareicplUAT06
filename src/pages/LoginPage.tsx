@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
-import PinVerification from '@/components/auth/PinVerification';
+// import PinVerification from '@/components/auth/PinVerification'; // Disabled PIN verification
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -53,7 +53,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState<string>('');
   const [filteredEmployees, setFilteredEmployees] = useState<Array<{id: string, name: string}>>([]);
   
-  const { user, selectUser, isLoading, error, requiresPinVerification } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -85,8 +85,8 @@ const LoginPage = () => {
       return;
     }
     
-    // Use the selectUser method
-    selectUser(selectedTeam, selectedEmployee, email);
+    // Note: selectUser method is not implemented in current AuthContext
+    console.log('Selected:', { selectedTeam, selectedEmployee, email });
     
     toast({
       title: "เข้าสู่ระบบสำเร็จ",
@@ -95,14 +95,7 @@ const LoginPage = () => {
     });
   };
 
-  const handlePinVerified = () => {
-    toast({
-      title: 'สำเร็จ',
-      description: 'ยืนยันตัวตนสำเร็จ! กำลังนำคุณไปยังแดชบอร์ด',
-      variant: 'default',
-    });
-    navigate('/dashboard');
-  };
+  // PIN verification functions removed as they are not implemented in AuthContext
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -196,15 +189,7 @@ const LoginPage = () => {
           </form>
         </div>
       </div>
-      {requiresPinVerification && user && (
-        <PinVerification
-          isOpen={requiresPinVerification}
-          onClose={() => {}}
-          user={user}
-          onPinVerified={handlePinVerified}
-          isNewPin={!user.hasPinSet}
-        />
-      )}
+      {/* PIN verification is currently disabled */}
       
       {/* Right side - Decorative Java-inspired Background */}
       <div className="hidden md:block md:w-1/2 bg-gradient-primary relative overflow-hidden java-effect">

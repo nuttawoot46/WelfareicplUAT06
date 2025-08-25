@@ -15,6 +15,7 @@ interface Profile {
   role?: string; // Mapped from Employee.Role
   avatar_url?: string;
   manager_email?: string; // Mapped from Employee."Email.Manager"
+  start_date?: string; // Mapped from Employee.start_date
   // Budget fields
   budget_dentalglasses?: number;
   budget_medical?: number;
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const navigate = useNavigate();
 
   const signInWithMicrosoft = async () => {
@@ -91,17 +93,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      setInitialLoadComplete(true);
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id, 'initialLoadComplete:', initialLoadComplete);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
         if (event === 'SIGNED_IN') {
+          // Only navigate to dashboard if user is on login/index page
+          // This prevents navigation during token refresh when user is on other pages
+          const currentPath = window.location.pathname;
+          console.log('SIGNED_IN event, current path:', currentPath);
           
-          navigate('/dashboard');
+          // Only redirect if user is on login/landing pages, not when they're already working on other pages
+          if (currentPath === '/' || currentPath === '/login' || currentPath === '/auth/callback') {
+            console.log('Navigating to dashboard from login page');
+            navigate('/dashboard');
+          } else {
+            console.log('User already on a working page, not redirecting to prevent interruption');
+          }
         }
 
         if (event === 'SIGNED_OUT') {
@@ -169,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             position: employeeData.Position,
             role: employeeData.Role || userRole, // Try to get Role from employeeData first
             manager_email: employeeData['Email.Manager'],
+            start_date: employeeData.start_date,
             avatar_url: user.user_metadata?.avatar_url || null,
             // Budget fields
             budget_dentalglasses: employeeData.budget_dentalglasses,
