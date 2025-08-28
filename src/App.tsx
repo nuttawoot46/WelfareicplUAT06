@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { WelfareProvider } from "@/context/WelfareContext";
 import { InternalTrainingProvider } from "@/context/InternalTrainingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { Toaster as HotToast } from 'react-hot-toast';
 
 // Import Pages
@@ -15,6 +16,7 @@ import DashboardPage from "./pages/Dashboard";
 import NotFoundPage from "./pages/NotFound";
 import Forms from "./pages/Forms";
 import Admin from "./pages/Admin";  
+import SuperAdmin from "./pages/SuperAdmin";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import { ApprovalPage } from "./pages/ApprovalPage";
@@ -22,6 +24,7 @@ import { HRApprovalPage } from "./pages/HRApprovalPage";
 import { AccountingReviewPage } from "./pages/AccountingReviewPage";
 import ManagerPDFApprovalPage from "./pages/ManagerPDFApprovalPage";
 import HRPDFApprovalPage from "./pages/HRPDFApprovalPage";
+import WorkflowTimelinePage from "./pages/WorkflowTimelinePage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -126,6 +129,14 @@ const App = () => (
                   <Route path="/admin/*" element={
                     <ProtectedRoute>
                       <Admin />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/superadmin/*" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute allowedRoles={['superadmin']}>
+                        <SuperAdmin />
+                      </RoleProtectedRoute>
                     </ProtectedRoute>
                   } />
 

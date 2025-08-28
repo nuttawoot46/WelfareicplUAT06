@@ -15,7 +15,11 @@ import {
   FileText,
   ChevronDown,
   UserPlus,
-  BarChart3
+  BarChart3,
+  Crown,
+  Database,
+  Shield,
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +31,7 @@ export function Sidebar() {
   // Make role check case-insensitive
   const userRole = profile?.role?.toLowerCase() || '';
   const isAdmin = userRole === 'admin';
+  const isSuperAdmin = userRole === 'superadmin';
   console.log('Sidebar - User:', user);
   console.log('Sidebar - Profile:', profile);
   console.log('Sidebar - User Role:', userRole);
@@ -192,6 +197,89 @@ export function Sidebar() {
               <span className="transition-all duration-300 text-white font-medium">การแจ้งเตือน</span>
             )}
           </Link>
+
+          {/* SuperAdmin */}
+          {isSuperAdmin && (
+            <div className="relative">
+              <div
+                className={cn(
+                  "nav-link group cursor-pointer",
+                  isSubmenuActive(['/superadmin']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                )}
+                onClick={() => isOpen && toggleSubmenu('superadmin')}
+                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, superadmin: true }))}
+                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, superadmin: false }))}
+              >
+                <Crown className="h-5 w-5 flex-shrink-0" />
+                {isOpen && (
+                  <>
+                    <span className="transition-all duration-300 text-white font-medium">SuperAdmin</span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      openSubmenus.superadmin && "rotate-180"
+                    )} />
+                  </>
+                )}
+              </div>
+
+              {/* Submenu */}
+              {(openSubmenus.superadmin || !isOpen) && (
+                <div className={cn(
+                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                )}>
+                  <Link to="/superadmin/dashboard" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <ChartBar className="h-4 w-4" />
+                    <span>แดชบอร์ด</span>
+                  </Link>
+                  <Link to="/superadmin/users" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <UserPlus className="h-4 w-4" />
+                    <span>จัดการผู้ใช้</span>
+                  </Link>
+                  <Link to="/superadmin/system" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Settings className="h-4 w-4" />
+                    <span>ตั้งค่าระบบ</span>
+                  </Link>
+                  <Link to="/superadmin/database" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Database className="h-4 w-4" />
+                    <span>ฐานข้อมูล</span>
+                  </Link>
+                  <Link to="/superadmin/security" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Shield className="h-4 w-4" />
+                    <span>ความปลอดภัย</span>
+                  </Link>
+                  <Link to="/superadmin/audit" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Activity className="h-4 w-4" />
+                    <span>บันทึกการใช้งาน</span>
+                  </Link>
+                  <Link to="/superadmin/report" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <BarChart3 className="h-4 w-4" />
+                    <span>รายงาน</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Admin */}
           {profile?.role === 'admin' && (

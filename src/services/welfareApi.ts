@@ -92,13 +92,21 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
     }
     
     // สวัสดิการค่าตัดแว่นและทำฟัน (รวมกัน)
-    if (employee.budget_dentalglasses !== null) {
+    if (employee.budget_dentalglasses !== null && employee.budget_dentalglasses !== undefined) {
       const totalLimit = 2000; // วงเงินทั้งหมด (รวมค่าแว่นและค่าทำฟัน)
       const remaining = employee.budget_dentalglasses; // ใช้ยอดคงเหลือจาก Supabase โดยตรง
       const used = totalLimit - remaining;
       
+      // เพิ่มทั้ง dental และ glasses ที่ใช้งบประมาณร่วมกัน
       benefitLimits.push({
-        type: 'dental', // ใช้ประเภท dental เป็นตัวแทนของทั้งค่าแว่นและค่าทำฟัน
+        type: 'dental',
+        totalLimit,
+        used,
+        remaining
+      });
+      
+      benefitLimits.push({
+        type: 'glasses',
         totalLimit,
         used,
         remaining
@@ -119,11 +127,38 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
       });
     }
     
+    // สวัสดิการค่าคลอดบุตร
+    if (employee.budget_childbirth !== null && employee.budget_childbirth !== undefined) {
+      const totalLimit = 8000; // วงเงินทั้งหมด (กำหนดตามนโยบายบริษัท)
+      const remaining = employee.budget_childbirth || 0;
+      const used = totalLimit - remaining;
+      
+      benefitLimits.push({
+        type: 'childbirth',
+        totalLimit,
+        used,
+        remaining
+      });
+    }
+    
+    // สวัสดิการค่าช่วยเหลืองานศพ
+    if (employee.budget_funeral !== null && employee.budget_funeral !== undefined) {
+      const totalLimit = 10000; // วงเงินทั้งหมด (กำหนดตามนโยบายบริษัท)
+      const remaining = employee.budget_funeral || 0;
+      const used = totalLimit - remaining;
+      
+      benefitLimits.push({
+        type: 'funeral',
+        totalLimit,
+        used,
+        remaining
+      });
+    }
+    
     // เพิ่มสวัสดิการอื่นๆ ที่ไม่มีในฐานข้อมูล (ใช้ค่าเริ่มต้น)
     const defaultBenefits: Array<{type: WelfareType, totalLimit: number}> = [
       { type: 'childbirth', totalLimit: 8000 },
       { type: 'funeral', totalLimit: 10000 },
-      
     ];
     
     // ตรวจสอบว่ามีสวัสดิการใดที่ยังไม่ได้เพิ่ม
@@ -175,7 +210,8 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
       { type: 'childbirth', totalLimit: 8000, used: 0, remaining: 8000 },
       { type: 'funeral', totalLimit: 10000, used: 0, remaining: 10000 },
       // รวมค่าตัดแว่นและค่าทำฟันเป็นรายการเดียวกัน
-      { type: 'dental', totalLimit: 2000, used: 2000, remaining: 2000 },
+      { type: 'dental', totalLimit: 2000, used: 0, remaining: 2000 },
+      { type: 'glasses', totalLimit: 2000, used: 0, remaining: 2000 },
       { type: 'fitness', totalLimit: 300, used: 0, remaining: 300 },
       { type: 'medical', totalLimit: 1000, used: 0, remaining: 1000 },
     ];

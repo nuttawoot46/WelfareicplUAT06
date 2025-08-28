@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import axios from 'axios';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WelfareType } from '@/types';
+import { WelfareType, ParticipantGroup, ParticipantMember } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
 import { useInternalTraining } from '@/context/InternalTrainingContext';
-import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +18,10 @@ import { supabase } from '@/integrations/supabase/client';
 import LoadingPopup from './LoadingPopup';
 import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
 import { generateTrainingPDF } from '../pdf/TrainingPDFGenerator';
+import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
+import { ParticipantSelector } from './ParticipantSelector';
 
 interface WelfareFormProps {
   type: WelfareType;
@@ -34,6 +36,7 @@ interface FormValues {
   totalDays: number;
   amount: number;
   details: string;
+  title?: string;
 
   birthType?: 'natural' | 'caesarean';
   funeralType?: 'employee_spouse' | 'child' | 'parent';
@@ -57,7 +60,7 @@ interface FormValues {
   endTime?: string;
   totalHours?: number;
   venue?: string;
-  participants?: { team: string; count: number }[];
+  participants?: ParticipantGroup[];
   totalParticipants?: number;
   instructorFee?: number;
   roomFoodBeverage?: number;
@@ -68,6 +71,24 @@ interface FormValues {
   taxCertificateName?: string;
   withholdingTaxAmount?: number;
   additionalNotes?: string;
+
+  // Advance (เบิกเงินทดลอง) fields
+  advanceDepartment?: string; // แผนก
+  advanceDistrict?: string; // เขต
+  advanceActivityType?: string; // ประเภทกิจกรรม
+  advanceActivityOther?: string; // ระบุอื่นๆ
+  advanceShopCompany?: string; // ชื่อร้าน/บริษัท
+  advanceAmphur?: string; // อำเภอ
+  advanceProvince?: string; // จังหวัด
+  advanceEventDate?: string; // วันที่จัด
+  advanceParticipants?: number; // จำนวนผู้เข้าร่วม
+  advanceDailyRate?: number;
+  advanceAccommodationCost?: number;
+  advanceTransportationCost?: number;
+  advanceMealAllowance?: number;
+  advanceOtherExpenses?: number;
+  advanceProjectName?: string;
+  advanceProjectLocation?: string;
 }
 
 // Available teams/departments for internal training
@@ -102,7 +123,16 @@ const DEPARTMENTS = [
 const BRANCHES = [
   'สำนักงานสุรวงศ์',
   'โรงงานนครปฐม',
-  ];
+];
+
+// ประเภทกิจกรรมสำหรับเบิกเงินทดลอง
+const ACTIVITY_TYPES = [
+  'จัดประชุม',
+  'ออกบูธ',
+  'ดีเลอร์',
+  'ซับดีลเลอร์',
+  'อื่นๆ ระบุ'
+];
 
 // Helper to get form title by welfare type
 const getFormTitle = (type: WelfareType): string => {
@@ -116,6 +146,7 @@ const getFormTitle = (type: WelfareType): string => {
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
     internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
+    advance: 'แบบขออนุมัติเบิกเงินทดลอง',
   };
 
   return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
@@ -159,7 +190,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   } = useForm<FormValues>({
     defaultValues: {
       trainingTopics: [{ value: '' }, { value: '' }],
-      participants: [{ team: '', count: 0 }]
+      participants: [{ team: '', count: 0, selectedParticipants: [] }]
     }
   });
 
@@ -211,13 +242,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   // Check work days eligibility for training
   const checkTrainingEligibility = (employeeData: any): boolean => {
     if (type !== 'training' || !employeeData?.start_date) return true;
-    
+
     const workDays = calculateWorkDays(employeeData.start_date);
     if (workDays < 180) {
       setWorkDaysError(`ไม่สามารถเบิกสวัสดิการอบรมได้ เนื่องจากอายุงานยังไม่ถึง 180 วัน (ปัจจุบันทำงานมาแล้ว ${workDays} วัน)`);
       return false;
     }
-    
+
     setWorkDaysError('');
     return true;
   };
@@ -242,11 +273,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     setCondition(limitCondition);
     if (type === 'training' && user && profile) {
       const budgetResult = getRemainingBudget(user.id, type);
-      if (budgetResult && typeof budgetResult.then === 'function') {
-        budgetResult.then(setEmployeeBudget);
-      } else {
-        setEmployeeBudget(budgetResult);
-      }
+      setEmployeeBudget(budgetResult);
     } else if (type !== 'training' && limitAmount) {
       setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
@@ -261,26 +288,44 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           .single();
         if (!error && data) {
           // Map only fields that exist in the schema
+          const dbData = data as any; // Type assertion for database fields
           reset({
-            amount: data.amount,
-            details: data.details || '',
-            title: data.title || '',
-            startDate: data.start_date || '',
-            endDate: data.end_date || '',
-            totalDays: data.total_days || 0,
-            birthType: data.birth_type || '',
-            funeralType: data.funeral_type || '',
-            trainingTopics: data.training_topics ? JSON.parse(data.training_topics) : [],
-            totalAmount: data.total_amount || 0,
-            tax7Percent: data.tax7_percent || 0,
-            withholdingTax3Percent: data.withholding_tax3_percent || 0,
-            netAmount: data.net_amount || data.amount || 0,
-            excessAmount: data.excess_amount || 0,
-            companyPayment: data.company_payment || 0,
-            employeePayment: data.employee_payment || 0,
-            courseName: data.course_name || '',
-            organizer: data.organizer || '',
-            isVatIncluded: data.is_vat_included || false,
+            amount: dbData.amount,
+            details: dbData.details || '',
+            title: dbData.title || '',
+            startDate: dbData.start_date || '',
+            endDate: dbData.end_date || '',
+            totalDays: dbData.total_days || 0,
+            birthType: dbData.birth_type || '',
+            funeralType: (dbData.funeral_type as 'employee_spouse' | 'child' | 'parent') || undefined,
+            trainingTopics: dbData.training_topics ? JSON.parse(dbData.training_topics) : [],
+            totalAmount: dbData.total_amount || 0,
+            tax7Percent: dbData.tax7_percent || 0,
+            withholdingTax3Percent: dbData.withholding_tax3_percent || 0,
+            netAmount: dbData.net_amount || dbData.amount || 0,
+            excessAmount: dbData.excess_amount || 0,
+            companyPayment: dbData.company_payment || 0,
+            employeePayment: dbData.employee_payment || 0,
+            courseName: dbData.course_name || '',
+            organizer: dbData.organizer || '',
+            isVatIncluded: dbData.is_vat_included || false,
+            // Advance fields
+            advanceDepartment: dbData.advance_department || '',
+            advanceDistrict: dbData.advance_district || '',
+            advanceActivityType: dbData.advance_activity_type || '',
+            advanceActivityOther: dbData.advance_activity_other || '',
+            advanceShopCompany: dbData.advance_shop_company || '',
+            advanceAmphur: dbData.advance_amphur || '',
+            advanceProvince: dbData.advance_province || '',
+            advanceEventDate: dbData.advance_event_date || '',
+            advanceParticipants: dbData.advance_participants || 0,
+            advanceDailyRate: dbData.advance_daily_rate || 0,
+            advanceAccommodationCost: dbData.advance_accommodation_cost || 0,
+            advanceTransportationCost: dbData.advance_transportation_cost || 0,
+            advanceMealAllowance: dbData.advance_meal_allowance || 0,
+            advanceOtherExpenses: dbData.advance_other_expenses || 0,
+            advanceProjectName: dbData.advance_project_name || '',
+            advanceProjectLocation: dbData.advance_project_location || '',
           });
           // Attachments
           if (data.attachment_url) {
@@ -327,12 +372,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (type === 'training') {
       // สมมติว่า remainingBudget ใช้ trainingBudget
       const remainingBudget = trainingBudget ?? 0;
-      if (amount !== undefined && amount !== null && amount !== '' && !isNaN(Number(amount))) {
+      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
         calculateTrainingAmounts(Number(amount), Number(remainingBudget));
       }
-    } else if (type !== 'training') {
+    } else if (type === 'wedding' || type === 'childbirth' || type === 'funeral' || type === 'glasses' || type === 'dental' || type === 'fitness' || type === 'medical') {
       // คำนวณสำหรับ welfare types อื่น ๆ
-      if (amount !== undefined && amount !== null && amount !== '' && !isNaN(Number(amount))) {
+      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
         calculateNonTrainingAmounts(Number(amount));
       }
     }
@@ -361,7 +406,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const watchedParticipants = watch('participants');
   useEffect(() => {
     if (type === 'internal_training' && watchedParticipants) {
-      const total = watchedParticipants.reduce((sum, p) => sum + (Number(p?.count) || 0), 0);
+      // Calculate total based on actual selected participants, fallback to count
+      const total = watchedParticipants.reduce((sum, p) => {
+        const selectedCount = p?.selectedParticipants?.length || 0;
+        const declaredCount = Number(p?.count) || 0;
+        // Use the actual selected count, but don't exceed declared count
+        return sum + Math.min(selectedCount, declaredCount);
+      }, 0);
       setValue('totalParticipants', total);
     }
   }, [watchedParticipants, setValue, type]);
@@ -377,7 +428,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       if (startTime && endTime && startDate && endDate) {
         const start = new Date(`${startDate}T${startTime}`);
         const end = new Date(`${endDate}T${endTime}`);
-        
+
         if (end > start) {
           const diffMs = end.getTime() - start.getTime();
           const diffHours = diffMs / (1000 * 60 * 60);
@@ -386,6 +437,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       }
     }
   }, [watch('startTime'), watch('endTime'), watch('startDate'), watch('endDate'), setValue, type]);
+
+  // Calculate advance total amount
+  useEffect(() => {
+    if (type === 'advance') {
+      // Calculate total amount
+      const dailyRate = Number(watch('advanceDailyRate')) || 0;
+      const accommodationCost = Number(watch('advanceAccommodationCost')) || 0;
+      const transportationCost = Number(watch('advanceTransportationCost')) || 0;
+      const mealAllowance = Number(watch('advanceMealAllowance')) || 0;
+      const otherExpenses = Number(watch('advanceOtherExpenses')) || 0;
+      const participants = Number(watch('advanceParticipants')) || 0;
+
+      const totalAmount = (dailyRate * participants) + accommodationCost + transportationCost + mealAllowance + otherExpenses;
+      setValue('amount', Math.round(totalAmount * 100) / 100);
+    }
+  }, [watch('advanceDailyRate'), watch('advanceAccommodationCost'), watch('advanceTransportationCost'), watch('advanceMealAllowance'), watch('advanceOtherExpenses'), watch('advanceParticipants'), setValue, type]);
 
   // Calculate internal training costs
   useEffect(() => {
@@ -397,7 +464,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       const isVatIncluded = watch('isVatIncluded');
 
       const subtotal = instructorFee + roomFoodBeverage + otherExpenses;
-      
+
       let autoWithholding = 0;
       let autoVat = 0;
       let total = 0;
@@ -424,6 +491,114 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       setValue('withholdingTaxAmount', Math.round(autoWithholding * 100) / 100);
     }
   }, [watch('instructorFee'), watch('roomFoodBeverage'), watch('otherExpenses'), watch('totalParticipants'), watch('isVatIncluded'), setValue, type]);
+
+  // Function to generate and download CSV for internal training
+  const downloadTrainingCSV = () => {
+    if (type !== 'internal_training') return;
+
+    const formData = watch();
+    const participants = formData.participants || [];
+    
+    // Collect all selected participants
+    const allParticipants: any[] = [];
+    let participantNumber = 1;
+    
+    participants.forEach((group: any) => {
+      if (group.selectedParticipants && group.selectedParticipants.length > 0) {
+        group.selectedParticipants.forEach((participant: any) => {
+          allParticipants.push({
+            no: participantNumber++,
+            name: participant.name || '',
+            team: group.team || '',
+            position: participant.position || '',
+            signatureIn: '',
+            signatureOut: ''
+          });
+        });
+      }
+    });
+
+    // Format date and venue info
+    const startDate = formData.startDate ? new Date(formData.startDate).toLocaleDateString('th-TH', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    }) : '';
+    
+    const endDate = formData.endDate ? new Date(formData.endDate).toLocaleDateString('th-TH', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }) : '';
+    
+    const startTime = formData.startTime || '';
+    const endTime = formData.endTime || '';
+    const venue = formData.venue || '';
+    
+    // Create date and venue string
+    let dateVenueInfo = '';
+    if (startDate && endDate && startDate === endDate) {
+      dateVenueInfo = `${startDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+    } else if (startDate && endDate) {
+      dateVenueInfo = `${startDate} ถึง ${endDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+    } else if (startDate) {
+      dateVenueInfo = `${startDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+    }
+
+    // Create CSV content
+    const csvContent = [
+      // Header with course info
+      ['แบบลงทะเบียนผู้เข้าอบรม'],
+      [''],
+      [formData.courseName || 'MBTI Training 2025'],
+      [''],
+      [dateVenueInfo],
+      [''],
+      ['วิทยากร', '', '', '', ''],
+      [''],
+      // Table headers
+      ['No.', 'Name', 'Team', 'Position', 'Signature', ''],
+      ['', '', '', '', 'รอบเข้า', 'รอบบ่าย'],
+      // Participant data
+      ...allParticipants.map(p => [
+        p.no,
+        p.name,
+        p.team,
+        p.position,
+        p.signatureIn,
+        p.signatureOut
+      ])
+    ];
+
+    // Convert to CSV string
+    const csvString = csvContent
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    // Add BOM for proper UTF-8 encoding in Excel
+    const BOM = '\uFEFF';
+    const csvWithBOM = BOM + csvString;
+
+    // Create and download file
+    const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${formData.courseName || 'internal_training'}_participants.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: 'ดาวน์โหลดสำเร็จ',
+      description: 'ไฟล์ CSV รายชื่อผู้เข้าอบรมถูกดาวน์โหลดเรียบร้อยแล้ว',
+    });
+  };
 
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -509,16 +684,41 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   };
 
-  // Get remaining budget from context. This is now the single source of truth.
-  // ใช้ budget เดียวกันสำหรับ glasses/dental
-  let remainingBudget = 0;
-  if (type === 'glasses' || type === 'dental') {
-    remainingBudget = profile?.budget_dentalglasses ?? 0;
-  } else if (user?.id) {
-    remainingBudget = getRemainingBudget(user.id, type);
-  } else {
-    remainingBudget = 0;
-  }
+  // Get remaining budget from getBenefitLimits API to ensure consistency
+  const [currentRemainingBudget, setCurrentRemainingBudget] = useState<number>(0);
+
+  // Fetch remaining budget from getBenefitLimits API
+  useEffect(() => {
+    const fetchRemainingBudget = async () => {
+      if (!user) return;
+
+      try {
+        const { getBenefitLimits } = await import('@/services/welfareApi');
+        const limits = await getBenefitLimits();
+
+        // สำหรับ glasses และ dental ใช้ budget_dentalglasses ร่วมกัน
+        if (type === 'glasses' || type === 'dental') {
+          const dentalLimit = limits.find(limit => limit.type === 'dental');
+          setCurrentRemainingBudget(dentalLimit ? dentalLimit.remaining : (profile?.budget_dentalglasses ?? 0));
+        } else {
+          const limit = limits.find(limit => limit.type === type);
+          setCurrentRemainingBudget(limit ? limit.remaining : 0);
+        }
+      } catch (error) {
+        console.error('Error fetching remaining budget:', error);
+        // Fallback to context method
+        if (type === 'glasses' || type === 'dental') {
+          setCurrentRemainingBudget(profile?.budget_dentalglasses ?? 0);
+        } else if (user?.id) {
+          setCurrentRemainingBudget(getRemainingBudget(user.id, type));
+        }
+      }
+    };
+
+    fetchRemainingBudget();
+  }, [user, type, profile?.budget_dentalglasses, getRemainingBudget]);
+
+  const remainingBudget = currentRemainingBudget;
 
   const onSubmit = async (data: any) => {
     // Store form data and show signature modal for all types (including training)
@@ -561,14 +761,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         .single();
 
       console.log('employeeData:', employeeData);
-      console.log('employeeData.Team:', employeeData.Team);
       if (employeeError || !employeeData) {
         throw new Error('Employee data not found. Please contact support.');
       }
 
       // For training type, submit directly without PDF generation
       if (type === 'training') {
-        await processFormSubmissionWithoutPDF(data, employeeData);
+        await processFormSubmission(data, employeeData);
         return;
       }
 
@@ -624,7 +823,24 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           course_name: data.courseName,
           organizer: data.organizer,
           is_vat_included: data.isVatIncluded,
-          department_request: employeeData.Team,
+          department_request: (employeeData as any)?.Team,
+          // Advance fields
+          advance_department: data.advanceDepartment,
+          advance_district: data.advanceDistrict,
+          advance_activity_type: data.advanceActivityType,
+          advance_activity_other: data.advanceActivityOther,
+          advance_shop_company: data.advanceShopCompany,
+          advance_amphur: data.advanceAmphur,
+          advance_province: data.advanceProvince,
+          advance_event_date: data.advanceEventDate,
+          advance_participants: data.advanceParticipants,
+          advance_daily_rate: data.advanceDailyRate,
+          advance_accommodation_cost: data.advanceAccommodationCost,
+          advance_transportation_cost: data.advanceTransportationCost,
+          advance_meal_allowance: data.advanceMealAllowance,
+          advance_other_expenses: data.advanceOtherExpenses,
+          advance_project_name: data.advanceProjectName,
+          advance_project_location: data.advanceProjectLocation,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -649,8 +865,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         return;
       }
 
-      // For wedding type, show signature modal before submitting
-      if (type === 'wedding') {
+      // For wedding and advance types, show signature modal before submitting
+      if (['wedding', 'advance'].includes(type)) {
         // Store form data temporarily
         setPendingFormData({ data, employeeData });
         setShowSignatureModal(true);
@@ -722,7 +938,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // Handle Internal Training differently
     if (type === 'internal_training') {
       // Debug logs removed for production
-      
+
       const internalTrainingData = {
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
@@ -771,7 +987,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // CREATE NEW REQUEST (for other welfare types)
     const requestData = {
       userId: profile.employee_id.toString(),
-      userName: finalEmployeeData?.Name || profile?.name || user?.name || 'Unknown User',
+      userName: finalEmployeeData?.Name || user?.email || 'Unknown User',
+      userDepartment: finalEmployeeData?.Team || 'Unknown Department',
       department_request: finalEmployeeData?.Team || 'Unknown Department',
       type: type,
       status: 'pending' as const,
@@ -800,6 +1017,23 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       organizer: data.organizer,
       is_vat_included: data.isVatIncluded,
       userSignature: signature || userSignature, // เพิ่มลายเซ็น
+      // Advance fields for requestData
+      advanceDepartment: data.advanceDepartment,
+      advanceDistrict: data.advanceDistrict,
+      advanceActivityType: data.advanceActivityType,
+      advanceActivityOther: data.advanceActivityOther,
+      advanceShopCompany: data.advanceShopCompany,
+      advanceAmphur: data.advanceAmphur,
+      advanceProvince: data.advanceProvince,
+      advanceEventDate: data.advanceEventDate,
+      advanceParticipants: data.advanceParticipants,
+      advanceDailyRate: data.advanceDailyRate,
+      advanceAccommodationCost: data.advanceAccommodationCost,
+      advanceTransportationCost: data.advanceTransportationCost,
+      advanceMealAllowance: data.advanceMealAllowance,
+      advanceOtherExpenses: data.advanceOtherExpenses,
+      advanceProjectName: data.advanceProjectName,
+      advanceProjectLocation: data.advanceProjectLocation,
     };
 
     const result = await submitRequest(requestData);
@@ -823,10 +1057,25 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             updatedAt: requestData.updatedAt,
             userSignature: signature || userSignature
           },
-          user!,
+          user as any,
           finalEmployeeData,
           signature || userSignature,
           remainingBudget
+        );
+      } else if (type === 'advance') {
+        // Use Advance PDF Generator for advance type
+        blob = await generateAdvancePDF(
+          {
+            ...requestData,
+            id: result.id || Date.now(),
+            status: 'pending_manager' as const,
+            createdAt: requestData.createdAt,
+            updatedAt: requestData.updatedAt,
+            userSignature: signature || userSignature
+          },
+          user as any,
+          finalEmployeeData,
+          signature || userSignature
         );
       } else {
         // Use Welfare PDF Generator for other types
@@ -839,7 +1088,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             updatedAt: requestData.updatedAt,
             userSignature: signature || userSignature
           },
-          user!,
+          user as any,
           finalEmployeeData
         );
       }
@@ -883,7 +1132,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // ตรวจสอบค่าที่ส่งเข้ามา
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
     if (typeof remainingBudget !== 'number' || isNaN(remainingBudget)) remainingBudget = 0;
-    
+
     // ถ้าเลือก checkbox ว่า "จำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว"
     let vat = 0;
     let withholding = 0;
@@ -947,7 +1196,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const calculateNonTrainingAmounts = (total: number, customVat?: number, customWithholding?: number) => {
     // ตรวจสอบค่าที่ส่งเข้ามา
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
-    
+
     let vat = 0;
     let withholding = 0;
     let netAmount = total;
@@ -1008,7 +1257,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         </div>
 
         {/* Display welfare limits for non-training types */}
-        {maxAmount !== null && type !== 'training' && type !== 'internal_training' && (
+        {maxAmount !== null && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
           <div className="mb-6">
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -1023,7 +1272,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </Alert>
           </div>
         )}
-        {user && type !== 'training' && type !== 'internal_training' && (
+        {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
               งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
@@ -1060,6 +1309,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </AlertDescription>
               </Alert>
             )}
+          </div>
+        )}
+
+        {/* Special info for advance payment */}
+        {type === 'advance' && (
+          <div className="mb-6">
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4 mr-2 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>เบิกเงินทดลอง:</strong> สามารถขออนุมัติได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องวงเงินหรืองบประมาณ ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
+              </AlertDescription>
+            </Alert>
           </div>
         )}
 
@@ -1227,25 +1488,25 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                                  <div className="space-y-2">
-                    <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
-                    <Input
-                      type="number"
-                      className="form-input"
-                      step="0.01"
-                      min="0"
-                      {...register('tax7Percent', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
-                        onChange: (e) => {
-                          const amount = watch('amount');
-                          const vatAmount = Number(e.target.value);
-                          const withholdingAmount = watch('withholdingTax3Percent');
-                          if (amount) {
-                            calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
-                          }
+                <div className="space-y-2">
+                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                  <Input
+                    type="number"
+                    className="form-input"
+                    step="0.01"
+                    min="0"
+                    {...register('tax7Percent', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      onChange: (e) => {
+                        const amount = watch('amount');
+                        const vatAmount = Number(e.target.value);
+                        const withholdingAmount = watch('withholdingTax3Percent');
+                        if (amount) {
+                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
                         }
-                      })}
-                    />
+                      }
+                    })}
+                  />
                   {errors.tax7Percent && (
                     <p className="text-red-500 text-sm mt-1">{errors.tax7Percent.message}</p>
                   )}
@@ -1357,8 +1618,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <>
               {/* ส่วนที่ 1: รายละเอียดการอบรม */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 1: รายละเอียดการอบรม</h3>
-                
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดการอบรม</h3>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="form-label">ฝ่าย/แผนกผู้ขออนุมัติ</label>
@@ -1376,7 +1637,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">สาขา</label>
                     <Select
@@ -1423,7 +1684,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">วันที่สิ้นสุดอบรม</label>
                     <Input
@@ -1457,7 +1718,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">เวลาสิ้นสุด</label>
                     <Input
@@ -1471,7 +1732,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">รวมระยะเวลาการอบรม (ชั่วโมง)</label>
                     <Input
@@ -1502,44 +1763,73 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               {/* ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม</h3>
-                
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">จำนวนผู้เข้าร่วมอบรม</h3>
+
                 <div className="space-y-4">
-                  <label className="form-label">ส่วนนี้ใช้สำหรับกรอกจำนวนพนักงานในแต่ละระดับที่จะเข้าร่วม</label>
-                  <div className="space-y-3">
-                    {participantFields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-2 border-b pb-2">
-                        <span className="text-sm font-medium text-gray-600 w-8">{index + 1}.</span>
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <label className="text-sm text-gray-600 mb-1 block">เลือกทีม:</label>
-                            <Select
-                              onValueChange={(value) => setValue(`participants.${index}.team`, value)}
-                              defaultValue={watch(`participants.${index}.team`)}
-                            >
-                              <SelectTrigger className="form-input w-[600px]">
-                                <SelectValue placeholder="เลือกทีม" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TEAMS.map((team) => (
-                                  <SelectItem key={team} value={team}>{team}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                  <label className="form-label">เลือกทีมและผู้เข้าร่วมอบรม</label>
+                  <div className="space-y-6">
+                    {participantFields.map((field, index) => {
+                      const currentParticipant = watch(`participants.${index}`);
+                      return (
+                        <div key={field.id} className="space-y-4 border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-600">ทีมที่ {index + 1}</span>
+                            {participantFields.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeParticipant(index)}
+                              >
+                                <X className="h-4 w-4" />
+                                ลบทีม
+                              </Button>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm text-gray-600 mb-1 block">จำนวน:</label>
+                              <label className="text-sm text-gray-600 mb-1 block">เลือกทีม:</label>
+                              <Select
+                                onValueChange={(value) => {
+                                  setValue(`participants.${index}.team`, value);
+                                  // Reset selected participants when team changes
+                                  setValue(`participants.${index}.selectedParticipants`, []);
+                                }}
+                                value={currentParticipant?.team || ''}
+                              >
+                                <SelectTrigger className="form-input">
+                                  <SelectValue placeholder="เลือกทีม" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TEAMS.map((team) => (
+                                    <SelectItem key={team} value={team}>{team}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm text-gray-600 mb-1 block">จำนวนผู้เข้าร่วม:</label>
                               <Input
                                 type="number"
                                 min="0"
-                                className="form-input w-24 text-center"
+                                max="50"
+                                className="form-input"
                                 placeholder="0"
                                 {...register(`participants.${index}.count` as const, {
                                   min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                                  max: { value: 50, message: 'จำนวนต้องไม่เกิน 50 คน' },
                                   valueAsNumber: true,
                                   onChange: () => {
-                                    // Trigger recalculation
+                                    // Reset selected participants if count is reduced
+                                    const currentCount = Number(watch(`participants.${index}.count`)) || 0;
+                                    const currentSelected = watch(`participants.${index}.selectedParticipants`) || [];
+                                    if (currentSelected.length > currentCount) {
+                                      setValue(`participants.${index}.selectedParticipants`, currentSelected.slice(0, currentCount));
+                                    }
+                                    
+                                    // Trigger total recalculation
                                     setTimeout(() => {
                                       const participants = watch('participants') || [];
                                       const total = participants.reduce((sum, p) => sum + (Number(p?.count) || 0), 0);
@@ -1549,25 +1839,26 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                 })}
                               />
                             </div>
-                            <span className="text-sm text-gray-600 mt-6">คน</span>
-                            {participantFields.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeParticipant(index)}
-                                className="mt-6"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
                           </div>
+
+                          {/* Participant Selector */}
+                          {currentParticipant?.team && currentParticipant?.count > 0 && (
+                            <ParticipantSelector
+                              team={currentParticipant.team}
+                              maxCount={currentParticipant.count}
+                              selectedParticipants={currentParticipant.selectedParticipants || []}
+                              onParticipantsChange={(participants) => {
+                                setValue(`participants.${index}.selectedParticipants`, participants);
+                              }}
+                            />
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                    
                     <Button
                       type="button"
-                      onClick={() => appendParticipant({ team: '', count: 0 })}
+                      onClick={() => appendParticipant({ team: '', count: 0, selectedParticipants: [] })}
                       className="mt-2"
                       variant="outline"
                     >
@@ -1579,20 +1870,32 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 <div className="space-y-2">
                   <label className="form-label font-semibold">รวมจำนวนผู้เข้าอบรมทั้งหมด</label>
-                  <Input
-                    type="number"
-                    className="form-input bg-gray-100 font-bold text-lg text-center w-[151px]"
-                    readOnly
-                    value={watch('totalParticipants') || 0}
-                    {...register('totalParticipants')}
-                  />
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="number"
+                      className="form-input bg-gray-100 font-bold text-lg text-center w-[151px]"
+                      readOnly
+                      value={watch('totalParticipants') || 0}
+                      {...register('totalParticipants')}
+                    />
+                    <Button
+                      type="button"
+                      onClick={downloadTrainingCSV}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      disabled={!watch('totalParticipants') || watch('totalParticipants') === 0}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download CSV
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               {/* ส่วนที่ 3: งบประมาณและค่าใช้จ่าย */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 3: งบประมาณและค่าใช้จ่าย</h3>
-                
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">งบประมาณและค่าใช้จ่าย</h3>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="form-label">ค่าวิทยากร</label>
@@ -1610,7 +1913,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       <p className="text-red-500 text-sm mt-1">{errors.instructorFee.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">ค่าห้อง อาหารและเครื่องดื่ม</label>
                     <Input
@@ -1627,7 +1930,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       <p className="text-red-500 text-sm mt-1">{errors.roomFoodBeverage.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">ค่าใช้จ่ายอื่นๆ</label>
                     <Input
@@ -1671,7 +1974,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       {...register('withholdingTax')}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">ภาษีมูลค่าเพิ่ม (VAT 7%)</label>
                     <Input
@@ -1683,7 +1986,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       {...register('vat')}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">รวมเป็นเงินทั้งสิ้น</label>
                     <Input
@@ -1712,8 +2015,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               {/* ส่วนที่ 4: หมายเหตุ */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ส่วนที่ 4: หมายเหตุ</h3>
-                
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">หมายเหตุ</h3>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="form-label">ออกหนังสือรับรองหักภาษี ณ ที่จ่ายในนาม</label>
@@ -1723,7 +2026,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       {...register('taxCertificateName')}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="form-label">จำนวนเงินที่ต้องหัก ณ ที่จ่าย</label>
                     <Input
@@ -1749,8 +2052,277 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </>
           )}
 
+          {/* Advance (เบิกเงินทดลอง) specific fields */}
+          {type === 'advance' && (
+            <>
+              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
+
+                {/* แผนกและเขต */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">แผนก</label>
+                    <Input
+                      placeholder="ระบุแผนก"
+                      className="form-input"
+                      {...register('advanceDepartment', {
+                        required: 'กรุณาระบุแผนก'
+                      })}
+                    />
+                    {errors.advanceDepartment && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="form-label">เขต</label>
+                    <Input
+                      placeholder="ระบุเขต"
+                      className="form-input"
+                      {...register('advanceDistrict', {
+                        required: 'กรุณาระบุเขต'
+                      })}
+                    />
+                    {errors.advanceDistrict && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceDistrict.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ประเภทกิจกรรม */}
+                <div className="space-y-2">
+                  <label className="form-label">ประเภทกิจกรรม</label>
+                  <Select
+                    onValueChange={(value) => setValue('advanceActivityType', value)}
+                    defaultValue={watch('advanceActivityType')}
+                  >
+                    <SelectTrigger className="form-input">
+                      <SelectValue placeholder="เลือกประเภทกิจกรรม" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACTIVITY_TYPES.map((activity) => (
+                        <SelectItem key={activity} value={activity}>{activity}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.advanceActivityType && (
+                    <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
+                  )}
+                </div>
+
+                {/* ฟิลด์ระบุอื่นๆ เมื่อเลือก "อื่นๆ ระบุ" */}
+                {watch('advanceActivityType') === 'อื่นๆ ระบุ' && (
+                  <div className="space-y-2">
+                    <label className="form-label">โปรดระบุ</label>
+                    <Input
+                      placeholder="ระบุประเภทกิจกรรมอื่นๆ"
+                      className="form-input"
+                      {...register('advanceActivityOther', {
+                        required: watch('advanceActivityType') === 'อื่นๆ ระบุ' ? 'กรุณาระบุประเภทกิจกรรม' : false
+                      })}
+                    />
+                    {errors.advanceActivityOther && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceActivityOther.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ข้อมูลสถานที่ */}
+                <div className="space-y-2">
+                  <label className="form-label">ชื่อร้าน/บริษัท</label>
+                  <Input
+                    placeholder="ระบุชื่อร้านหรือบริษัท"
+                    className="form-input"
+                    {...register('advanceShopCompany', {
+                      required: 'กรุณาระบุชื่อร้าน/บริษัท'
+                    })}
+                  />
+                  {errors.advanceShopCompany && (
+                    <p className="text-red-500 text-sm mt-1">{errors.advanceShopCompany.message}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">อำเภอ</label>
+                    <Input
+                      placeholder="ระบุอำเภอ"
+                      className="form-input"
+                      {...register('advanceAmphur', {
+                        required: 'กรุณาระบุอำเภอ'
+                      })}
+                    />
+                    {errors.advanceAmphur && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="form-label">จังหวัด</label>
+                    <Input
+                      placeholder="ระบุจังหวัด"
+                      className="form-input"
+                      {...register('advanceProvince', {
+                        required: 'กรุณาระบุจังหวัด'
+                      })}
+                    />
+                    {errors.advanceProvince && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ส่วนที่ 2: รายละเอียดงาน */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดงาน</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">วันที่จัด</label>
+                    <Input
+                      type="date"
+                      className="form-input"
+                      {...register('advanceEventDate', {
+                        required: 'กรุณาระบุวันที่จัด'
+                      })}
+                    />
+                    {errors.advanceEventDate && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceEventDate.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="form-label">จำนวนผู้เข้าร่วม</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="form-input"
+                      placeholder="0"
+                      {...register('advanceParticipants', {
+                        required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
+                        min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' },
+                        valueAsNumber: true
+                      })}
+                    />
+                    {errors.advanceParticipants && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ส่วนที่ 3: ค่าใช้จ่าย */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">อัตราค่าใช้จ่ายต่อคน (บาท)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      {...register('advanceDailyRate', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.advanceDailyRate && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceDailyRate.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="form-label">ค่าที่พัก (บาท)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      {...register('advanceAccommodationCost', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.advanceAccommodationCost && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceAccommodationCost.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="form-label">ค่าเดินทาง (บาท)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      {...register('advanceTransportationCost', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.advanceTransportationCost && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceTransportationCost.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="form-label">เบี้ยเลี้ยง (บาท)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="0.00"
+                      {...register('advanceMealAllowance', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      })}
+                    />
+                    {errors.advanceMealAllowance && (
+                      <p className="text-red-500 text-sm mt-1">{errors.advanceMealAllowance.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label">ค่าใช้จ่ายอื่นๆ (บาท)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-input"
+                    placeholder="0.00"
+                    {...register('advanceOtherExpenses', {
+                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                    })}
+                  />
+                  {errors.advanceOtherExpenses && (
+                    <p className="text-red-500 text-sm mt-1">{errors.advanceOtherExpenses.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="form-label font-semibold">รวมจำนวนเงินที่ขอเบิกทดลอง (บาท)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="form-input bg-blue-50 font-bold text-lg"
+                    readOnly
+                    value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
+                    {...register('amount')}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Continue with existing fields for other welfare types */}
-          {type !== 'training' && type !== 'internal_training' && (
+          {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
             <>
               {/* Original amount field */}
               <div className="space-y-2">
@@ -1873,7 +2445,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 minLength: {
                   value: 0,
-
+                  message: 'รายละเอียดต้องมีความยาวอย่างน้อย 0 ตัวอักษร'
                 }
               })}
             />
@@ -1944,7 +2516,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           <Button
             type="submit"
             className="w-full btn-hover-effect"
-            disabled={isLoading || isSubmitting || (type === 'training' && workDaysError)}
+            disabled={isLoading || isSubmitting || (type === 'training' && Boolean(workDaysError))}
           >
             {isLoading ? (
               <>
@@ -1969,7 +2541,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           setPendingFormData(null);
         }}
         onConfirm={handleSignatureConfirm}
-        userName={profile?.name || user?.name || ''}
+        userName={user?.email || ''}
       />
     </div>
   );

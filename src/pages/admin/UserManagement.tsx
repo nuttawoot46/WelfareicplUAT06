@@ -290,6 +290,7 @@ export const UserManagement = () => {
             <SelectItem value="hr">HR</SelectItem>
             <SelectItem value="accounting">Accounting</SelectItem>
             <SelectItem value="accountingandmanager">AccountingAndManager</SelectItem>
+            <SelectItem value="superadmin">SuperAdmin</SelectItem>
           </SelectContent>
         </Select>
       );

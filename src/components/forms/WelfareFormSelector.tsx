@@ -97,6 +97,15 @@ const InternalTrainingIcon = () => (
   </svg>
 );
 
+const AdvanceIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 9v6"/>
+    <path d="M9 12h6"/>
+  </svg>
+);
+
 export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [selected, setSelected] = useState<WelfareType | null>(null);
   const [benefitLimits, setBenefitLimits] = useState<BenefitLimit[]>([]);
@@ -137,8 +146,8 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   // ฟังก์ชันตรวจสอบว่าประเภทสวัสดิการสามารถเลือกได้หรือไม่
   const isWelfareTypeAvailable = (type: WelfareType): { available: boolean; reason?: string } => {
-    // Training และ Internal Training สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงาน)
-    if (type === 'training' || type === 'internal_training') {
+    // Training, Internal Training และ Advance สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
+    if (type === 'training' || type === 'internal_training' || type === 'advance') {
       return { available: true };
     }
     
@@ -169,6 +178,12 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   // ฟังก์ชันดึงข้อมูลยอดเงินคงเหลือสำหรับแสดงผล
   const getRemainingAmount = (type: WelfareType): number => {
+    // สำหรับ glasses และ dental ใช้ budget_dentalglasses ร่วมกัน
+    if (type === 'glasses' || type === 'dental') {
+      const limit = benefitLimits.find(limit => limit.type === 'dental');
+      return limit ? limit.remaining : (profile?.budget_dentalglasses ?? 0);
+    }
+    
     const limit = benefitLimits.find(limit => limit.type === type);
     return limit ? limit.remaining : 0;
   };
@@ -237,6 +252,13 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       icon: <InternalTrainingIcon />,
       color: 'text-welfare-indigo',
     },
+    {
+      id: 'advance',
+      title: 'เบิกเงินทดลอง',
+      description: 'สำหรับการขออนุมัติเบิกเงินทดลองสำหรับภารกิจต่างๆ',
+      icon: <AdvanceIcon />,
+      color: 'text-welfare-cyan',
+    },
   ];
 
   const handleSelect = (type: WelfareType) => {
@@ -300,7 +322,8 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                   option.id === 'dental' ? 'orange' :
                   option.id === 'fitness' ? 'green' :
                   option.id === 'medical' ? 'red' :
-                  option.id === 'internal_training' ? 'indigo' : 'blue'}`
+                  option.id === 'internal_training' ? 'indigo' : 
+                  option.id === 'advance' ? 'cyan' : 'blue'}`
               )}
               onClick={() => !isDisabled && handleSelect(option.id)}
             >

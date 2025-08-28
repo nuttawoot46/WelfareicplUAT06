@@ -4,7 +4,7 @@ export interface User {
   email: string;
   name: string;
   position: string;
-  role: 'employee' | 'admin' | 'manager' | 'hr';
+  role: 'employee' | 'admin' | 'manager' | 'hr' | 'superadmin';
   department: string;
   avatar?: string;
   training_budget?: number; // Current available training budget
@@ -52,7 +52,8 @@ export type WelfareType =
   | 'dental'
   | 'fitness'
   | 'medical'
-  | 'internal_training';
+  | 'internal_training'
+  | 'advance';
 
 export interface WelfareRequest {
   id: number;
@@ -122,6 +123,27 @@ export interface WelfareRequest {
   withholdingTaxAmount?: number;
   additionalNotes?: string;
   isVatIncluded?: boolean;
+  // Advance (เบิกเงินทดลอง) specific fields
+  advanceDepartment?: string;
+  advanceDistrict?: string;
+  advanceActivityType?: string;
+  advanceActivityOther?: string;
+  advanceShopCompany?: string;
+  advanceAmphur?: string;
+  advanceProvince?: string;
+  advanceTravelDays?: number;
+  advanceWorkDays?: number;
+  advanceTotalDays?: number;
+  advanceDailyRate?: number;
+  advanceAccommodationCost?: number;
+  advanceTransportationCost?: number;
+  advanceMealAllowance?: number;
+  advanceOtherExpenses?: number;
+  advanceProjectName?: string;
+  advanceProjectLocation?: string;
+  advanceExpectedReturnDate?: string;
+  advanceUrgencyLevel?: string;
+  advanceApprovalDeadline?: string;
 }
 
 export interface Notification {
@@ -137,6 +159,14 @@ export interface Notification {
 export interface ParticipantGroup {
   team: string;
   count: number;
+  selectedParticipants?: ParticipantMember[];
+}
+
+export interface ParticipantMember {
+  id?: number; // Employee ID if from database
+  name: string;
+  position?: string;
+  isCustom?: boolean; // True if manually added, false if from employee database
 }
 
 export interface InternalTrainingRequest extends WelfareRequest {

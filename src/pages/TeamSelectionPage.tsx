@@ -10,11 +10,11 @@ const TeamSelectionPage = () => {
         {/* Login Form Section */}
         <div className="w-full max-w-md text-center mb-8">
           <div className="mb-8">
-            <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-10">
+            <div className="w-40 h-40 mx-auto mb-10">
               <img
-                src="/Picture/logo-Photoroom.jpg"
+                src="/Logo_ICPL.png"
                 alt="ICP Ladda Logo"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             <h1 className="text-3xl font-bold gradient-animated-text">ระบบสวัสดิการพนักงาน ICP Ladda</h1>

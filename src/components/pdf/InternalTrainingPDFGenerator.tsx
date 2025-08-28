@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { InternalTrainingRequest, User, ParticipantGroup } from '@/types';
+import { InternalTrainingRequest, User, ParticipantGroup, ParticipantMember } from '@/types';
 
 // Thai font data (you'll need to add this)
 const addThaiFont = (doc: jsPDF) => {
@@ -129,29 +129,60 @@ export const generateInternalTrainingPDF = async (
 
   // Display participants table
   if (participants.length > 0) {
-    // Table headers
-    doc.setFont('helvetica', 'bold');
-    doc.text('ทีม/แผนก', margin, yPosition);
-    doc.text('จำนวน (คน)', margin + 100, yPosition);
-    yPosition += 8;
-    
-    // Draw line under headers
-    doc.line(margin, yPosition - 2, margin + contentWidth, yPosition - 2);
-    yPosition += 5;
-    
-    doc.setFont('helvetica', 'normal');
-    participants.forEach((participant) => {
-      if (participant.team && participant.count > 0) {
-        doc.text(participant.team, margin, yPosition);
-        doc.text(participant.count.toString(), margin + 100, yPosition);
-        yPosition += 6;
+    participants.forEach((participantGroup, groupIndex) => {
+      if (participantGroup.team && participantGroup.count > 0) {
+        // Team header
+        doc.setFont('helvetica', 'bold');
+        yPosition = addWrappedText(`ทีม: ${participantGroup.team} (${participantGroup.count} คน)`, margin, yPosition, contentWidth);
+        yPosition += 5;
+        
+        // Check if we have selected participants with names
+        if (participantGroup.selectedParticipants && participantGroup.selectedParticipants.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          yPosition = addWrappedText('รายชื่อผู้เข้าร่วม:', margin + 10, yPosition, contentWidth - 10);
+          yPosition += 5;
+          
+          participantGroup.selectedParticipants.forEach((participant, index) => {
+            const participantInfo = `${index + 1}. ${participant.name}${participant.position ? ` (${participant.position})` : ''}${participant.isCustom ? ' *' : ''}`;
+            yPosition = addWrappedText(participantInfo, margin + 20, yPosition, contentWidth - 20);
+            yPosition += 4;
+            
+            // Check if we need a new page
+            if (yPosition > 250) {
+              doc.addPage();
+              yPosition = 20;
+            }
+          });
+          
+          // Add note about custom participants if any
+          const hasCustomParticipants = participantGroup.selectedParticipants.some(p => p.isCustom);
+          if (hasCustomParticipants) {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'italic');
+            yPosition = addWrappedText('* ผู้เข้าร่วมที่เพิ่มเอง', margin + 20, yPosition, contentWidth - 20, 10);
+            doc.setFontSize(12);
+            yPosition += 3;
+          }
+        } else {
+          // No specific names selected, just show count
+          doc.setFont('helvetica', 'normal');
+          yPosition = addWrappedText(`จำนวนผู้เข้าร่วม: ${participantGroup.count} คน (ไม่ได้ระบุรายชื่อ)`, margin + 10, yPosition, contentWidth - 10);
+          yPosition += 5;
+        }
+        
+        yPosition += 8;
+        
+        // Check if we need a new page
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
       }
     });
     
     // Total participants
-    yPosition += 5;
     doc.setFont('helvetica', 'bold');
-    doc.text(`รวมจำนวนผู้เข้าอบรมทั้งหมด: ${request.total_participants} คน`, margin, yPosition);
+    yPosition = addWrappedText(`รวมจำนวนผู้เข้าอบรมทั้งหมด: ${request.total_participants} คน`, margin, yPosition, contentWidth);
     yPosition += 15;
   }
 
