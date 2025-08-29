@@ -1066,6 +1066,7 @@ export const ApprovalPage = () => {
                     <TableHead>Submission Date</TableHead>
                     <TableHead>Status</TableHead>
                     {activeTab === 'history' && <TableHead>Processed Date</TableHead>}
+                    {activeTab === 'history' && <TableHead className="w-[200px]">หมายเหตุ</TableHead>}
                     <TableHead className="text-center">Attachment</TableHead>
                     {activeTab === 'history' && <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>}
                     <TableHead>Actions</TableHead>
@@ -1128,6 +1129,13 @@ export const ApprovalPage = () => {
                         <TableCell>
                           {req.managerApprovedAt ? format(new Date(req.managerApprovedAt), 'PP') : 
                            req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
+                        </TableCell>
+                      )}
+                      {activeTab === 'history' && (
+                        <TableCell className="max-w-[200px]">
+                          <div className="text-sm text-gray-700 truncate" title={req.notes || ''}>
+                            {req.notes || '-'}
+                          </div>
                         </TableCell>
                       )}
                       <TableCell className="text-center">

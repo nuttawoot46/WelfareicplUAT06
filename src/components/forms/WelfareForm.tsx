@@ -63,8 +63,17 @@ interface FormValues {
   participants?: ParticipantGroup[];
   totalParticipants?: number;
   instructorFee?: number;
+  instructorFeeWithholding?: number;
+  instructorFeeVat?: number;
+  instructorFeeTotal?: number;
   roomFoodBeverage?: number;
+  roomFoodBeverageWithholding?: number;
+  roomFoodBeverageVat?: number;
+  roomFoodBeverageTotal?: number;
   otherExpenses?: number;
+  otherExpensesWithholding?: number;
+  otherExpensesVat?: number;
+  otherExpensesTotal?: number;
   withholdingTax?: number;
   vat?: number;
   averageCostPerPerson?: number;
@@ -94,7 +103,7 @@ interface FormValues {
 // Available teams/departments for internal training
 const TEAMS = [
   'Management',
-  'Accounting',
+  'Account',
   'Inspiration (IS)',
   'Marketing(PES)',
   'Marketing(DIS)',
@@ -194,7 +203,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   });
 
-  const isVatIncluded = watch('isVatIncluded');
+
 
 
   const { fields, append, remove } = useFieldArray({
@@ -366,22 +375,25 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [birthType, type, setValue]);
 
-  // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยนสถานะ isVatIncluded หรือ amount
+  // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยน amount, VAT หรือ withholding tax
   useEffect(() => {
     const amount = watch('amount');
+    const vatAmount = Number(watch('tax7Percent')) || 0;
+    const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+    
     if (type === 'training') {
       // สมมติว่า remainingBudget ใช้ trainingBudget
       const remainingBudget = trainingBudget ?? 0;
       if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
-        calculateTrainingAmounts(Number(amount), Number(remainingBudget));
+        calculateTrainingAmounts(Number(amount), Number(remainingBudget), vatAmount, withholdingAmount);
       }
     } else if (type === 'wedding' || type === 'childbirth' || type === 'funeral' || type === 'glasses' || type === 'dental' || type === 'fitness' || type === 'medical') {
       // คำนวณสำหรับ welfare types อื่น ๆ
       if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
-        calculateNonTrainingAmounts(Number(amount));
+        calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
       }
     }
-  }, [isVatIncluded, watch('amount'), trainingBudget, type]);
+  }, [watch('amount'), watch('tax7Percent'), watch('withholdingTax3Percent'), trainingBudget, type]);
 
   // Calculate total days when start or end date changes
   useEffect(() => {
@@ -454,43 +466,48 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [watch('advanceDailyRate'), watch('advanceAccommodationCost'), watch('advanceTransportationCost'), watch('advanceMealAllowance'), watch('advanceOtherExpenses'), watch('advanceParticipants'), setValue, type]);
 
-  // Calculate internal training costs
+  // Calculate internal training costs with separate tax calculations
   useEffect(() => {
     if (type === 'internal_training') {
       const instructorFee = Number(watch('instructorFee')) || 0;
       const roomFoodBeverage = Number(watch('roomFoodBeverage')) || 0;
       const otherExpenses = Number(watch('otherExpenses')) || 0;
       const totalParticipants = Number(watch('totalParticipants')) || 0;
-      const isVatIncluded = watch('isVatIncluded');
 
-      const subtotal = instructorFee + roomFoodBeverage + otherExpenses;
+      // Get manual withholding tax and VAT values
+      const instructorWithholding = Number(watch('instructorFeeWithholding')) || 0;
+      const roomWithholding = Number(watch('roomFoodBeverageWithholding')) || 0;
+      const otherWithholding = Number(watch('otherExpensesWithholding')) || 0;
 
-      let autoWithholding = 0;
-      let autoVat = 0;
-      let total = 0;
+      const instructorVat = Number(watch('instructorFeeVat')) || 0;
+      const roomVat = Number(watch('roomFoodBeverageVat')) || 0;
+      const otherVat = Number(watch('otherExpensesVat')) || 0;
 
-      if (!isVatIncluded) {
-        // กรณีที่ยังไม่รวม VAT และภาษี ณ ที่จ่าย
-        autoWithholding = subtotal * 0.03;
-        autoVat = subtotal * 0.07;
-        total = subtotal + autoVat - autoWithholding;
-      } else {
-        // กรณีที่รวม VAT และภาษี ณ ที่จ่ายแล้ว
-        autoWithholding = 0;
-        autoVat = 0;
-        total = subtotal;
-      }
+      // Calculate totals for each category
+      const instructorTotal = instructorFee + instructorVat - instructorWithholding;
+      const roomTotal = roomFoodBeverage + roomVat - roomWithholding;
+      const otherTotal = otherExpenses + otherVat - otherWithholding;
 
-      const average = totalParticipants > 0 ? total / totalParticipants : 0;
+      // Calculate grand totals
+      const totalWithholding = instructorWithholding + roomWithholding + otherWithholding;
+      const totalVat = instructorVat + roomVat + otherVat;
+      const grandTotal = instructorTotal + roomTotal + otherTotal;
+      const average = totalParticipants > 0 ? grandTotal / totalParticipants : 0;
 
-      setValue('withholdingTax', Math.round(autoWithholding * 100) / 100);
-      setValue('vat', Math.round(autoVat * 100) / 100);
-      setValue('totalAmount', Math.round(total * 100) / 100);
-      setValue('amount', Math.round(total * 100) / 100);
+      // Set individual total values
+      setValue('instructorFeeTotal', Math.round(instructorTotal * 100) / 100);
+      setValue('roomFoodBeverageTotal', Math.round(roomTotal * 100) / 100);
+      setValue('otherExpensesTotal', Math.round(otherTotal * 100) / 100);
+
+      // Set summary values
+      setValue('withholdingTax', Math.round(totalWithholding * 100) / 100);
+      setValue('vat', Math.round(totalVat * 100) / 100);
+      setValue('totalAmount', Math.round(grandTotal * 100) / 100);
+      setValue('amount', Math.round(grandTotal * 100) / 100);
       setValue('averageCostPerPerson', Math.round(average * 100) / 100);
-      setValue('withholdingTaxAmount', Math.round(autoWithholding * 100) / 100);
+      setValue('withholdingTaxAmount', Math.round(totalWithholding * 100) / 100);
     }
-  }, [watch('instructorFee'), watch('roomFoodBeverage'), watch('otherExpenses'), watch('totalParticipants'), watch('isVatIncluded'), setValue, type]);
+  }, [watch('instructorFee'), watch('roomFoodBeverage'), watch('otherExpenses'), watch('totalParticipants'), watch('instructorFeeWithholding'), watch('roomFoodBeverageWithholding'), watch('otherExpensesWithholding'), watch('instructorFeeVat'), watch('roomFoodBeverageVat'), watch('otherExpensesVat'), setValue, type]);
 
   // Function to generate and download CSV for internal training
   const downloadTrainingCSV = () => {
@@ -498,11 +515,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     const formData = watch();
     const participants = formData.participants || [];
-    
+
     // Collect all selected participants
     const allParticipants: any[] = [];
     let participantNumber = 1;
-    
+
     participants.forEach((group: any) => {
       if (group.selectedParticipants && group.selectedParticipants.length > 0) {
         group.selectedParticipants.forEach((participant: any) => {
@@ -522,21 +539,21 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const startDate = formData.startDate ? new Date(formData.startDate).toLocaleDateString('th-TH', {
       weekday: 'long',
       year: 'numeric',
-      month: 'long', 
+      month: 'long',
       day: 'numeric'
     }) : '';
-    
+
     const endDate = formData.endDate ? new Date(formData.endDate).toLocaleDateString('th-TH', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     }) : '';
-    
+
     const startTime = formData.startTime || '';
     const endTime = formData.endTime || '';
     const venue = formData.venue || '';
-    
+
     // Create date and venue string
     let dateVenueInfo = '';
     if (startDate && endDate && startDate === endDate) {
@@ -585,15 +602,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${formData.courseName || 'internal_training'}_participants.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast({
       title: 'ดาวน์โหลดสำเร็จ',
       description: 'ไฟล์ CSV รายชื่อผู้เข้าอบรมถูกดาวน์โหลดเรียบร้อยแล้ว',
@@ -1133,32 +1150,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
     if (typeof remainingBudget !== 'number' || isNaN(remainingBudget)) remainingBudget = 0;
 
-    // ถ้าเลือก checkbox ว่า "จำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว"
-    let vat = 0;
-    let withholding = 0;
-    let grossAmount = total;
+    // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือ 0 ถ้าไม่ได้กรอก
+    const vat = customVat !== undefined && !isNaN(customVat) ? customVat : 0;
+    const withholding = customWithholding !== undefined && !isNaN(customWithholding) ? customWithholding : 0;
 
-    if (!isVatIncluded) {
-      // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
-      if (customVat !== undefined && !isNaN(customVat)) {
-        vat = customVat;
-      } else {
-        vat = total * 0.07; // default 7%
-      }
-
-      if (customWithholding !== undefined && !isNaN(customWithholding)) {
-        withholding = customWithholding;
-      } else {
-        withholding = total * 0.03; // default 3%
-      }
-
-      grossAmount = total + vat;
-    } else {
-      // กรณีผู้ใช้กรอกยอดรวมมาแล้ว ไม่บวก VAT/หัก ณ ที่จ่ายซ้ำ
-      vat = 0;
-      withholding = 0;
-      grossAmount = total;
-    }
+    const grossAmount = total + vat;
     const remainingNum = Number(remainingBudget) || 0;
 
     let netNum = 0;
@@ -1184,8 +1180,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
     setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
-    setValue('tax7Percent', parseFloat((vat || 0).toFixed(2)));
-    setValue('withholdingTax3Percent', parseFloat((withholding || 0).toFixed(2)));
     setValue('netAmount', parseFloat((netNum || 0).toFixed(2)));
     setValue('excessAmount', parseFloat((excessAmountValue || 0).toFixed(2))); // ตั้งค่า Field ใหม่
     setValue('companyPayment', parseFloat((companyPaymentValue || 0).toFixed(2)));
@@ -1197,36 +1191,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // ตรวจสอบค่าที่ส่งเข้ามา
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
 
-    let vat = 0;
-    let withholding = 0;
-    let netAmount = total;
+    // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือ 0 ถ้าไม่ได้กรอก
+    const vat = customVat !== undefined && !isNaN(customVat) ? customVat : 0;
+    const withholding = customWithholding !== undefined && !isNaN(customWithholding) ? customWithholding : 0;
 
-    if (!isVatIncluded) {
-      // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือคำนวณจาก default percentage
-      if (customVat !== undefined && !isNaN(customVat)) {
-        vat = customVat;
-      } else {
-        vat = total * 0.07; // default 7%
-      }
-
-      if (customWithholding !== undefined && !isNaN(customWithholding)) {
-        withholding = customWithholding;
-      } else {
-        withholding = total * 0.03; // default 3%
-      }
-
-      netAmount = total + vat - withholding;
-    } else {
-      // กรณีที่รวม VAT และภาษี ณ ที่จ่ายแล้ว
-      vat = 0;
-      withholding = 0;
-      netAmount = total;
-    }
+    const netAmount = total + vat - withholding;
 
     // อัปเดตค่าทั้งหมดไปยังฟอร์ม
     setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
-    setValue('tax7Percent', parseFloat((vat || 0).toFixed(2)));
-    setValue('withholdingTax3Percent', parseFloat((withholding || 0).toFixed(2)));
     setValue('netAmount', parseFloat((netAmount || 0).toFixed(2)));
   };
 
@@ -1465,7 +1437,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     },
                     onChange: (e) => {
                       const amount = Number(e.target.value);
-                      calculateTrainingAmounts(amount, remainingBudget);
+                      const vatAmount = Number(watch('tax7Percent')) || 0;
+                      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+                      calculateTrainingAmounts(amount, remainingBudget, vatAmount, withholdingAmount);
                     }
                   })}
                 />
@@ -1474,18 +1448,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 )}
               </div>
 
-              {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  id="isVatIncluded"
-                  {...register('isVatIncluded')}
-                  className="mr-2"
-                />
-                <label htmlFor="isVatIncluded" className="form-label text-gray-700">
-                  กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
-                </label>
-              </div>
+
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -1495,12 +1458,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
+                    defaultValue="0"
                     {...register('tax7Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
-                        const vatAmount = Number(e.target.value);
-                        const withholdingAmount = watch('withholdingTax3Percent');
+                        const vatAmount = Number(e.target.value) || 0;
+                        const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
                         if (amount) {
                           calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
                         }
@@ -1518,12 +1483,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
+                    defaultValue="0"
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
-                        const withholdingAmount = Number(e.target.value);
-                        const vatAmount = watch('tax7Percent');
+                        const withholdingAmount = Number(e.target.value) || 0;
+                        const vatAmount = Number(watch('tax7Percent')) || 0;
                         if (amount) {
                           calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
                         }
@@ -1786,7 +1753,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                               </Button>
                             )}
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm text-gray-600 mb-1 block">เลือกทีม:</label>
@@ -1808,7 +1775,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                 </SelectContent>
                               </Select>
                             </div>
-                            
+
                             <div>
                               <label className="text-sm text-gray-600 mb-1 block">จำนวนผู้เข้าร่วม:</label>
                               <Input
@@ -1828,7 +1795,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                     if (currentSelected.length > currentCount) {
                                       setValue(`participants.${index}.selectedParticipants`, currentSelected.slice(0, currentCount));
                                     }
-                                    
+
                                     // Trigger total recalculation
                                     setTimeout(() => {
                                       const participants = watch('participants') || [];
@@ -1855,7 +1822,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         </div>
                       );
                     })}
-                    
+
                     <Button
                       type="button"
                       onClick={() => appendParticipant({ team: '', count: 0, selectedParticipants: [] })}
@@ -1896,120 +1863,237 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">งบประมาณและค่าใช้จ่าย</h3>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าวิทยากร</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('instructorFee', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.instructorFee && (
-                      <p className="text-red-500 text-sm mt-1">{errors.instructorFee.message}</p>
-                    )}
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าห้อง อาหารและเครื่องดื่ม</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('roomFoodBeverage', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.roomFoodBeverage && (
-                      <p className="text-red-500 text-sm mt-1">{errors.roomFoodBeverage.message}</p>
-                    )}
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าใช้จ่ายอื่นๆ</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('otherExpenses', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.otherExpenses && (
-                      <p className="text-red-500 text-sm mt-1">{errors.otherExpenses.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
-                <div className="flex items-center mb-4">
-                  <input
-                    type="checkbox"
-                    id="isVatIncluded-internal"
-                    {...register('isVatIncluded')}
-                    className="mr-2"
-                  />
-                  <label htmlFor="isVatIncluded-internal" className="form-label text-gray-700">
-                    กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="form-input bg-gray-100"
-                      readOnly
-                      value={watch('withholdingTax') ? Number(watch('withholdingTax')).toFixed(2) : ''}
-                      {...register('withholdingTax')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">ภาษีมูลค่าเพิ่ม (VAT 7%)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="form-input bg-gray-100"
-                      readOnly
-                      value={watch('vat') ? Number(watch('vat')).toFixed(2) : ''}
-                      {...register('vat')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">รวมเป็นเงินทั้งสิ้น</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="form-input bg-gray-100"
-                      readOnly
-                      value={watch('totalAmount') ? Number(watch('totalAmount')).toFixed(2) : ''}
-                      {...register('totalAmount')}
-                    />
+                {/* ค่าวิทยากร */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-700 mb-3">1. ค่าวิทยากร</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('instructorFee', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                      {errors.instructorFee && (
+                        <p className="text-red-500 text-xs mt-1">{errors.instructorFee.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('instructorFeeWithholding', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">VAT (7%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('instructorFeeVat', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-blue-100 font-semibold"
+                        readOnly
+                        value={watch('instructorFeeTotal') ? Number(watch('instructorFeeTotal')).toFixed(2) : '0.00'}
+                        {...register('instructorFeeTotal')}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="form-label">เฉลี่ยค่าใช้จ่ายต่อคน</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-gray-100"
-                    readOnly
-                    value={watch('averageCostPerPerson') ? Number(watch('averageCostPerPerson')).toFixed(2) : ''}
-                    {...register('averageCostPerPerson')}
-                  />
+                {/* ค่าห้อง อาหารและเครื่องดื่ม */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-700 mb-3">2. ค่าห้อง อาหารและเครื่องดื่ม</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('roomFoodBeverage', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                      {errors.roomFoodBeverage && (
+                        <p className="text-red-500 text-xs mt-1">{errors.roomFoodBeverage.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('roomFoodBeverageWithholding', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">VAT (7%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('roomFoodBeverageVat', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-blue-100 font-semibold"
+                        readOnly
+                        value={watch('roomFoodBeverageTotal') ? Number(watch('roomFoodBeverageTotal')).toFixed(2) : '0.00'}
+                        {...register('roomFoodBeverageTotal')}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ค่าใช้จ่ายอื่นๆ */}
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-700 mb-3">3. ค่าใช้จ่ายอื่นๆ</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('otherExpenses', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                      {errors.otherExpenses && (
+                        <p className="text-red-500 text-xs mt-1">{errors.otherExpenses.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('otherExpensesWithholding', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm">VAT (7%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        placeholder="0.00"
+                        {...register('otherExpensesVat', {
+                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-blue-100 font-semibold"
+                        readOnly
+                        value={watch('otherExpensesTotal') ? Number(watch('otherExpensesTotal')).toFixed(2) : '0.00'}
+                        {...register('otherExpensesTotal')}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* สรุปรวม */}
+                <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-bold text-blue-800 mb-4">สรุปรวมทั้งหมด</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">รวมหักภาษี ณ ที่จ่าย</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-red-100 font-semibold"
+                        readOnly
+                        value={watch('withholdingTax') ? Number(watch('withholdingTax')).toFixed(2) : '0.00'}
+                        {...register('withholdingTax')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">รวม VAT</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-green-100 font-semibold"
+                        readOnly
+                        value={watch('vat') ? Number(watch('vat')).toFixed(2) : '0.00'}
+                        {...register('vat')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-bold">รวมเป็นเงินทั้งสิ้น</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-yellow-100 font-bold text-lg"
+                        readOnly
+                        value={watch('totalAmount') ? Number(watch('totalAmount')).toFixed(2) : '0.00'}
+                        {...register('totalAmount')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label text-sm font-semibold">เฉลี่ยต่อคน</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="form-input bg-purple-100 font-semibold"
+                        readOnly
+                        value={watch('averageCostPerPerson') ? Number(watch('averageCostPerPerson')).toFixed(2) : '0.00'}
+                        {...register('averageCostPerPerson')}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2349,7 +2433,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     },
                     onChange: (e) => {
                       const amount = Number(e.target.value);
-                      calculateNonTrainingAmounts(amount);
+                      const vatAmount = Number(watch('tax7Percent')) || 0;
+                      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+                      calculateNonTrainingAmounts(amount, vatAmount, withholdingAmount);
                     }
                   })}
                 />
@@ -2358,18 +2444,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 )}
               </div>
 
-              {/* Checkbox: รวม VAT และ ภาษี ณ ที่จ่ายแล้ว */}
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  id="isVatIncluded-nontraining"
-                  {...register('isVatIncluded')}
-                  className="mr-2"
-                />
-                <label htmlFor="isVatIncluded-nontraining" className="form-label text-gray-700">
-                  กรุณาเลือกถ้าจำนวนเงินรวม VAT และ ภาษี ณ ที่จ่ายแล้ว
-                </label>
-              </div>
+
 
               {/* VAT and Tax fields for non-training types */}
               <div className="grid grid-cols-3 gap-4">
@@ -2380,12 +2455,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
+                    defaultValue="0"
                     {...register('tax7Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
-                        const vatAmount = Number(e.target.value);
-                        const withholdingAmount = watch('withholdingTax3Percent');
+                        const vatAmount = Number(e.target.value) || 0;
+                        const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
                         if (amount) {
                           calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
                         }
@@ -2403,12 +2480,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     step="0.01"
                     min="0"
+                    placeholder="0.00"
+                    defaultValue="0"
                     {...register('withholdingTax3Percent', {
                       min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
-                        const withholdingAmount = Number(e.target.value);
-                        const vatAmount = watch('tax7Percent');
+                        const withholdingAmount = Number(e.target.value) || 0;
+                        const vatAmount = Number(watch('tax7Percent')) || 0;
                         if (amount) {
                           calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
                         }

@@ -584,6 +584,7 @@ export const HRApprovalPage = () => {
                 <TableHead>Approved by Manager</TableHead>
                 <TableHead>Status</TableHead>
                 {activeTab === 'history' && <TableHead>HR Processed Date</TableHead>}
+                {activeTab === 'history' && <TableHead className="w-[200px]">หมายเหตุ</TableHead>}
                 <TableHead className="text-center">Attachment</TableHead>
                 {activeTab === 'history' && <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>}
                 <TableHead>Actions</TableHead>

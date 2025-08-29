@@ -52,7 +52,7 @@ const getStatusText = (status: string) => {
     case 'pending_manager':
       return 'รออนุมัติโดยหัวหน้า';
     case 'pending_hr':
-      return 'รอตรวจสอบโดย HR';     
+      return 'รอตรวจสอบโดย HR';
     case 'pending_accounting':
       return 'รอตรวจสอบโดยบัญชี';
     case 'completed':
@@ -62,7 +62,7 @@ const getStatusText = (status: string) => {
     case 'rejected_accounting':
       return 'ปฏิเสธโดยบัญชี';
     case 'rejected_hr':
-      return 'ปฏิเสธโดย HR';  
+      return 'ปฏิเสธโดย HR';
     default:
       return 'สถานะไม่ทราบ';
   }
@@ -74,7 +74,7 @@ const getStatusClass = (status: string) => {
     case 'pending_manager':
       return 'bg-yellow-100 text-yellow-800';
     case 'pending_hr':
-      return 'bg-amber-200 text-amber-900';      
+      return 'bg-amber-200 text-amber-900';
     case 'pending_accounting':
       return 'bg-amber-200 text-amber-900';
     case 'completed':
@@ -117,7 +117,7 @@ const getRequestTypeText = (requestType: string) => {
 // ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
 const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv") => {
   if (!data || data.length === 0) return;
-  
+
   // สร้าง header
   const header = [
     'วันที่ยื่น',
@@ -128,7 +128,7 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
     'รายละเอียด',
     'หมายเหตุจากผู้จัดการ'
   ];
-  
+
   const rows = data.map(row => [
     formatDate(row.created_at),
     row.employee_name || '',
@@ -138,12 +138,12 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
     row.details || '',
     row.manager_notes || ''
   ]);
-  
+
   // รวม header กับ rows
   const csv = [header, ...rows]
     .map(e => e.map(v => '"' + (v?.toString().replace(/"/g, '""') || '') + '"').join(","))
     .join("\r\n");
-  
+
   // ใส่ BOM เพื่อให้ Excel อ่านภาษาไทยถูก
   const csvWithBom = '\uFEFF' + csv;
   const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
@@ -168,6 +168,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   const [editId, setEditId] = useState<number | null>(null);
   const [editType, setEditType] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   // Double click handler for editing - เฉพาะสถานะ pending_manager เท่านั้น
   const handleDoubleClick = (request: WelfareRequestItem) => {
@@ -191,7 +192,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
       setError('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
       return;
     }
-    
+
     try {
       if (isRefresh) {
         setIsRefreshing(true);
@@ -219,7 +220,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
       // Map attachment_url to attachments array with better error handling
       const mapped = data.map((req: WelfareRequestItem) => {
         let attachments: string[] = [];
-        
+
         try {
           if (Array.isArray(req.attachment_url)) {
             attachments = req.attachment_url.filter(url => url && typeof url === 'string');
@@ -241,10 +242,10 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           console.warn('Error processing attachments for request:', req.id, error);
           attachments = [];
         }
-        
+
         return { ...req, attachments };
       });
-      
+
       setRequests(mapped);
     } catch (err: any) {
       console.error('Fetch error:', err);
@@ -266,7 +267,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   // อัปเดตรายการปีที่มีในข้อมูลเมื่อ requests เปลี่ยน - ใช้ useMemo เพื่อประสิทธิภาพ
   const years = useMemo(() => {
     if (requests.length === 0) return [];
-    
+
     const yearSet = new Set<string>();
     requests.forEach((req) => {
       if (req.created_at) {
@@ -278,24 +279,60 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         }
       }
     });
-    
+
     // เรียงจากมากไปน้อย (ล่าสุดอยู่บน)
     return Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a));
   }, [requests]);
 
+  // อัปเดตรายการเดือนที่มีในข้อมูลเมื่อ requests เปลี่ยน - ใช้ useMemo เพื่อประสิทธิภาพ
+  const months = useMemo(() => {
+    if (requests.length === 0) return [];
+
+    const monthSet = new Set<string>();
+    requests.forEach((req) => {
+      if (req.created_at) {
+        try {
+          const date = new Date(req.created_at);
+          const year = date.getFullYear().toString();
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+
+          // ถ้าเลือกปีเฉพาะ ให้แสดงเฉพาะเดือนของปีนั้น
+          if (selectedYear === 'all' || year === selectedYear) {
+            monthSet.add(month);
+          }
+        } catch (error) {
+          console.warn('Invalid date format:', req.created_at);
+        }
+      }
+    });
+
+    // เรียงจาก 01 ถึง 12
+    return Array.from(monthSet).sort();
+  }, [requests, selectedYear]);
+
+  // ฟังก์ชันแปลงเลขเดือนเป็นชื่อเดือนไทย
+  const getMonthName = (month: string) => {
+    const monthNames = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const monthIndex = parseInt(month) - 1;
+    return monthNames[monthIndex] || month;
+  };
+
   // Filter requests - ใช้ useMemo เพื่อประสิทธิภาพ
   const filteredRequests = useMemo(() => {
     if (!requests.length) return [];
-    
+
     let result = [...requests];
-    
+
     // Filter by status
     if (selectedStatus !== 'all') {
-      result = result.filter(request => 
+      result = result.filter(request =>
         request.status === selectedStatus
       );
     }
-    
+
     // Filter by year
     if (selectedYear !== 'all') {
       result = result.filter(request => {
@@ -308,9 +345,22 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         }
       });
     }
-    
+
+    // Filter by month
+    if (selectedMonth !== 'all') {
+      result = result.filter(request => {
+        if (!request.created_at) return false;
+        try {
+          const month = (new Date(request.created_at).getMonth() + 1).toString().padStart(2, '0');
+          return month === selectedMonth;
+        } catch {
+          return false;
+        }
+      });
+    }
+
     return result;
-  }, [requests, selectedStatus, selectedYear]);
+  }, [requests, selectedStatus, selectedYear, selectedMonth]);
 
 
 
@@ -344,17 +394,33 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               <select
                 className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  // รีเซ็ตเดือนเมื่อเปลี่ยนปี
+                  setSelectedMonth('all');
+                }}
               >
                 <option value="all">ทุกปี</option>
                 {years.map((year) => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              <Button 
-                onClick={handleRefresh} 
-                variant="outline" 
-                size="sm" 
+              {/* Month Filter */}
+              <select
+                className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                disabled={months.length === 0}
+              >
+                <option value="all">ทุกเดือน</option>
+                {months.map((month) => (
+                  <option key={month} value={month}>{getMonthName(month)}</option>
+                ))}
+              </select>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
                 className="flex items-center gap-2"
                 disabled={isLoading || isRefreshing}
               >
@@ -405,12 +471,12 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           ) : filteredRequests.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <div className="text-lg font-medium mb-2">
-                {selectedStatus !== 'all' || selectedYear !== 'all'
-                  ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา' 
+                {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
+                  ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา'
                   : 'ไม่พบข้อมูลการยื่นเบิกสวัสดิการ'}
               </div>
               <p className="text-sm">
-                {selectedStatus !== 'all' || selectedYear !== 'all'
+                {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
                   ? 'ลองเปลี่ยนตัวกรองหรือเพิ่มข้อมูลใหม่'
                   : 'เริ่มต้นโดยการยื่นคำร้องขอสวัสดิการใหม่'}
               </p>
@@ -425,12 +491,13 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                     <TableHead className="text-right">จำนวนเงิน</TableHead>
                     <TableHead className="text-center">สถานะ</TableHead>
                     <TableHead className="text-center">เอกสารแนบ</TableHead>
+                    <TableHead className="w-[200px]">หมายเหตุ</TableHead>
                     <TableHead className="w-[100px] text-center">รายละเอียด</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request) => (
-                    <TableRow 
+                    <TableRow
                       key={request.id}
                       className={`hover:bg-gray-50 ${request.status === 'pending_manager' ? 'cursor-pointer' : 'cursor-default'}`}
                       onDoubleClick={() => handleDoubleClick(request)}
@@ -473,93 +540,98 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                               ))}
                             </>
                           )}
-                          
+
                           {/* PDF ที่ HR approve แล้ว - แสดงเฉพาะเมื่อสถานะเป็น pending_accounting หรือ completed */}
-                          {request.pdf_request_hr && 
-                           (request.status === 'pending_accounting' || request.status === 'completed') && (
-                            <div className="flex flex-col items-center">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                key="hr-approved-pdf"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  // ดาวน์โหลด PDF จาก URL
-                                  try {
-                                    if (!request.pdf_request_hr) {
-                                      alert('ไม่พบไฟล์ PDF');
-                                      return;
-                                    }
-                                    
-                                    // แสดง loading state
-                                    const button = e.currentTarget;
-                                    const originalContent = button.innerHTML;
-                                    button.innerHTML = '<div class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>';
-                                    button.disabled = true;
-                                    
-                                    // ตรวจสอบว่าเป็น URL หรือ base64
-                                    if (request.pdf_request_hr.startsWith('http')) {
-                                      // เป็น URL - ดาวน์โหลดโดยตรง
-                                      const link = document.createElement('a');
-                                      link.href = request.pdf_request_hr;
-                                      link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
-                                      link.target = '_blank';
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
-                                      
-                                      // คืนค่า button กลับเป็นปกติ
-                                      button.innerHTML = originalContent;
-                                      button.disabled = false;
-                                    } else {
-                                      // เป็น base64 - แปลงเป็น blob
-                                      setTimeout(() => {
-                                        try {
-                                          const byteCharacters = atob(request.pdf_request_hr!);
-                                          const byteNumbers = new Array(byteCharacters.length);
-                                          for (let i = 0; i < byteCharacters.length; i++) {
-                                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                          {request.pdf_request_hr &&
+                            (request.status === 'pending_accounting' || request.status === 'completed') && (
+                              <div className="flex flex-col items-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  key="hr-approved-pdf"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    // ดาวน์โหลด PDF จาก URL
+                                    try {
+                                      if (!request.pdf_request_hr) {
+                                        alert('ไม่พบไฟล์ PDF');
+                                        return;
+                                      }
+
+                                      // แสดง loading state
+                                      const button = e.currentTarget;
+                                      const originalContent = button.innerHTML;
+                                      button.innerHTML = '<div class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>';
+                                      button.disabled = true;
+
+                                      // ตรวจสอบว่าเป็น URL หรือ base64
+                                      if (request.pdf_request_hr.startsWith('http')) {
+                                        // เป็น URL - ดาวน์โหลดโดยตรง
+                                        const link = document.createElement('a');
+                                        link.href = request.pdf_request_hr;
+                                        link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                        link.target = '_blank';
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+
+                                        // คืนค่า button กลับเป็นปกติ
+                                        button.innerHTML = originalContent;
+                                        button.disabled = false;
+                                      } else {
+                                        // เป็น base64 - แปลงเป็น blob
+                                        setTimeout(() => {
+                                          try {
+                                            const byteCharacters = atob(request.pdf_request_hr!);
+                                            const byteNumbers = new Array(byteCharacters.length);
+                                            for (let i = 0; i < byteCharacters.length; i++) {
+                                              byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                            }
+                                            const byteArray = new Uint8Array(byteNumbers);
+                                            const blob = new Blob([byteArray], { type: 'application/pdf' });
+                                            const url = URL.createObjectURL(blob);
+                                            const link = document.createElement('a');
+                                            link.href = url;
+                                            link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                          } catch (error) {
+                                            console.error('Error downloading PDF:', error);
+                                            alert('ไม่สามารถดาวน์โหลด PDF ได้ กรุณาลองใหม่อีกครั้ง');
+                                          } finally {
+                                            // คืนค่า button กลับเป็นปกติ
+                                            button.innerHTML = originalContent;
+                                            button.disabled = false;
                                           }
-                                          const byteArray = new Uint8Array(byteNumbers);
-                                          const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                          const url = URL.createObjectURL(blob);
-                                          const link = document.createElement('a');
-                                          link.href = url;
-                                          link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
-                                          document.body.appendChild(link);
-                                          link.click();
-                                          document.body.removeChild(link);
-                                          URL.revokeObjectURL(url);
-                                        } catch (error) {
-                                          console.error('Error downloading PDF:', error);
-                                          alert('ไม่สามารถดาวน์โหลด PDF ได้ กรุณาลองใหม่อีกครั้ง');
-                                        } finally {
-                                          // คืนค่า button กลับเป็นปกติ
-                                          button.innerHTML = originalContent;
-                                          button.disabled = false;
-                                        }
-                                      }, 100);
+                                        }, 100);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error downloading PDF:', error);
+                                      alert('ไม่สามารถดาวน์โหลด PDF ได้');
                                     }
-                                  } catch (error) {
-                                    console.error('Error downloading PDF:', error);
-                                    alert('ไม่สามารถดาวน์โหลด PDF ได้');
-                                  }
-                                }}
-                                className="text-green-600 hover:text-green-800"
-                                title="ดาวน์โหลด PDF ที่ HR อนุมัติแล้ว (สำหรับปริ้น)"
-                              >
-                                <Download className="h-4 w-4" />
-                                <span className="sr-only">ดาวน์โหลด PDF อนุมัติ</span>
-                              </Button>
-                              <span className="text-xs text-green-600">อนุมัติแล้ว</span>
-                            </div>
-                          )}
-                          
+                                  }}
+                                  className="text-green-600 hover:text-green-800"
+                                  title="ดาวน์โหลด PDF ที่ HR อนุมัติแล้ว (สำหรับปริ้น)"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  <span className="sr-only">ดาวน์โหลด PDF อนุมัติ</span>
+                                </Button>
+                                <span className="text-xs text-green-600">อนุมัติแล้ว</span>
+                              </div>
+                            )}
+
                           {/* แสดง - เมื่อไม่มีเอกสารใด ๆ */}
-                          {(!request.attachments || request.attachments.length === 0) && 
-                           !request.pdf_request_hr && (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                          {(!request.attachments || request.attachments.length === 0) &&
+                            !request.pdf_request_hr && (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <div className="text-sm text-gray-700 truncate" title={request.manager_notes || ''}>
+                          {request.manager_notes || '-'}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
