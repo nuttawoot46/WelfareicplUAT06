@@ -82,7 +82,9 @@ const getStatusClass = (status: string) => {
     case 'rejected_manager':
       return 'bg-red-100 text-red-800';
     case 'rejected_accounting':
-      return 'bg-pink-200 text-pink-900';
+      return 'bg-red-100 text-red-800';
+    case 'rejected_hr':
+      return 'bg-red-100 text-red-800';  
     default:
       return 'bg-gray-100 text-gray-800';
   }
