@@ -10,10 +10,10 @@ interface StatusCardProps {
 }
 
 export function StatusCard({ title, count, status, icon }: StatusCardProps) {
-  const getColorsByStatus = (): { 
-    bg: string; 
-    text: string; 
-    border: string; 
+  const getColorsByStatus = (): {
+    bg: string;
+    text: string;
+    border: string;
     iconBg: string;
     darkBg: string;
     darkText: string;
@@ -22,70 +22,52 @@ export function StatusCard({ title, count, status, icon }: StatusCardProps) {
   } => {
     switch (status) {
       case 'pending_manager':
-        return {
-          bg: 'bg-amber-50',
-          text: 'text-amber-800',
-          border: 'border-amber-200',
-          iconBg: 'bg-amber-100',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-dark-yellow dark-text-high-contrast',
-          darkBorder: 'dark:border-dark-yellow/30',
-          darkIconBg: 'dark:bg-dark-yellow/10'
-        };
+      case 'pending_hr':
       case 'pending_accounting':
         return {
-          bg: 'bg-amber-100',
-          text: 'text-amber-900',
-          border: 'border-amber-300',
-          iconBg: 'bg-amber-200',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-amber-400 dark-text-high-contrast',
-          darkBorder: 'dark:border-amber-400/30',
-          darkIconBg: 'dark:bg-amber-400/10'
+          bg: 'bg-gradient-to-br from-orange-300 via-orange-300 to-yellow-200',
+          text: 'text-orange-700',
+          border: 'border-transparent',
+          iconBg: 'bg-white/40',
+          darkBg: 'dark:bg-gradient-to-br dark:from-orange-400 dark:via-orange-500 dark:to-yellow-400',
+          darkText: 'dark:text-white',
+          darkBorder: 'dark:border-transparent',
+          darkIconBg: 'dark:bg-white/20'
         };
       case 'completed':
         return {
-          bg: 'bg-green-50',
+          bg: 'bg-gradient-to-br from-green-200 via-green-300 to-teal-200',
           text: 'text-green-800',
-          border: 'border-green-200',
-          iconBg: 'bg-green-100',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-dark-green dark-text-high-contrast',
-          darkBorder: 'dark:border-dark-green/30',
-          darkIconBg: 'dark:bg-dark-green/10'
+          border: 'border-transparent',
+          iconBg: 'bg-white/40',
+          darkBg: 'dark:bg-gradient-to-br dark:from-green-400 dark:via-green-500 dark:to-teal-400',
+          darkText: 'dark:text-white',
+          darkBorder: 'dark:border-transparent',
+          darkIconBg: 'dark:bg-white/20'
         };
       case 'rejected_manager':
-        return {
-          bg: 'bg-red-50',
-          text: 'text-red-800',
-          border: 'border-red-200',
-          iconBg: 'bg-red-100',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-dark-red dark-text-high-contrast',
-          darkBorder: 'dark:border-dark-red/30',
-          darkIconBg: 'dark:bg-dark-red/10'
-        };
+      case 'rejected_hr':
       case 'rejected_accounting':
         return {
-          bg: 'bg-pink-100',
-          text: 'text-pink-900',
-          border: 'border-pink-200',
-          iconBg: 'bg-pink-200',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-pink-400 dark-text-high-contrast',
-          darkBorder: 'dark:border-pink-400/30',
-          darkIconBg: 'dark:bg-pink-400/10'
+          bg: 'bg-gradient-to-br from-red-500 via-red-0 to-pink-0',
+          text: 'text-red-800',
+          border: 'border-transparent',
+          iconBg: 'bg-white/40',
+          darkBg: 'dark:bg-gradient-to-br dark:from-red-400 dark:via-red-500 dark:to-pink-400',
+          darkText: 'dark:text-white',
+          darkBorder: 'dark:border-transparent',
+          darkIconBg: 'dark:bg-white/20'
         };
       default:
         return {
-          bg: 'bg-blue-50',
+          bg: 'bg-gradient-to-br from-blue-200 via-blue-300 to-indigo-200',
           text: 'text-blue-800',
-          border: 'border-blue-200',
-          iconBg: 'bg-blue-100',
-          darkBg: 'dark:bg-dark-glass dark:bg-opacity-40',
-          darkText: 'dark:text-dark-blue dark-text-high-contrast',
-          darkBorder: 'dark:border-dark-blue/30',
-          darkIconBg: 'dark:bg-dark-blue/10'
+          border: 'border-transparent',
+          iconBg: 'bg-white/40',
+          darkBg: 'dark:bg-gradient-to-br dark:from-blue-400 dark:via-blue-500 dark:to-indigo-400',
+          darkText: 'dark:text-white',
+          darkBorder: 'dark:border-transparent',
+          darkIconBg: 'dark:bg-white/20'
         };
     }
   };
@@ -94,20 +76,20 @@ export function StatusCard({ title, count, status, icon }: StatusCardProps) {
 
   return (
     <Card className={cn(
-      "java-card overflow-hidden backdrop-blur-sm dark-glow", 
-      colors.bg, 
+      "java-card overflow-hidden backdrop-blur-sm dark-glow",
+      colors.bg,
       colors.border,
       colors.darkBg,
       colors.darkBorder
     )}>
       <CardHeader className="pb-2">
         <CardTitle className={cn(
-          "text-lg font-medium flex items-center gap-2", 
+          "text-lg font-medium flex items-center gap-2",
           colors.text,
           colors.darkText
         )}>
           <div className={cn(
-            "p-2 rounded-md", 
+            "p-2 rounded-md",
             colors.iconBg,
             colors.darkIconBg
           )}>
@@ -119,12 +101,12 @@ export function StatusCard({ title, count, status, icon }: StatusCardProps) {
       <CardContent>
         <div className="flex items-baseline">
           <p className={cn(
-            "text-3xl font-bold dark-value", 
+            "text-3xl font-bold dark-value",
             colors.text,
             colors.darkText
           )}>{count}</p>
           <p className={cn(
-            "ml-2 text-sm dark-text-medium-contrast", 
+            "ml-2 text-sm dark-text-medium-contrast",
             colors.text,
             colors.darkText
           )}>รายการ</p>

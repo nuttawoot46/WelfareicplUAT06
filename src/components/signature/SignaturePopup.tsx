@@ -25,7 +25,7 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   // Initialize canvas - must be before early return to maintain hook order
   React.useEffect(() => {
     if (!isOpen) return;
-    
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -51,34 +51,61 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
 
   if (!isOpen) return null;
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getEventPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+
+    if ('touches' in e) {
+      // Touch event
+      const touch = e.touches[0] || e.changedTouches[0];
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    } else {
+      // Mouse event
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent scrolling on touch
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const pos = getEventPos(e);
     setIsDrawing(true);
     ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.moveTo(pos.x, pos.y);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent scrolling on touch
+
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    const pos = getEventPos(e);
+    ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (e) e.preventDefault(); // Prevent scrolling on touch
     setIsDrawing(false);
   };
 
@@ -141,11 +168,15 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
         <div className="border-2 border-gray-300 rounded-lg mb-4">
           <canvas
             ref={canvasRef}
-            className="w-full cursor-crosshair"
+            className="w-full cursor-crosshair touch-none"
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+            onTouchCancel={stopDrawing}
           />
         </div>
 

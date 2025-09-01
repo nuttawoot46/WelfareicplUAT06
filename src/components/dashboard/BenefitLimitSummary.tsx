@@ -9,14 +9,24 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import {
+  Heart,
+  GraduationCap,
+  Baby,
+  Cross,
+  Glasses,
+  Smile,
+  Dumbbell,
+  Stethoscope
+} from 'lucide-react';
 
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,16 +53,28 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   medical: 'ค่าเยี่ยมกรณีเจ็บป่วย',
 };
 
-// สีสำหรับแต่ละประเภทสวัสดิการ
+// ไอคอนสำหรับแต่ละประเภทสวัสดิการ
+const welfareIcons: Record<WelfareType, React.ReactNode> = {
+  wedding: <Heart className="h-4 w-4 text-pink-500" />,
+  training: <GraduationCap className="h-4 w-4 text-blue-500" />,
+  childbirth: <Baby className="h-4 w-4 text-yellow-500" />,
+  funeral: <Cross className="h-4 w-4 text-gray-500" />,
+  glasses: <Glasses className="h-4 w-4 text-purple-500" />,
+  dental: <Smile className="h-4 w-4 text-orange-500" />,
+  fitness: <Dumbbell className="h-4 w-4 text-green-500" />,
+  medical: <Stethoscope className="h-4 w-4 text-red-500" />,
+};
+
+// สีสำหรับแต่ละประเภทสวัสดิการ (สำหรับ chart)
 const barColors: Record<WelfareType, string> = {
-  wedding: 'rgba(255, 99, 132, 0.7)',
-  training: 'rgba(54, 162, 235, 0.7)',
-  childbirth: 'rgba(255, 206, 86, 0.7)',
-  funeral: 'rgba(75, 192, 192, 0.7)',
-  glasses: 'rgba(153, 102, 255, 0.7)',
-  dental: 'rgba(255, 159, 64, 0.7)',
-  fitness: 'rgba(255, 99, 255, 0.7)',
-  medical: 'rgba(99, 255, 132, 0.7)',
+  wedding: 'rgba(236, 72, 153, 0.7)',
+  training: 'rgba(59, 130, 246, 0.7)',
+  childbirth: 'rgba(234, 179, 8, 0.7)',
+  funeral: 'rgba(107, 114, 128, 0.7)',
+  glasses: 'rgba(147, 51, 234, 0.7)',
+  dental: 'rgba(249, 115, 22, 0.7)',
+  fitness: 'rgba(34, 197, 94, 0.7)',
+  medical: 'rgba(239, 68, 68, 0.7)',
 };
 
 export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
@@ -65,13 +87,13 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
     setIsLoading(true);
     try {
       const data = await getBenefitLimits();
-      
+
       // รวมสวัสดิการค่าตัดแว่นและค่าทำฟันเป็นรายการเดียวกัน
       const processedData = data.filter(benefit => {
         // กรองเอาเฉพาะรายการที่ไม่ใช่ค่าตัดแว่น
         return benefit.type !== 'glasses';
       });
-      
+
       setBenefits(processedData);
     } catch (err) {
       console.error('Failed to fetch benefit limits:', err);
@@ -108,12 +130,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
           <span>สรุปวงเงินสวัสดิการ</span>
           <span className="text-base font-normal text-gray-400">(Top {limit})</span>
         </CardTitle>
-        <div className="mt-2 flex gap-2">
-          <Button onClick={() => setViewMode('table')} disabled={viewMode === 'table'} className={viewMode === 'table' ? 'bg-welfare-blue text-white' : ''}>
-            Table View
-          </Button>
 
-        </div>
       </CardHeader>
       <CardContent>
         {viewMode === 'table' ? (
@@ -151,7 +168,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
                     return (
                       <TableRow key={benefit.type} className="hover:bg-welfare-blue/5 dark:hover:bg-welfare-blue/20 transition-colors">
                         <TableCell className="font-medium flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-full" style={{background: barColors[benefit.type]}}></span>
+                          {welfareIcons[benefit.type] || <Heart className="h-4 w-4 text-gray-500" />}
                           {welfareTypeLabels[benefit.type] || benefit.type}
                         </TableCell>
                         <TableCell>{benefit.totalLimit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400">บาท</span></TableCell>
@@ -159,15 +176,13 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
                         <TableCell>{benefit.remaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-gray-400">บาท</span></TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className={`h-2 w-full rounded-full overflow-hidden ${
-                              percentRemaining < 25 ? 'bg-red-100' : 
-                              percentRemaining < 50 ? 'bg-amber-100' : 'bg-green-100 dark:bg-dark-green/30'
-                            }`}>
-                              <div 
-                                className={`h-full rounded-full ${
-                                  percentRemaining < 25 ? 'bg-red-500' : 
-                                  percentRemaining < 50 ? 'bg-amber-500' : 'bg-green-500 dark:bg-dark-green'
-                                }`}
+                            <div className={`h-2 w-full rounded-full overflow-hidden ${percentRemaining < 25 ? 'bg-red-100' :
+                                percentRemaining < 50 ? 'bg-amber-100' : 'bg-green-100 dark:bg-dark-green/30'
+                              }`}>
+                              <div
+                                className={`h-full rounded-full ${percentRemaining < 25 ? 'bg-red-500' :
+                                    percentRemaining < 50 ? 'bg-amber-500' : 'bg-green-500 dark:bg-dark-green'
+                                  }`}
                                 style={{ width: `${percentRemaining}%` }}
                               />
                             </div>
@@ -203,7 +218,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
                 },
                 tooltip: {
                   callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                       return `${context.dataset.label}: ${context.parsed.y.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
                     }
                   }
