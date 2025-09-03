@@ -138,13 +138,11 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
     setLastPoint(null);
   }, []);
 
-  if (!isOpen) return null;
-
   const clearSignature = useCallback(() => {
     initCanvas();
   }, [initCanvas]);
 
-  const saveSignature = async () => {
+  const saveSignature = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas || isSaving) return;
 
@@ -159,7 +157,9 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
       // Keep popup open on error so user can try again
       setIsSaving(false);
     }
-  };
+  }, [canvasRef, isSaving, onSave, onClose]);
+
+  if (!isOpen) return null;
 
 
 
@@ -200,22 +200,23 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
 
         <div 
           className="border-2 border-gray-300 rounded-lg mb-4 bg-white relative"
-          onTouchStart={startDrawing}
-          onTouchMove={continueDrawing}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
           style={{ touchAction: 'none' }}
         >
           <canvas
             ref={canvasRef}
             width={400}
             height={200}
-            className="w-full h-[200px] cursor-crosshair block border-0 pointer-events-none"
+            className="w-full h-[200px] cursor-crosshair block border-0"
             onMouseDown={startDrawing}
             onMouseMove={continueDrawing}
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={continueDrawing}
+            onTouchEnd={stopDrawing}
+            onTouchCancel={stopDrawing}
             onContextMenu={(e) => e.preventDefault()}
+            style={{ touchAction: 'none' }}
           />
         </div>
 

@@ -318,6 +318,21 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             courseName: dbData.course_name || '',
             organizer: dbData.organizer || '',
             isVatIncluded: dbData.is_vat_included || false,
+            // Internal Training detailed tax fields
+            instructorFee: dbData.instructor_fee || 0,
+            instructorFeeWithholding: dbData.instructor_fee_withholding || 0,
+            instructorFeeVat: dbData.instructor_fee_vat || 0,
+            instructorFeeTotal: dbData.instructor_fee_total || 0,
+            roomFoodBeverage: dbData.room_food_beverage || 0,
+            roomFoodBeverageWithholding: dbData.room_food_beverage_withholding || 0,
+            roomFoodBeverageVat: dbData.room_food_beverage_vat || 0,
+            roomFoodBeverageTotal: dbData.room_food_beverage_total || 0,
+            otherExpenses: dbData.other_expenses || 0,
+            otherExpensesWithholding: dbData.other_expenses_withholding || 0,
+            otherExpensesVat: dbData.other_expenses_vat || 0,
+            otherExpensesTotal: dbData.other_expenses_total || 0,
+            withholdingTax: dbData.withholding_tax || 0,
+            vat: dbData.vat || 0,
             // Advance fields
             advanceDepartment: dbData.advance_department || '',
             advanceDistrict: dbData.advance_district || '',
@@ -841,6 +856,21 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           organizer: data.organizer,
           is_vat_included: data.isVatIncluded,
           department_request: (employeeData as any)?.Team,
+          // Internal Training detailed tax fields
+          instructor_fee: data.instructorFee,
+          instructor_fee_withholding: data.instructorFeeWithholding,
+          instructor_fee_vat: data.instructorFeeVat,
+          instructor_fee_total: data.instructorFeeTotal,
+          room_food_beverage: data.roomFoodBeverage,
+          room_food_beverage_withholding: data.roomFoodBeverageWithholding,
+          room_food_beverage_vat: data.roomFoodBeverageVat,
+          room_food_beverage_total: data.roomFoodBeverageTotal,
+          other_expenses: data.otherExpenses,
+          other_expenses_withholding: data.otherExpensesWithholding,
+          other_expenses_vat: data.otherExpensesVat,
+          other_expenses_total: data.otherExpensesTotal,
+          withholding_tax: data.withholdingTax,
+          vat: data.vat,
           // Advance fields
           advance_department: data.advanceDepartment,
           advance_district: data.advanceDistrict,
@@ -954,8 +984,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // Handle Internal Training differently
     if (type === 'internal_training') {
-      // Debug logs removed for production
-
       const internalTrainingData = {
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
@@ -965,6 +993,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         details: data.additionalNotes || data.details || '',
         amount: Number(data.totalAmount || data.amount || 0),
         department_request: finalEmployeeData.Team || 'Unknown Department',
+        department: data.department || finalEmployeeData.Team || 'Unknown Department',
         branch: data.branch || null,
         course_name: data.courseName || '',
         start_date: data.startDate || null,
@@ -976,8 +1005,17 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         participants: data.participants ? JSON.stringify(data.participants) : null,
         total_participants: Number(data.totalParticipants || 0),
         instructor_fee: Number(data.instructorFee || 0),
+        instructor_fee_withholding: Number(data.instructorFeeWithholding || 0),
+        instructor_fee_vat: Number(data.instructorFeeVat || 0),
+        instructor_fee_total: Number(data.instructorFeeTotal || 0),
         room_food_beverage: Number(data.roomFoodBeverage || 0),
+        room_food_beverage_withholding: Number(data.roomFoodBeverageWithholding || 0),
+        room_food_beverage_vat: Number(data.roomFoodBeverageVat || 0),
+        room_food_beverage_total: Number(data.roomFoodBeverageTotal || 0),
         other_expenses: Number(data.otherExpenses || 0),
+        other_expenses_withholding: Number(data.otherExpensesWithholding || 0),
+        other_expenses_vat: Number(data.otherExpensesVat || 0),
+        other_expenses_total: Number(data.otherExpensesTotal || 0),
         withholding_tax: Number(data.withholdingTax || 0),
         vat: Number(data.vat || 0),
         total_amount: Number(data.totalAmount || 0),
@@ -986,18 +1024,71 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         withholding_tax_amount: Number(data.withholdingTaxAmount || 0),
         additional_notes: data.additionalNotes || null,
         is_vat_included: Boolean(data.isVatIncluded),
+        userSignature: signature || userSignature, // Add user signature
+        user_signature: signature || userSignature, // Add alternative field name
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        user_name: finalEmployeeData.Name || user.email || 'Unknown User'
       };
-
-      // Debug logs removed for production
 
       const result = await submitInternalTrainingRequest(internalTrainingData);
       if (!result) {
         throw new Error('Failed to submit internal training request');
       }
 
+      // Generate PDF and upload to Supabase
+      try {
+        const { generateInternalTrainingPDF } = await import('../pdf/InternalTrainingPDFGenerator');
+        const blob = await generateInternalTrainingPDF(
+          {
+            ...internalTrainingData,
+            id: result.id || Date.now(),
+            status: 'pending_manager' as const,
+            created_at: internalTrainingData.created_at,
+            updated_at: internalTrainingData.updated_at,
+            userSignature: signature || userSignature, // Add user signature
+            user_signature: signature || userSignature // Add alternative field name
+          } as any,
+          user as any,
+          finalEmployeeData,
+          undefined, // managerSignature
+          undefined, // hrSignature
+          signature || userSignature // userSignature
+        );
+
+        // Create safe filename
+        const employeeId = finalEmployeeData?.employee_id || user?.id?.slice(-8) || 'user';
+        const timestamp = Date.now();
+        const filename = `internal_training_emp${employeeId}_${timestamp}.pdf`;
+        const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
+
+        // Update the request with the PDF URL
+        if (result.id && pdfUrl) {
+          await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', result.id);
+        }
+
+        toast({
+          title: 'ส่งคำร้องและอัปโหลด PDF สำเร็จ',
+          description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และ PDF ได้ถูกบันทึกในระบบแล้ว',
+        });
+      } catch (pdfError) {
+        console.error('PDF generation/upload error:', pdfError);
+        toast({
+          title: 'ส่งคำร้องสำเร็จ',
+          description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว แต่ไม่สามารถสร้าง/อัปโหลด PDF ได้ในขณะนี้',
+        });
+      }
+
       await refreshInternalTrainingRequests();
+      
+      toast({
+        title: 'ส่งคำร้องสำเร็จ',
+        description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
+      });
+
+      reset();
+      setFiles([]);
+      setTimeout(onBack, 2000);
       return result;
     }
 

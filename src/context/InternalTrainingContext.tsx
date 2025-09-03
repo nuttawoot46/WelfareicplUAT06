@@ -96,8 +96,17 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
             totalParticipants: row.total_participants,
             participants: row.participants,
             instructorFee: row.instructor_fee,
+            instructorFeeWithholding: row.instructor_fee_withholding,
+            instructorFeeVat: row.instructor_fee_vat,
+            instructorFeeTotal: row.instructor_fee_total,
             roomFoodBeverage: row.room_food_beverage,
+            roomFoodBeverageWithholding: row.room_food_beverage_withholding,
+            roomFoodBeverageVat: row.room_food_beverage_vat,
+            roomFoodBeverageTotal: row.room_food_beverage_total,
             otherExpenses: row.other_expenses,
+            otherExpensesWithholding: row.other_expenses_withholding,
+            otherExpensesVat: row.other_expenses_vat,
+            otherExpensesTotal: row.other_expenses_total,
             withholdingTax: row.withholding_tax,
             vat: row.vat,
             averageCostPerPerson: row.average_cost_per_person,
@@ -138,6 +147,50 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
     }
   }, [user, fetchRequests]);
 
+  // Real-time subscription for internal training requests
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('internal_training_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'welfare_requests',
+          filter: 'request_type=eq.internal_training'
+        },
+        (payload) => {
+          console.log('Internal training real-time update received:', payload);
+
+          // Only refresh if the change is significant
+          if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
+            const statusChanged = payload.new.status !== payload.old.status;
+            const signatureChanged =
+              payload.new.manager_signature !== payload.old.manager_signature ||
+              payload.new.hr_signature !== payload.old.hr_signature;
+
+            // Only fetch if status or signature changed
+            if (statusChanged || signatureChanged) {
+              console.log('Significant internal training change detected, refreshing data...');
+              fetchRequests(true);
+            } else {
+              console.log('Minor internal training change detected, skipping refresh');
+            }
+          } else {
+            // For INSERT/DELETE, always refresh
+            fetchRequests(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user, fetchRequests]);
+
   const getRequestsByUser = useCallback((userId: string): WelfareRequest[] => {
     return trainingRequests.filter(request => request.userId === userId);
   }, [trainingRequests]);
@@ -149,10 +202,38 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
   const submitRequest = useCallback(async (
     requestData: Omit<WelfareRequest, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<WelfareRequest | null> => {
+    // ป้องกันการ submit ซ้ำ
+    if (isLoading) {
+      console.log('Already submitting request, preventing duplicate');
+      return null;
+    }
+    
     try {
       setIsLoading(true);
 
       // Debug logs removed for production
+
+      // ตรวจสอบว่ามี request ที่คล้ายกันในช่วงเวลาใกล้เคียงหรือไม่ (ป้องกัน duplicate)
+      const recentTime = new Date(Date.now() - 30000).toISOString(); // 30 วินาทีที่แล้ว
+      const { data: existingRequests, error: checkError } = await supabase
+        .from('welfare_requests')
+        .select('id')
+        .eq('employee_id', Number(requestData.employee_id))
+        .eq('request_type', 'internal_training')
+        .eq('course_name', requestData.course_name)
+        .gte('created_at', recentTime);
+
+      if (checkError) {
+        console.error('Error checking for duplicate requests:', checkError);
+      } else if (existingRequests && existingRequests.length > 0) {
+        console.log('Duplicate request detected, preventing submission');
+        toast({
+          title: 'คำร้องซ้ำ',
+          description: 'มีคำร้องที่คล้ายกันถูกส่งไปแล้วในช่วงเวลาใกล้เคียง',
+          variant: 'destructive',
+        });
+        return null;
+      }
 
       // Convert camelCase to snake_case for database with proper type conversion
       const dbData = {
@@ -175,8 +256,17 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
         participants: requestData.participants || null,
         total_participants: Number(requestData.total_participants || 0),
         instructor_fee: Number(requestData.instructor_fee || 0),
+        instructor_fee_withholding: Number(requestData.instructor_fee_withholding || 0),
+        instructor_fee_vat: Number(requestData.instructor_fee_vat || 0),
+        instructor_fee_total: Number(requestData.instructor_fee_total || 0),
         room_food_beverage: Number(requestData.room_food_beverage || 0),
+        room_food_beverage_withholding: Number(requestData.room_food_beverage_withholding || 0),
+        room_food_beverage_vat: Number(requestData.room_food_beverage_vat || 0),
+        room_food_beverage_total: Number(requestData.room_food_beverage_total || 0),
         other_expenses: Number(requestData.other_expenses || 0),
+        other_expenses_withholding: Number(requestData.other_expenses_withholding || 0),
+        other_expenses_vat: Number(requestData.other_expenses_vat || 0),
+        other_expenses_total: Number(requestData.other_expenses_total || 0),
         withholding_tax: Number(requestData.withholding_tax || 0),
         vat: Number(requestData.vat || 0),
         total_amount: Number(requestData.total_amount || 0),
@@ -185,6 +275,7 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
         withholding_tax_amount: Number(requestData.withholding_tax_amount || 0),
         additional_notes: requestData.additional_notes || null,
         is_vat_included: Boolean(requestData.is_vat_included),
+        user_signature: requestData.userSignature || requestData.user_signature || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -365,12 +456,8 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
         };
       }
 
-      // Update local state
-      setTrainingRequests(prev =>
-        prev.map(request =>
-          request.id === id ? { ...request, ...updateData } : request
-        )
-      );
+      // Don't update local state immediately - let real-time subscription handle it
+      // This prevents race conditions and duplicate entries
 
       const statusMessages = {
         pending_hr: 'อนุมัติโดยผู้จัดการแล้ว กำลังส่งต่อไปยัง HR',

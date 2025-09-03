@@ -20,7 +20,7 @@ const LoadingPopup: React.FC<LoadingPopupProps> = ({ open }) => {
         <p className="text-lg font-medium text-gray-800">กำลังดำเนินการ...</p>
         <p className="text-sm text-gray-500 mt-2">กรุณารอสักครู่</p>
       </div>
-      <style jsx>{`
+      <style>{`
         .loading {
           --speed-of-animation: 0.9s;
           --gap: 6px;

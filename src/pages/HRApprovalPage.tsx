@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
+import { useInternalTraining } from '@/context/InternalTrainingContext';
 import { WelfareRequest } from '@/types';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ export const HRApprovalPage = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
   const { updateRequestStatus, welfareRequests: allRequests, refreshRequests } = useWelfare();
+  const { trainingRequests: internalTrainingRequests, updateRequestStatus: updateInternalTrainingStatus, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [isLoading, setIsLoading] = useState(false);
   const [managers, setManagers] = useState<{ [key: string]: string }>({});
   const [selectedRequest, setSelectedRequest] = useState<WelfareRequest | null>(null);
@@ -61,9 +63,29 @@ export const HRApprovalPage = () => {
     }
   }, [user, profile, isAuthLoading, navigate, addNotification]);
 
+  // Combine welfare and internal training requests with deduplication
+  const combinedRequests = useMemo(() => {
+    const requestMap = new Map();
+    
+    // Add welfare requests
+    allRequests.forEach(req => {
+      requestMap.set(`${req.id}-${req.type}`, req);
+    });
+    
+    // Add internal training requests (avoid duplicates)
+    internalTrainingRequests.forEach(req => {
+      const key = `${req.id}-${req.type}`;
+      if (!requestMap.has(key)) {
+        requestMap.set(key, req);
+      }
+    });
+    
+    return Array.from(requestMap.values());
+  }, [allRequests, internalTrainingRequests]);
+
   // Filter requests based on active tab
   const filteredRequests = useMemo(() => {
-    return allRequests
+    return combinedRequests
       .filter((req: WelfareRequest) => {
         // Filter by tab
         if (activeTab === 'pending') {
@@ -88,16 +110,16 @@ export const HRApprovalPage = () => {
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allRequests, statusFilter, dateFilter, searchTerm, activeTab]);
+  }, [combinedRequests, statusFilter, dateFilter, searchTerm, activeTab]);
 
   useEffect(() => {
-    const approverIds = allRequests
+    const approverIds = combinedRequests
       .filter(req => req.approverId)
       .map(req => req.approverId as string);
     if (approverIds.length > 0) {
       fetchManagerNames(approverIds);
     }
-  }, [allRequests]);
+  }, [combinedRequests]);
 
   const fetchManagerNames = async (approverIds: string[]) => {
     try {
@@ -199,11 +221,13 @@ export const HRApprovalPage = () => {
       }
 
       for (const req of requestsToReject) {
+        // All requests are now stored in welfare_requests table
         await updateRequestStatus(req.id, 'rejected_hr', rejectionReason);
       }
 
       // Refresh data to show updated status immediately
       await refreshRequests();
+      await refreshInternalTrainingRequests();
 
       addNotification({
         userId: user.id,
@@ -230,7 +254,7 @@ export const HRApprovalPage = () => {
     if (!user) return;
 
     // Find the request to approve
-    const request = allRequests.find(req => req.id === requestId);
+    const request = combinedRequests.find(req => req.id === requestId);
     if (!request) {
       console.error('Request not found:', requestId);
       return;
@@ -299,17 +323,36 @@ export const HRApprovalPage = () => {
         pendingRequestManagerSignature: pendingApprovalRequest.managerSignature ? 'Present' : 'Missing'
       });
 
-      // Use new PDF manager to add HR signature
-      const { addSignatureToPDF } = await import('@/utils/pdfManager');
-      await addSignatureToPDF(
-        pendingApprovalRequest.id,
-        'hr',
-        signature,
-        profile?.display_name || user.email
-      );
+      // Handle PDF generation based on request type
+      if (pendingApprovalRequest.type === 'internal_training') {
+        // Handle internal training PDF generation with both manager and HR signatures
+        const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
+        const pdfBlob = await generateInternalTrainingPDF(
+          pendingApprovalRequest as any,
+          user,
+          undefined,
+          updatedRequest.managerSignature,
+          signature,
+          pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature // Pass user signature
+        );
+        
+        // Store updated PDF in database
+        const { storePDFInDatabase } = await import('@/utils/pdfManager');
+        await storePDFInDatabase(pendingApprovalRequest.id, pdfBlob, signature, 'hr', profile?.display_name || user.email);
+      } else {
+        // Use new PDF manager to add HR signature for welfare requests
+        const { addSignatureToPDF } = await import('@/utils/pdfManager');
+        await addSignatureToPDF(
+          pendingApprovalRequest.id,
+          'hr',
+          signature,
+          profile?.display_name || user.email
+        );
+      }
 
       // Refresh data to show updated status immediately
       await refreshRequests();
+      await refreshInternalTrainingRequests();
 
       // Handle bulk approval flow
       if (isBulkApprovalMode) {
@@ -376,10 +419,12 @@ export const HRApprovalPage = () => {
     if (!user) return;
     setIsLoading(true);
     try {
+      // All requests are now stored in welfare_requests table
       await updateRequestStatus(requestId, 'rejected_hr', comment);
 
       // Refresh data to show updated status immediately
       await refreshRequests();
+      await refreshInternalTrainingRequests();
 
       addNotification({
         userId: user.id,
@@ -591,8 +636,8 @@ export const HRApprovalPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRequests.map((req: WelfareRequest) => (
-                <TableRow key={req.id}>
+              {filteredRequests.map((req: WelfareRequest, index: number) => (
+                <TableRow key={`${req.id}-${req.type}-${index}`}>
                   {activeTab === 'pending' && (
                     <TableCell>
                       <Checkbox

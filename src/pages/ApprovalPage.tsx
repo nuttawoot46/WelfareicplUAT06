@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
+import { useInternalTraining } from '@/context/InternalTrainingContext';
 import { WelfareRequest } from '@/types';
 import { useNotification } from '../context/NotificationContext';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ export const ApprovalPage = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
   const { updateRequestStatus, welfareRequests: allRequests, refreshRequests } = useWelfare();
+  const { trainingRequests: internalTrainingRequests, updateRequestStatus: updateInternalTrainingStatus, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [isLoading, setIsLoading] = useState(false);
   const [managers, setManagers] = useState<{[key: string]: string}>({});
   const [teamMemberIds, setTeamMemberIds] = useState<number[]>([]);
@@ -102,6 +104,26 @@ export const ApprovalPage = () => {
     }
   };
 
+  // Combine welfare and internal training requests with deduplication
+  const combinedRequests = useMemo(() => {
+    const requestMap = new Map();
+    
+    // Add welfare requests
+    allRequests.forEach(req => {
+      requestMap.set(`${req.id}-${req.type}`, req);
+    });
+    
+    // Add internal training requests (avoid duplicates)
+    internalTrainingRequests.forEach(req => {
+      const key = `${req.id}-${req.type}`;
+      if (!requestMap.has(key)) {
+        requestMap.set(key, req);
+      }
+    });
+    
+    return Array.from(requestMap.values());
+  }, [allRequests, internalTrainingRequests]);
+
   // Filter requests based on active tab
   const filteredRequests = useMemo(() => {
     // Skip filtering for reports tab as it has its own filtering logic
@@ -109,9 +131,9 @@ export const ApprovalPage = () => {
       return [];
     }
     
-    let base = allRequests;
+    let base = combinedRequests;
     if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
-      base = allRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
+      base = combinedRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
     }
     
     return base
@@ -139,17 +161,17 @@ export const ApprovalPage = () => {
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm, activeTab]);
+  }, [combinedRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm, activeTab]);
 
   // (ถ้ามี logic อื่นๆ ที่ต้องใช้ approverIds ให้คงไว้)
   useEffect(() => {
-    const approverIds = allRequests
+    const approverIds = combinedRequests
       .filter(req => req.approverId)
       .map(req => req.approverId as string);
     if (approverIds.length > 0) {
       fetchManagerNames(approverIds);
     }
-  }, [allRequests]);
+  }, [combinedRequests]);
 
   const fetchManagerNames = async (approverIds: string[]) => {
     try {
@@ -253,6 +275,7 @@ export const ApprovalPage = () => {
       }
 
       for (const req of requestsToReject) {
+        // All requests are now stored in welfare_requests table
         await updateRequestStatus(req.id, 'rejected_manager', rejectionReason);
       }
       // Note: The state will be updated automatically by the context
@@ -281,7 +304,7 @@ export const ApprovalPage = () => {
     if (!user) return;
     
     // Find the request to approve
-    const request = allRequests.find(req => req.id === requestId);
+    const request = combinedRequests.find(req => req.id === requestId);
     if (!request) {
       console.error('Request not found:', requestId);
       return;
@@ -328,7 +351,9 @@ export const ApprovalPage = () => {
           type: 'success' 
         });
 
+        // Refresh both welfare and internal training requests
         await refreshRequests();
+        await refreshInternalTrainingRequests();
         
         // Store request IDs before resetting state
         const requestIds = pendingBulkApproval.map(req => req.id);
@@ -347,12 +372,32 @@ export const ApprovalPage = () => {
               const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
               for (const requestId of requestIds) {
                 try {
-                  await addSignatureToPDF(
-                    requestId,
-                    'manager',
-                    signature,
-                    profile?.display_name || user.email
-                  );
+                  // Check if it's internal training or welfare request
+                  const request = pendingBulkApproval.find(req => req.id === requestId);
+                  if (request?.type === 'internal_training') {
+                    // Handle internal training PDF generation
+                    const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
+                    const pdfBlob = await generateInternalTrainingPDF(
+                      request as any,
+                      user,
+                      undefined,
+                      signature, // manager signature
+                      undefined, // hr signature
+                      request.userSignature || request.user_signature // user signature
+                    );
+                    
+                    // Store PDF in database
+                    const { storePDFInDatabase } = await import('@/utils/pdfManager');
+                    await storePDFInDatabase(requestId, pdfBlob, signature, 'manager', profile?.display_name || user.email);
+                  } else {
+                    // Handle welfare PDF
+                    await addSignatureToPDF(
+                      requestId,
+                      'manager',
+                      signature,
+                      profile?.display_name || user.email
+                    );
+                  }
                   // Debug PDF columns after adding signature
                   await debugPDFColumns(requestId);
                 } catch (singlePdfError) {
@@ -394,7 +439,9 @@ export const ApprovalPage = () => {
           type: 'success' 
         });
 
+        // Refresh both welfare and internal training requests
         await refreshRequests();
+        await refreshInternalTrainingRequests();
         
         // Store requestId before resetting state
         const requestId = pendingApprovalRequest.id;
@@ -406,15 +453,34 @@ export const ApprovalPage = () => {
         // Add signature to PDF in background (non-blocking)
         setTimeout(async () => {
           try {
-            const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
-            await addSignatureToPDF(
-              requestId,
-              'manager',
-              signature,
-              profile?.display_name || user.email
-            );
-            // Debug PDF columns after adding signature
-            await debugPDFColumns(requestId);
+            // Check if it's internal training or welfare request
+            if (pendingApprovalRequest.type === 'internal_training') {
+              // Handle internal training PDF generation
+              const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
+              const pdfBlob = await generateInternalTrainingPDF(
+                pendingApprovalRequest as any,
+                user,
+                undefined,
+                signature, // manager signature
+                undefined, // hr signature
+                pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature // user signature
+              );
+              
+              // Store PDF in database
+              const { storePDFInDatabase } = await import('@/utils/pdfManager');
+              await storePDFInDatabase(requestId, pdfBlob, signature, 'manager', profile?.display_name || user.email);
+            } else {
+              // Handle welfare PDF
+              const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
+              await addSignatureToPDF(
+                requestId,
+                'manager',
+                signature,
+                profile?.display_name || user.email
+              );
+              // Debug PDF columns after adding signature
+              await debugPDFColumns(requestId);
+            }
             // PDF signature added successfully in background
           } catch (pdfError) {
             console.error('Error adding signature to PDF (background):', pdfError);
@@ -442,7 +508,9 @@ export const ApprovalPage = () => {
     if (!user) return;
     setIsLoading(true);
     try {
+      // All requests are now stored in welfare_requests table
       await updateRequestStatus(requestId, 'rejected_manager', comment);
+      
       // Note: The state will be updated automatically by the context
       addNotification({ 
         userId: user.id, 
@@ -484,10 +552,10 @@ export const ApprovalPage = () => {
     // First, filter by role and team membership
     if (profile?.role === 'admin') {
       // Admin can see all requests
-      teamRequests = allRequests;
+      teamRequests = combinedRequests;
     } else if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
       // Manager can only see their team members' requests
-      teamRequests = allRequests.filter(req => {
+      teamRequests = combinedRequests.filter(req => {
         if (!req.userId) return false;
         
         // Try both string and number comparison
@@ -850,7 +918,7 @@ export const ApprovalPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Team Members</SelectItem>
-                      {Array.from(new Set(allRequests
+                      {Array.from(new Set(combinedRequests
                         .filter(req => {
                           // For managers, only show their team members
                           if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
@@ -1073,8 +1141,8 @@ export const ApprovalPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.map((req: WelfareRequest) => (
-                    <TableRow key={req.id}>
+                  {filteredRequests.map((req: WelfareRequest, index: number) => (
+                    <TableRow key={`${req.id}-${req.type}-${index}`}>
                       {activeTab === 'pending' && (
                         <TableCell>
                           <Checkbox 

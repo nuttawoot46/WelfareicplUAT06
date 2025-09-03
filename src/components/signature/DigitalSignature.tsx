@@ -220,22 +220,23 @@ export const DigitalSignature: React.FC<DigitalSignatureProps> = ({
             <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
               <div 
                 className="border border-gray-400 bg-white rounded"
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-                onTouchCancel={stopDrawing}
                 style={{ touchAction: 'none' }}
               >
                 <canvas
                   ref={canvasRef}
                   width={600}
                   height={200}
-                  className="cursor-crosshair w-full h-[200px] pointer-events-none"
+                  className="cursor-crosshair w-full h-[200px]"
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
                   onMouseUp={stopDrawing}
                   onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  onTouchCancel={stopDrawing}
                   onContextMenu={(e) => e.preventDefault()}
+                  style={{ touchAction: 'none' }}
                 />
               </div>
               <div className="flex justify-between items-center mt-2">

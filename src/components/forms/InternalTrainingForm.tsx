@@ -251,6 +251,12 @@ export function InternalTrainingForm({ onBack, editId }: InternalTrainingFormPro
   }, [editId, reset, toast]);
 
   const onSubmit = async (data: FormValues) => {
+    // ป้องกันการ submit ซ้ำ
+    if (isSubmitting || isLoading) {
+      console.log('Form is already being submitted, preventing duplicate');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
 
@@ -311,13 +317,28 @@ export function InternalTrainingForm({ onBack, editId }: InternalTrainingFormPro
         // Update existing request
         await updateRequest(editId, requestData);
         requestId = editId;
+        
+        toast({
+          title: 'แก้ไขสำเร็จ',
+          description: 'ข้อมูลคำร้องอบรมภายในได้รับการแก้ไขเรียบร้อยแล้ว'
+        });
       } else {
-        // Create new request
+        // Create new request - ป้องกันการ submit ซ้ำ
+        if (isSubmitting) {
+          console.log('Already submitting, preventing duplicate submission');
+          return;
+        }
+        
         result = await submitRequest(requestData);
         if (!result) {
           throw new Error('ไม่สามารถส่งคำร้องได้');
         }
         requestId = result.id;
+        
+        toast({
+          title: 'ส่งคำร้องสำเร็จ',
+          description: 'คำร้องอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว'
+        });
       }
 
       await refreshRequests();
@@ -351,10 +372,7 @@ export function InternalTrainingForm({ onBack, editId }: InternalTrainingFormPro
             .eq('id', requestId);
         }
 
-        toast({
-          title: 'สร้าง PDF สำเร็จ',
-          description: 'PDF ได้ถูกสร้างและบันทึกในระบบแล้ว'
-        });
+        console.log('PDF created and uploaded successfully');
       } catch (pdfError) {
         console.error('PDF generation/upload error:', pdfError);
         toast({
@@ -364,8 +382,11 @@ export function InternalTrainingForm({ onBack, editId }: InternalTrainingFormPro
         });
       }
 
+      // รีเซ็ตฟอร์มและกลับไปหน้าหลัก
       reset();
-      setTimeout(onBack, 2000);
+      setTimeout(() => {
+        onBack();
+      }, 1500);
 
     } catch (error: any) {
       console.error('Error submitting form:', error);
@@ -764,11 +785,18 @@ export function InternalTrainingForm({ onBack, editId }: InternalTrainingFormPro
             type="submit"
             className="w-full btn-hover-effect"
             disabled={isSubmitting || isLoading}
+            onClick={(e) => {
+              // ป้องกันการคลิกซ้ำ
+              if (isSubmitting || isLoading) {
+                e.preventDefault();
+                return;
+              }
+            }}
           >
             {(isSubmitting || isLoading) ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                กำลังส่งคำร้อง...
+                {editId ? 'กำลังบันทึก...' : 'กำลังส่งคำร้อง...'}
               </>
             ) : (
               editId ? 'บันทึกการแก้ไข' : 'ส่งคำร้อง'

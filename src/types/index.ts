@@ -114,8 +114,17 @@ export interface WelfareRequest {
   totalParticipants?: number;
   participants?: ParticipantGroup[] | string;
   instructorFee?: number;
+  instructorFeeWithholding?: number;
+  instructorFeeVat?: number;
+  instructorFeeTotal?: number;
   roomFoodBeverage?: number;
+  roomFoodBeverageWithholding?: number;
+  roomFoodBeverageVat?: number;
+  roomFoodBeverageTotal?: number;
   otherExpenses?: number;
+  otherExpensesWithholding?: number;
+  otherExpensesVat?: number;
+  otherExpensesTotal?: number;
   withholdingTax?: number;
   vat?: number;
   averageCostPerPerson?: number;
@@ -171,6 +180,7 @@ export interface ParticipantMember {
 
 export interface InternalTrainingRequest extends WelfareRequest {
   // Internal training specific fields
+  department?: string;
   branch?: string;
   start_time?: string;
   end_time?: string;
@@ -179,8 +189,17 @@ export interface InternalTrainingRequest extends WelfareRequest {
   participants?: ParticipantGroup[] | string;
   total_participants?: number;
   instructor_fee?: number;
+  instructor_fee_withholding?: number;
+  instructor_fee_vat?: number;
+  instructor_fee_total?: number;
   room_food_beverage?: number;
+  room_food_beverage_withholding?: number;
+  room_food_beverage_vat?: number;
+  room_food_beverage_total?: number;
   other_expenses?: number;
+  other_expenses_withholding?: number;
+  other_expenses_vat?: number;
+  other_expenses_total?: number;
   withholding_tax?: number;
   vat?: number;
   average_cost_per_person?: number;
@@ -188,4 +207,19 @@ export interface InternalTrainingRequest extends WelfareRequest {
   withholding_tax_amount?: number;
   additional_notes?: string;
   is_vat_included?: boolean;
+  user_name?: string;
+  employee_id?: number;
+  employee_name?: string;
+  request_type?: string;
+  department_request?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Approval fields
+  manager_approver_name?: string;
+  manager_approved_at?: string;
+  hr_approver_name?: string;
+  hr_approved_at?: string;
+  accounting_approver_name?: string;
+  accounting_approved_at?: string;
+  pdf_url?: string;
 }

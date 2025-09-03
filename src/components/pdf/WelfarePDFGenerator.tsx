@@ -36,7 +36,7 @@ const createWelfareFormHTML = (
     month: '2-digit',
     day: '2-digit'
   });
-  
+
   // Format time for the request
   const formattedTime = requestDate.toLocaleTimeString('th-TH', {
     hour: '2-digit',
@@ -45,7 +45,7 @@ const createWelfareFormHTML = (
   });
 
   // Format start date if available
-  const formattedStartDate = employeeStartDate ? 
+  const formattedStartDate = employeeStartDate ?
     new Date(employeeStartDate).toLocaleDateString('th-TH', {
       year: 'numeric',
       month: '2-digit',
@@ -490,10 +490,10 @@ const createWelfareFormHTML = (
               `}
               <span style="font-size: 12px;">ผู้บังคับบัญชา</span>
             </div>
-            <div style="font-size: 12px;">วันที่ ${welfareData.managerApprovedAt ? 
-              new Date(welfareData.managerApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' + 
-              new Date(welfareData.managerApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.' 
-              : '......./......./........ เวลา ........ น.'}</div>
+            <div style="font-size: 12px;">วันที่ ${welfareData.managerApprovedAt ?
+      new Date(welfareData.managerApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' +
+      new Date(welfareData.managerApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.'
+      : '......./......./........ เวลา ........ น.'}</div>
           </div>
           <div style="display: flex; justify-content: flex-start; align-items: center; margin-top: 5px;">
             <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->
@@ -582,10 +582,10 @@ const createWelfareFormHTML = (
               `}
               <span style="font-size: 12px;">ผู้จัดการฝ่ายบุคคล</span>
             </div>
-            <div style="font-size: 12px;">วันที่ ${welfareData.hrApprovedAt ? 
-              new Date(welfareData.hrApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' + 
-              new Date(welfareData.hrApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.' 
-              : '......./......./........ เวลา ........ น.'}</div>
+            <div style="font-size: 12px;">วันที่ ${welfareData.hrApprovedAt ?
+      new Date(welfareData.hrApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' +
+      new Date(welfareData.hrApprovedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.'
+      : '......./......./........ เวลา ........ น.'}</div>
           </div>
           <div style="display: flex; justify-content: flex-start; align-items: center; margin-top: 5px;">
             <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->

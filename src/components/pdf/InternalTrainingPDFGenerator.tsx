@@ -1,310 +1,447 @@
+import React from 'react';
 import jsPDF from 'jspdf';
-import { InternalTrainingRequest, User, ParticipantGroup, ParticipantMember } from '@/types';
+import html2canvas from 'html2canvas';
+import { InternalTrainingRequest, User, ParticipantGroup } from '@/types';
 
-// Thai font data (you'll need to add this)
-const addThaiFont = (doc: jsPDF) => {
-  // This is a placeholder - you'll need to add actual Thai font
-  // For now, we'll use the default font
-  doc.setFont('helvetica');
-};
-
-export const generateInternalTrainingPDF = async (
-  request: InternalTrainingRequest,
-  user: User,
-  employeeData: any
-): Promise<Blob> => {
-  const doc = new jsPDF();
-  
-  // Add Thai font support
-  addThaiFont(doc);
-  
-  let yPosition = 20;
-  const pageWidth = doc.internal.pageSize.width;
-  const margin = 20;
-  const contentWidth = pageWidth - (margin * 2);
-  
-  // Helper function to add text with automatic line wrapping
-  const addWrappedText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12): number => {
-    doc.setFontSize(fontSize);
-    const lines = doc.splitTextToSize(text, maxWidth);
-    doc.text(lines, x, y);
-    return y + (lines.length * (fontSize * 0.4));
+interface InternalTrainingPDFGeneratorProps {
+  trainingData: InternalTrainingRequest;
+  userData: User;
+  employeeData?: {
+    Name: string;
+    Position: string;
+    Team: string;
+    start_date?: string;
   };
+}
 
-  // Helper function to format currency
-  const formatCurrency = (amount: number): string => {
-    return amount.toLocaleString('th-TH', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    });
-  };
+const createInternalTrainingFormHTML = (
+  trainingData: InternalTrainingRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
+  managerSignature?: string,
+  hrSignature?: string,
+  userSignature?: string
+) => {
+  const employeeName = employeeData?.Name || userData.name || '';
+  const employeePosition = employeeData?.Position || userData.position || '';
+  const employeeTeam = employeeData?.Team || userData.department || '';
 
-  // Helper function to format date
-  const formatDate = (dateString: string): string => {
+  // Format dates
+  const formatThaiDate = (dateString: string): string => {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    const day = date.getDate();
+    const thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const month = thaiMonths[date.getMonth()];
+    const year = date.getFullYear() + 543;
+    return `${day} ${month} ${year}`;
+  };
+
+  const formatTime = (timeString: string): string => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    return `${hours}.${minutes}`;
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return amount.toLocaleString('th-TH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
   };
 
-  // Helper function to format time
-  const formatTime = (timeString: string): string => {
-    const [hours, minutes] = timeString.split(':');
-    return `${hours}:${minutes} น.`;
-  };
-
-  // Title
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  const title = 'แบบฟอร์มขออนุมัติการอบรมภายใน';
-  const titleWidth = doc.getTextWidth(title);
-  doc.text(title, (pageWidth - titleWidth) / 2, yPosition);
-  yPosition += 15;
-
-  // Company header
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  const companyName = 'บริษัท ไอซีพี ลัดดา จำกัด';
-  const companyWidth = doc.getTextWidth(companyName);
-  doc.text(companyName, (pageWidth - companyWidth) / 2, yPosition);
-  yPosition += 20;
-
-  // Request information
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  
-  // Request details
-  yPosition = addWrappedText(`เลขที่คำร้อง: ${request.id}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`วันที่ส่งคำร้อง: ${formatDate(request.created_at)}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`ผู้ขออนุมัติ: ${request.user_name}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`ฝ่าย/แผนก: ${request.department}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`สาขา: ${request.branch}`, margin, yPosition, contentWidth);
-  yPosition += 15;
-
-  // Section 1: Training Details
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText('ส่วนที่ 1: รายละเอียดการอบรม', margin, yPosition, contentWidth, 14);
-  yPosition += 10;
-  
-  doc.setFont('helvetica', 'normal');
-  yPosition = addWrappedText(`ชื่อหลักสูตร/หัวข้ออบรม: ${request.course_name}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`วันที่เริ่มอบรม: ${formatDate(request.start_date)}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`วันที่สิ้นสุดอบรม: ${formatDate(request.end_date)}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`เวลาเริ่ม: ${formatTime(request.start_time)}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`เวลาสิ้นสุด: ${formatTime(request.end_time)}`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`รวมระยะเวลาการอบรม: ${request.total_hours} ชั่วโมง`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`สถานที่ฝึกอบรม: ${request.venue}`, margin, yPosition, contentWidth);
-  yPosition += 15;
-
-  // Section 2: Participants
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText('ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม', margin, yPosition, contentWidth, 14);
-  yPosition += 10;
-  
-  doc.setFont('helvetica', 'normal');
-  
-  // Parse participants if it's a string
+  // Parse participants
   let participants: ParticipantGroup[] = [];
-  if (typeof request.participants === 'string') {
+  if (typeof trainingData.participants === 'string') {
     try {
-      participants = JSON.parse(request.participants);
+      participants = JSON.parse(trainingData.participants);
     } catch (e) {
       participants = [];
     }
-  } else if (Array.isArray(request.participants)) {
-    participants = request.participants;
+  } else if (Array.isArray(trainingData.participants)) {
+    participants = trainingData.participants;
   }
 
-  // Display participants table
-  if (participants.length > 0) {
-    participants.forEach((participantGroup, groupIndex) => {
-      if (participantGroup.team && participantGroup.count > 0) {
-        // Team header
-        doc.setFont('helvetica', 'bold');
-        yPosition = addWrappedText(`ทีม: ${participantGroup.team} (${participantGroup.count} คน)`, margin, yPosition, contentWidth);
-        yPosition += 5;
+  // Get user signature from trainingData or parameter
+  const finalUserSignature = userSignature || trainingData.userSignature || trainingData.user_signature;
+
+
+
+  const startDate = formatThaiDate(trainingData.start_date || trainingData.startDate);
+  const endDate = formatThaiDate(trainingData.end_date || trainingData.endDate);
+  const startTime = formatTime(trainingData.start_time || trainingData.startTime || '09:00');
+  const endTime = formatTime(trainingData.end_time || trainingData.endTime || '17:00');
+  const courseName = trainingData.course_name || trainingData.courseName || trainingData.title || 'หลักสูตรอบรม';
+  const venue = trainingData.venue || 'สถานที่อบรม';
+  const department = trainingData.department || trainingData.userDepartment || 'ฝ่ายทรัพยากรบุคคล';
+  const branch = trainingData.branch || 'สำนักงานสุรวงศ์';
+
+  return `
+    <div style="
+      width: 210mm;
+      min-height: 297mm;
+      padding: 15mm;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.3;
+      background: white;
+      color: black;
+      box-sizing: border-box;
+    ">
+      <!-- Header Section -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="font-size: 10px;">
+          <div>ICP</div>
+          <div>Ledda</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <h1 style="font-size: 14px; font-weight: bold; margin: 0;">แบบขออนุมัติจัดฝึกอบรม</h1>
+        </div>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <!-- Form Content -->
+      <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 8px;">
+          <span>เรื่อง</span>
+          <span style="margin-left: 20px;">ขออนุมัติจัดฝึกอบรมและค่าใช้จ่ายการอบรม</span>  
+        </div>
+        <!-- ช่องว่างแทนเส้น -->
+        <div style="margin-top: 2px; height: 5px;"></div>
         
-        // Check if we have selected participants with names
-        if (participantGroup.selectedParticipants && participantGroup.selectedParticipants.length > 0) {
-          doc.setFont('helvetica', 'normal');
-          yPosition = addWrappedText('รายชื่อผู้เข้าร่วม:', margin + 10, yPosition, contentWidth - 10);
-          yPosition += 5;
+        <div style="margin-bottom: 12px;">
+          <span>เรียน</span>
+          <span style="margin-left: 20px;">กรรมการผู้จัดการ</span>
+        </div>
+        <!-- ช่องว่างแทนเส้น -->
+        <div style="margin-top: 2px; height: 5px;"></div> 
+      </div>
+
+      <!-- Main Content -->
+      <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 8px;">
+          <span>ด้วย</span>
+          <span style="margin-left: 10px;">${department}</span>
           
-          participantGroup.selectedParticipants.forEach((participant, index) => {
-            const participantInfo = `${index + 1}. ${participant.name}${participant.position ? ` (${participant.position})` : ''}${participant.isCustom ? ' *' : ''}`;
-            yPosition = addWrappedText(participantInfo, margin + 20, yPosition, contentWidth - 20);
-            yPosition += 4;
-            
-            // Check if we need a new page
-            if (yPosition > 250) {
-              doc.addPage();
-              yPosition = 20;
-            }
-          });
+          <span>สาขา</span>
+          <span style="margin-left: 5px;">${branch}</span>
           
-          // Add note about custom participants if any
-          const hasCustomParticipants = participantGroup.selectedParticipants.some(p => p.isCustom);
-          if (hasCustomParticipants) {
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'italic');
-            yPosition = addWrappedText('* ผู้เข้าร่วมที่เพิ่มเอง', margin + 20, yPosition, contentWidth - 20, 10);
-            doc.setFontSize(12);
-            yPosition += 3;
-          }
-        } else {
-          // No specific names selected, just show count
-          doc.setFont('helvetica', 'normal');
-          yPosition = addWrappedText(`จำนวนผู้เข้าร่วม: ${participantGroup.count} คน (ไม่ได้ระบุรายชื่อ)`, margin + 10, yPosition, contentWidth - 10);
-          yPosition += 5;
-        }
+          <span>มีแผนจะจัดอบรมเรื่อง</span>
+        </div>
         
-        yPosition += 8;
+        <div style="margin-bottom: 8px;">
+          <span style="margin-left: 10px;">${courseName}</span>
+          
+        </div>
+      </div>
+
+      <!-- Date and Time Section -->
+      <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 8px;">
+          <span>ระหว่างวันที่</span>
+          <span style="margin-left: 10px;">${startDate}</span>
+          
+          <span>ถึง วันที่</span>
+          <span style="margin-left: 5px;">${endDate}</span>
+          
+          <span>เวลา</span>
+          <span style="margin-left: 5px;">${startTime} - ${endTime}</span>
+          
+        </div>
         
-        // Check if we need a new page
-        if (yPosition > 250) {
-          doc.addPage();
-          yPosition = 20;
-        }
-      }
+        <div style="margin-bottom: 8px;">
+          <span>รวมระยะเวลาการอบรม</span>
+          <span style="margin-left: 10px;">${trainingData.total_hours || trainingData.totalHours || 7}</span>
+          
+          <span>ชั่วโมง สถานที่ฝึกอบรม</span>
+          <span style="margin-left: 10px;">${venue}</span>
+          
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+          <span>ให้แก่พนักงานบริษัทฯ ในระดับ</span>
+          
+        </div>
+      </div>
+
+      <!-- Participants Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px;">
+        <tbody>
+          ${participants.map((participant, index) => {
+    const teamName = participant?.team || '';
+    const count = participant?.count?.toString() || '';
+    return `
+              <tr style="border: 0.5px solid black;">
+                <td style="border: 0.5px solid black; padding: 3px; width: 20px; text-align: center;">${index + 1}</td>
+                <td style="border: 0.5px solid black; padding: 3px; width: 120px;">${teamName}</td>
+                <td style="border: 0.5px solid black; padding: 3px; width: 50px; text-align: center;">จำนวน</td>
+                <td style="border: 0.5px solid black; padding: 3px; width: 40px; text-align: center;">${count}</td>
+                <td style="border: 0.5px solid black; padding: 3px; width: 30px; text-align: center;">คน</td>
+              </tr>
+            `;
+  }).join('')}
+          <tr style="border: 0.5px solid black; font-weight: bold;">
+            <td style="border: 0.5px solid black; padding: 3px;" colspan="2">รวมจำนวน</td>
+            <td style="border: 0.5px solid black; padding: 3px; text-align: center;">จำนวน</td>
+            <td style="border: 0.5px solid black; padding: 3px; text-align: center;">${participants.reduce((total, p) => total + (parseInt(p?.count?.toString() || '0') || 0), 0)}</td>
+            <td style="border: 0.5px solid black; padding: 3px; text-align: center;">คน</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Cost Section -->
+      <div style="margin-bottom: 15px; font-size: 10px;">
+        <div style="margin-bottom: 8px; font-weight: bold;">ซึ่งมีค่าใช้จ่ายดังนี้</div>
+        
+        <!-- ค่าวิทยากร -->
+        <div style="margin-bottom: 6px; display: flex; align-items: center;">
+          <span style="width: 120px;">ค่าวิทยากร</span>
+          <span style="width: 80px; text-align: right;">${formatCurrency(trainingData.instructor_fee || trainingData.instructorFee || 0)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">หักภาษี ณ ที่จ่าย 3%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.instructor_fee || trainingData.instructorFee || 0) * 0.03)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">VAT 7%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.instructor_fee || trainingData.instructorFee || 0) * 0.07)}</span>
+          <span style="margin-left: 5px;">บาท</span>
+        </div>
+        
+        <!-- ค่าห้อง ค่าอาหารและเครื่องดื่ม -->
+        <div style="margin-bottom: 6px; display: flex; align-items: center;">
+          <span style="width: 120px;">ค่าห้อง ค่าอาหารและเครื่องดื่ม</span>
+          <span style="width: 80px; text-align: right;">${formatCurrency(trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">หักภาษี ณ ที่จ่าย 3%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) * 0.03)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">VAT 7%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) * 0.07)}</span>
+          <span style="margin-left: 5px;">บาท</span>
+        </div>
+        
+        <!-- ค่าอื่นๆ -->
+        <div style="margin-bottom: 6px; display: flex; align-items: center;">
+          <span style="width: 120px;">ค่าอื่นๆ</span>
+          <span style="width: 80px; text-align: right;">${formatCurrency(trainingData.other_expenses || trainingData.otherExpenses || 0)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">หักภาษี ณ ที่จ่าย 3%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.other_expenses || trainingData.otherExpenses || 0) * 0.03)}</span>
+          <span style="margin: 0 5px;">บาท</span>
+          <span style="margin-left: 10px;">VAT 7%:</span>
+          <span style="width: 60px; text-align: right; margin-left: 5px;">${formatCurrency((trainingData.other_expenses || trainingData.otherExpenses || 0) * 0.07)}</span>
+          <span style="margin-left: 5px;">บาท</span>
+        </div>
+        
+        <!-- รวมทั้งสิ้น -->
+        <div style="margin-top: 10px; padding-top: 6px; border-top: 1px solid black; font-weight: bold;">
+          <span>รวมทั้งสิ้น</span>
+          <span style="margin-left: 20px;">${formatCurrency(
+    (trainingData.instructor_fee || trainingData.instructorFee || 0) +
+    (trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) +
+    (trainingData.other_expenses || trainingData.otherExpenses || 0)
+  )}</span>
+          <span style="margin-left: 5px;">บาท</span>
+          <span style="margin-left: 20px;">คิดเป็นค่าใช้จ่าย/คน:</span>
+          <span style="margin-left: 5px;">${formatCurrency(
+    ((trainingData.instructor_fee || trainingData.instructorFee || 0) +
+      (trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) +
+      (trainingData.other_expenses || trainingData.otherExpenses || 0)) /
+    (participants.reduce((total, p) => total + (parseInt(p?.count?.toString() || '0') || 0), 0) || 1)
+  )}</span>
+          <span style="margin-left: 5px;">บาท</span>
+        </div>
+      </div>
+
+      <!-- Notes Section -->
+      <div style="margin-bottom: 15px; font-size: 10px;">
+        <div style="margin-bottom: 6px;">
+          <span>หมายเหตุ: ทำหนังสือรับรองหักภาษี ณ ที่จ่าย</span>
+          <span style="margin-left: 10px;">${formatCurrency(trainingData.withholding_tax_amount || trainingData.withholdingTaxAmount || 0)}</span>
+          <span style="border-bottom: 1px solid black; display: inline-block; width: 80px; margin: 0 5px;"></span>
+          <span>บาท และชำระในนาม</span>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <span>ลงวันที่</span>
+          <span style="margin-left: 10px;">${new Date().toLocaleDateString('th-TH')}</span>
+          <span style="border-bottom: 1px solid black; display: inline-block; width: 80px; margin: 0 5px;"></span>
+          <span>จำนวน</span>
+          <span style="margin-left: 10px;">${formatCurrency(trainingData.withholding_tax_amount || trainingData.withholdingTaxAmount || 0)}</span>
+          <span style="border-bottom: 1px solid black; display: inline-block; width: 60px; margin: 0 5px;"></span>
+          <span>บาท</span>
+        </div>
+        
+        <div style="margin-bottom: 15px; margin-left: 10px;">
+          จึงเรียนมาเพื่อพิจารณาอนุมัติ
+        </div>
+      </div>
+
+      <!-- Signature Section -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+        <tr style="border: 1px solid black;">
+          <td style="border: 1px solid black; padding: 10px; width: 33.33%; text-align: center; vertical-align: top;">
+            <div style="font-size: 9px; margin-bottom: 5px;">ผู้ร้องขอ</div>
+            <div style="height: 40px; display: flex; align-items: center; justify-content: center;">
+              ${finalUserSignature ? `
+                <img src="${finalUserSignature}" alt="User Signature" style="max-width: 120px; max-height: 35px;" />
+              ` : ''}
+            </div>
+            <div style="border-top: 1px solid black; margin-top: 5px; padding-top: 3px;">
+              <div style="font-size: 8px;">(${employeeName || '......................................'})</div>
+              <div style="font-size: 8px;">ลงชื่อ................................</div>
+              <div style="font-size: 8px;">วันที่ ${trainingData.createdAt ? formatThaiDate(trainingData.createdAt) : trainingData.created_at ? formatThaiDate(trainingData.created_at) : formatThaiDate(new Date().toISOString())}</div>
+            </div>
+          </td>
+          <td style="border: 1px solid black; padding: 10px; width: 33.33%; text-align: center; vertical-align: top;">
+            <div style="font-size: 9px; margin-bottom: 5px;">ผู้ทรัพยากรบุคคล</div>
+            <div style="height: 40px; display: flex; align-items: center; justify-content: center;">
+              ${hrSignature ? `
+                <img src="${hrSignature}" alt="HR Signature" style="max-width: 120px; max-height: 35px;" />
+              ` : ''}
+            </div>
+            <div style="border-top: 1px solid black; margin-top: 5px; padding-top: 3px;">
+              <div style="font-size: 8px;">(${trainingData.hr_approver_name || trainingData.hrApproverName || '......................................'})</div>
+              <div style="font-size: 8px;">ลงชื่อ................................</div>
+              <div style="font-size: 8px;">วันที่ ${trainingData.hr_approved_at ? formatThaiDate(trainingData.hr_approved_at) : trainingData.hrApprovedAt ? formatThaiDate(trainingData.hrApprovedAt) : '..............................'}</div>
+            </div>
+          </td>
+          <td style="border: 1px solid black; padding: 10px; width: 33.33%; text-align: center; vertical-align: top;">
+            <div style="font-size: 9px; margin-bottom: 5px;">ผู้อนุมัติ/ผู้จัดการทั่วไป</div>
+            <div style="height: 40px; display: flex; align-items: center; justify-content: center;">
+              ${managerSignature ? `
+                <img src="${managerSignature}" alt="Manager Signature" style="max-width: 120px; max-height: 35px;" />
+              ` : ''}
+            </div>
+            <div style="border-top: 1px solid black; margin-top: 5px; padding-top: 3px;">
+              <div style="font-size: 8px;">(${trainingData.manager_approver_name || trainingData.managerApproverName || '......................................'})</div>
+              <div style="font-size: 8px;">ลงชื่อ................................</div>
+              <div style="font-size: 8px;">วันที่ ${trainingData.manager_approved_at ? formatThaiDate(trainingData.manager_approved_at) : trainingData.managerApprovedAt ? formatThaiDate(trainingData.managerApprovedAt) : '..............................'}</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Footer -->
+      <div style="margin-top: 20px;">
+        <div style="font-size: 8px; margin-bottom: 10px;">
+          หมายเหตุ : แบบฟอร์มนี้ต้องได้รับการอนุมัติก่อนจัดฝึกอบรมอย่างน้อย 1 สัปดาห์
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 9px;">
+          <span>F-TRA-01-05 Rev: 00</span>
+          <span>01/02/2561</span>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+export const generateInternalTrainingPDF = async (
+  trainingData: InternalTrainingRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
+  managerSignature?: string,
+  hrSignature?: string,
+  userSignature?: string
+): Promise<Blob> => {
+  // Create a temporary div to hold the HTML content
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = createInternalTrainingFormHTML(trainingData, userData, employeeData, managerSignature, hrSignature, userSignature);
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '-9999px';
+  tempDiv.style.width = '794px'; // Fixed width for consistent rendering
+  tempDiv.style.height = '1123px'; // Fixed height for A4
+  document.body.appendChild(tempDiv);
+
+  try {
+    // Convert HTML to canvas with optimized settings for smaller file size
+    const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
+      scale: 1, // Reduced scale for smaller file size
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 794, // A4 width in pixels at 96 DPI
+      height: 1123, // A4 height in pixels at 96 DPI
+      logging: false
     });
-    
-    // Total participants
-    doc.setFont('helvetica', 'bold');
-    yPosition = addWrappedText(`รวมจำนวนผู้เข้าอบรมทั้งหมด: ${request.total_participants} คน`, margin, yPosition, contentWidth);
-    yPosition += 15;
+
+    // Create PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Use JPEG with compression for smaller file size
+    const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
+
+    // Calculate dimensions to fit A4
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+    // Return PDF as Blob
+    return pdf.output('blob');
+  } finally {
+    // Clean up
+    document.body.removeChild(tempDiv);
   }
+};
 
-  // Check if we need a new page
-  if (yPosition > 250) {
-    doc.addPage();
-    yPosition = 20;
+// เพิ่มฟังก์ชันสำหรับ download PDF (เพื่อใช้ในกรณีที่ต้องการ download)
+export const generateAndDownloadInternalTrainingPDF = async (
+  trainingData: InternalTrainingRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
+  managerSignature?: string,
+  hrSignature?: string,
+  userSignature?: string
+) => {
+  try {
+    const pdfBlob = await generateInternalTrainingPDF(trainingData, userData, employeeData, managerSignature, hrSignature, userSignature);
+
+    // Generate filename
+    const employeeName = employeeData?.Name || userData.name || '';
+    const courseName = trainingData.course_name || trainingData.courseName || trainingData.title || 'training';
+    const filename = `internal_training_${courseName.replace(/\s+/g, '_')}_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+
+    // Create download link
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return filename;
+  } catch (error) {
+    console.error('Error generating and downloading PDF:', error);
+    throw error;
   }
+};
 
-  // Section 3: Budget and Expenses
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText('ส่วนที่ 3: งบประมาณและค่าใช้จ่าย', margin, yPosition, contentWidth, 14);
-  yPosition += 10;
-  
-  doc.setFont('helvetica', 'normal');
-  yPosition = addWrappedText(`ค่าวิทยากร: ${formatCurrency(request.instructor_fee)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`ค่าห้อง อาหารและเครื่องดื่ม: ${formatCurrency(request.room_food_beverage)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`ค่าใช้จ่ายอื่นๆ: ${formatCurrency(request.other_expenses)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`หักภาษี ณ ที่จ่าย (3%): ${formatCurrency(request.withholding_tax)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`ภาษีมูลค่าเพิ่ม (VAT 7%): ${formatCurrency(request.vat)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 10;
-  
-  // Total amount (highlighted)
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText(`รวมเป็นเงินทั้งสิ้น: ${formatCurrency(request.total_amount)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  yPosition = addWrappedText(`เฉลี่ยค่าใช้จ่ายต่อคน: ${formatCurrency(request.average_cost_per_person)} บาท/คน`, margin, yPosition, contentWidth);
-  yPosition += 15;
-
-  // Section 4: Notes
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText('ส่วนที่ 4: หมายเหตุ', margin, yPosition, contentWidth, 14);
-  yPosition += 10;
-  
-  doc.setFont('helvetica', 'normal');
-  if (request.tax_certificate_name) {
-    yPosition = addWrappedText(`ออกหนังสือรับรองหักภาษี ณ ที่จ่ายในนาม: ${request.tax_certificate_name}`, margin, yPosition, contentWidth);
-    yPosition += 5;
-  }
-  yPosition = addWrappedText(`จำนวนเงินที่ต้องหัก ณ ที่จ่าย: ${formatCurrency(request.withholding_tax_amount)} บาท`, margin, yPosition, contentWidth);
-  yPosition += 5;
-  
-  if (request.additional_notes) {
-    yPosition = addWrappedText(`หมายเหตุเพิ่มเติม: ${request.additional_notes}`, margin, yPosition, contentWidth);
-    yPosition += 10;
-  }
-
-  // Check if we need a new page for signatures
-  if (yPosition > 220) {
-    doc.addPage();
-    yPosition = 20;
-  }
-
-  // Signature section
-  yPosition += 20;
-  doc.setFont('helvetica', 'bold');
-  yPosition = addWrappedText('ลายเซ็นอนุมัติ', margin, yPosition, contentWidth, 14);
-  yPosition += 15;
-
-  // Signature boxes
-  const signatureBoxWidth = 150;
-  const signatureBoxHeight = 60;
-  
-  // Employee signature
-  doc.setFont('helvetica', 'normal');
-  doc.text('ผู้ขออนุมัติ', margin, yPosition);
-  doc.rect(margin, yPosition + 5, signatureBoxWidth, signatureBoxHeight);
-  doc.text(`ชื่อ: ${request.user_name}`, margin, yPosition + signatureBoxHeight + 15);
-  doc.text(`วันที่: ${formatDate(request.created_at)}`, margin, yPosition + signatureBoxHeight + 25);
-
-  // Manager signature
-  doc.text('ผู้จัดการ', margin + signatureBoxWidth + 20, yPosition);
-  doc.rect(margin + signatureBoxWidth + 20, yPosition + 5, signatureBoxWidth, signatureBoxHeight);
-  if (request.manager_approver_name) {
-    doc.text(`ชื่อ: ${request.manager_approver_name}`, margin + signatureBoxWidth + 20, yPosition + signatureBoxHeight + 15);
-    if (request.manager_approved_at) {
-      doc.text(`วันที่: ${formatDate(request.manager_approved_at)}`, margin + signatureBoxWidth + 20, yPosition + signatureBoxHeight + 25);
+export const InternalTrainingPDFGenerator: React.FC<InternalTrainingPDFGeneratorProps> = ({
+  trainingData,
+  userData,
+  employeeData
+}) => {
+  const handleGeneratePDF = async () => {
+    try {
+      await generateAndDownloadInternalTrainingPDF(trainingData, userData, employeeData);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
     }
-  }
+  };
 
-  yPosition += signatureBoxHeight + 40;
-
-  // HR signature
-  if (yPosition > 250) {
-    doc.addPage();
-    yPosition = 20;
-  }
-
-  doc.text('HR', margin, yPosition);
-  doc.rect(margin, yPosition + 5, signatureBoxWidth, signatureBoxHeight);
-  if (request.hr_approver_name) {
-    doc.text(`ชื่อ: ${request.hr_approver_name}`, margin, yPosition + signatureBoxHeight + 15);
-    if (request.hr_approved_at) {
-      doc.text(`วันที่: ${formatDate(request.hr_approved_at)}`, margin, yPosition + signatureBoxHeight + 25);
-    }
-  }
-
-  // Accounting signature
-  doc.text('บัญชี', margin + signatureBoxWidth + 20, yPosition);
-  doc.rect(margin + signatureBoxWidth + 20, yPosition + 5, signatureBoxWidth, signatureBoxHeight);
-  if (request.accounting_approver_name) {
-    doc.text(`ชื่อ: ${request.accounting_approver_name}`, margin + signatureBoxWidth + 20, yPosition + signatureBoxHeight + 15);
-    if (request.accounting_approved_at) {
-      doc.text(`วันที่: ${formatDate(request.accounting_approved_at)}`, margin + signatureBoxWidth + 20, yPosition + signatureBoxHeight + 25);
-    }
-  }
-
-  // Footer
-  yPosition = doc.internal.pageSize.height - 20;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
-  const footer = `สร้างโดยระบบ ICP Ladda - ${new Date().toLocaleDateString('th-TH')}`;
-  const footerWidth = doc.getTextWidth(footer);
-  doc.text(footer, (pageWidth - footerWidth) / 2, yPosition);
-
-  // Return PDF as blob
-  return new Promise((resolve) => {
-    const pdfBlob = doc.output('blob');
-    resolve(pdfBlob);
-  });
+  return (
+    <button
+      onClick={handleGeneratePDF}
+      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+    >
+      ดาวน์โหลด PDF
+    </button>
+  );
 };

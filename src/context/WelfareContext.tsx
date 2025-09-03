@@ -53,7 +53,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
             Team,
             Name
           )
-        `);
+        `)
+        .neq('request_type', 'internal_training');
 
       console.log('WelfareContext - Fetched data:', data);
       console.log('WelfareContext - Error:', error);
@@ -403,20 +404,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error(error.message);
       }
 
-      // Update local state immediately without waiting for real-time subscription
-      setWelfareRequests(prev => {
-        return prev.map(req =>
-          req.id === id ? {
-            ...req,
-            status,
-            notes: comment,
-            manager_notes: comment,
-            approverId: updateObj.approver_id?.toString() || user?.id,
-            managerApproverName: updateObj.manager_approver_name,
-            managerApprovedAt: updateObj.manager_approved_at
-          } : req
-        );
-      });
+      // Don't update local state immediately - let real-time subscription handle it
+      // This prevents race conditions and duplicate entries
 
       return { success: true, data };
     } catch (err: any) {
