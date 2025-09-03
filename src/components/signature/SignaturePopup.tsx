@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 interface SignaturePopupProps {
@@ -21,11 +21,10 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
 
-  // Initialize canvas - must be before early return to maintain hook order
-  React.useEffect(() => {
-    if (!isOpen) return;
-
+  // Initialize canvas
+  const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -38,86 +37,112 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
 
     // Set drawing properties
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Set white background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }, [isOpen]);
+  }, []);
 
-  console.log('SignaturePopup render - isOpen:', isOpen, 'title:', title);
+  // Lock body scroll and setup canvas
+  React.useEffect(() => {
+    if (!isOpen) return;
 
-  if (!isOpen) return null;
+    // Lock body scroll
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
 
-  const getEventPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    // Initialize canvas after a short delay
+    const timer = setTimeout(initCanvas, 50);
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isOpen, initCanvas]);
+
+  // Get coordinates from mouse or touch event
+  const getCoordinates = useCallback((e: any) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
 
-    if ('touches' in e) {
-      // Touch event
-      const touch = e.touches[0] || e.changedTouches[0];
-      return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
-      };
+    if (e.type.startsWith('touch')) {
+      const touch = e.touches?.[0] || e.changedTouches?.[0];
+      if (!touch) return { x: 0, y: 0 };
+      clientX = touch.clientX;
+      clientY = touch.clientY;
     } else {
-      // Mouse event
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
-  };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault(); // Prevent scrolling on touch
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }, []);
+
+  // Start drawing
+  const startDrawing = useCallback((e: any) => {
+    if (e.cancelable) e.preventDefault();
+    
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const pos = getEventPos(e);
+    const point = getCoordinates(e);
     setIsDrawing(true);
+    setLastPoint(point);
+    
     ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
+    ctx.moveTo(point.x, point.y);
+  }, [getCoordinates]);
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault(); // Prevent scrolling on touch
-
+  // Continue drawing
+  const continueDrawing = useCallback((e: any) => {
+    if (e.cancelable) e.preventDefault();
+    
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const point = getCoordinates(e);
+    
+    if (lastPoint) {
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+    }
+    
+    setLastPoint(point);
+  }, [isDrawing, lastPoint, getCoordinates]);
 
-    const pos = getEventPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  };
-
-  const stopDrawing = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (e) e.preventDefault(); // Prevent scrolling on touch
+  // Stop drawing
+  const stopDrawing = useCallback((e?: any) => {
+    if (e?.cancelable) e.preventDefault();
     setIsDrawing(false);
-  };
+    setLastPoint(null);
+  }, []);
 
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  if (!isOpen) return null;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
+  const clearSignature = useCallback(() => {
+    initCanvas();
+  }, [initCanvas]);
 
   const saveSignature = async () => {
     const canvas = canvasRef.current;
@@ -139,8 +164,16 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-hidden"
+      style={{ touchAction: 'none' }}
+      onTouchMove={(e) => e.preventDefault()}
+    >
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-md mx-4 relative"
+        style={{ touchAction: 'auto' }}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button
@@ -165,18 +198,24 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
           )}
         </div>
 
-        <div className="border-2 border-gray-300 rounded-lg mb-4">
+        <div 
+          className="border-2 border-gray-300 rounded-lg mb-4 bg-white relative"
+          onTouchStart={startDrawing}
+          onTouchMove={continueDrawing}
+          onTouchEnd={stopDrawing}
+          onTouchCancel={stopDrawing}
+          style={{ touchAction: 'none' }}
+        >
           <canvas
             ref={canvasRef}
-            className="w-full cursor-crosshair touch-none"
+            width={400}
+            height={200}
+            className="w-full h-[200px] cursor-crosshair block border-0 pointer-events-none"
             onMouseDown={startDrawing}
-            onMouseMove={draw}
+            onMouseMove={continueDrawing}
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-            onTouchCancel={stopDrawing}
+            onContextMenu={(e) => e.preventDefault()}
           />
         </div>
 

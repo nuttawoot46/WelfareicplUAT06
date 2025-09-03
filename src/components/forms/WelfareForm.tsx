@@ -2537,7 +2537,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           <div className="space-y-2">
             <label htmlFor="attachments" className="form-label flex items-center gap-2">
               <Paperclip className="h-4 w-4" />
-              แนบเอกสาร (ใบเสร็จรับเงิน, เอกสารประกอบ)
+              แนบเอกสาร (ใบเสร็จรับเงิน, รายละเอียดหลักสูตร, ใบเสนอราคา/ใบแจ้งหนี้)
             </label>
             <div className="flex items-center gap-2">
               <Input

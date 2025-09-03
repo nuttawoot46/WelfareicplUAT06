@@ -537,7 +537,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                                       <FileText className="h-4 w-4" />
                                     </a>
                                   </Button>
-                                  <span className="text-xs text-gray-500">ต้นฉบับ</span>
+                                  <span className="text-xs text-gray-500">เอกสารแนบ</span>
                                 </div>
                               ))}
                             </>

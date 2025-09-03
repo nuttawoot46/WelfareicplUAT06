@@ -24,54 +24,96 @@ export const DigitalSignature: React.FC<DigitalSignatureProps> = ({
 
   useEffect(() => {
     if (isOpen && signatureType === 'draw') {
+      // Lock body scroll on mobile
+      const originalOverflow = document.body.style.overflow;
+      const originalTouchAction = document.body.style.touchAction;
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          // Set white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Set drawing properties
           ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 3;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
         }
       }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.touchAction = originalTouchAction;
+      };
     }
   }, [isOpen, signatureType]);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Get coordinates from mouse or touch event
+  const getCoordinates = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if (e.type.startsWith('touch')) {
+      const touch = e.touches?.[0] || e.changedTouches?.[0];
+      if (!touch) return { x: 0, y: 0 };
+      clientX = touch.clientX;
+      clientY = touch.clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const startDrawing = (e: any) => {
+    if (e.cancelable) e.preventDefault();
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
     const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      setIsDrawing(true);
-    }
+    if (!ctx) return;
+
+    const pos = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: any) => {
+    if (e.cancelable) e.preventDefault();
+    
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
     const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      setHasDrawnSignature(true);
-    }
+    if (!ctx) return;
+
+    const pos = getCoordinates(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    setHasDrawnSignature(true);
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e?: any) => {
+    if (e?.cancelable) e.preventDefault();
     setIsDrawing(false);
   };
 
@@ -80,7 +122,19 @@ export const DigitalSignature: React.FC<DigitalSignatureProps> = ({
     if (canvas) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Reset white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Reset drawing properties
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
         setHasDrawnSignature(false);
       }
     }
@@ -164,16 +218,26 @@ export const DigitalSignature: React.FC<DigitalSignatureProps> = ({
         {signatureType === 'draw' && (
           <div className="mb-4">
             <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-              <canvas
-                ref={canvasRef}
-                width={600}
-                height={200}
-                className="border border-gray-400 bg-white cursor-crosshair w-full"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-              />
+              <div 
+                className="border border-gray-400 bg-white rounded"
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                onTouchCancel={stopDrawing}
+                style={{ touchAction: 'none' }}
+              >
+                <canvas
+                  ref={canvasRef}
+                  width={600}
+                  height={200}
+                  className="cursor-crosshair w-full h-[200px] pointer-events-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              </div>
               <div className="flex justify-between items-center mt-2">
                 <p className="text-sm text-gray-600">กรุณาวาดลายเซ็นของคุณในกรอบด้านบน</p>
                 <Button
