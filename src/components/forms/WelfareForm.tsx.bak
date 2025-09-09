@@ -29,7 +29,7 @@ interface WelfareFormProps {
   editId?: number | null;
 }
 
-// 1. อัปเดต FormValues Interface
+// 1. เธญเธฑเธเน€เธ”เธ• FormValues Interface
 interface FormValues {
   startDate: string;
   endDate: string;
@@ -51,7 +51,7 @@ interface FormValues {
   employeePayment?: number;
   courseName?: string;
   organizer?: string;
-  isVatIncluded?: boolean; // เพิ่ม field สำหรับ checkbox
+  isVatIncluded?: boolean; // เน€เธเธดเนเธก field เธชเธณเธซเธฃเธฑเธ checkbox
 
   // Internal Training fields
   department?: string;
@@ -81,16 +81,16 @@ interface FormValues {
   withholdingTaxAmount?: number;
   additionalNotes?: string;
 
-  // Advance (เบิกเงินทดลอง) fields
-  advanceDepartment?: string; // แผนก
-  advanceDistrict?: string; // เขต
-  advanceActivityType?: string; // ประเภทกิจกรรม
-  advanceActivityOther?: string; // ระบุอื่นๆ
-  advanceShopCompany?: string; // ชื่อร้าน/บริษัท
-  advanceAmphur?: string; // อำเภอ
-  advanceProvince?: string; // จังหวัด
-  advanceEventDate?: string; // วันที่จัด
-  advanceParticipants?: number; // จำนวนผู้เข้าร่วม
+  // Advance (เน€เธเธดเธเน€เธเธดเธเธ—เธ”เธฅเธญเธ) fields
+  advanceDepartment?: string; // เนเธเธเธ
+  advanceDistrict?: string; // เน€เธเธ•
+  advanceActivityType?: string; // เธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธก
+  advanceActivityOther?: string; // เธฃเธฐเธเธธเธญเธทเนเธเน
+  advanceShopCompany?: string; // เธเธทเนเธญเธฃเนเธฒเธ/เธเธฃเธดเธฉเธฑเธ—
+  advanceAmphur?: string; // เธญเธณเน€เธ เธญ
+  advanceProvince?: string; // เธเธฑเธเธซเธงเธฑเธ”
+  advanceEventDate?: string; // เธงเธฑเธเธ—เธตเนเธเธฑเธ”
+  advanceParticipants?: number; // เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธก
   advanceDailyRate?: number;
   advanceAccommodationCost?: number;
   advanceTransportationCost?: number;
@@ -99,18 +99,18 @@ interface FormValues {
   advanceProjectName?: string;
   advanceProjectLocation?: string;
 
-  // Document selections for welfare types
+  // Attachment selections for welfare PDF (exclude training/internal/advance)
   attachmentSelections?: {
-    receipt?: boolean; // ใบเสร็จรับเงิน
-    birthCertificate?: boolean; // สำเนาสูติบัตรบุตร
-    medicalCertificate?: boolean; // ใบรับรองแพทย์
-    idCardCopy?: boolean; // สำเนาบัตรประชาชน
-    deathCertificate?: boolean; // สำเนาใบมรณะบัตร
-    marriageCertificate?: boolean; // สำเนาทะเบียนสมรส
-    bankBookCopy?: boolean; // สำเนาบัญชีธนาคาร
-    weddingCard?: boolean; // การ์ดแต่งงาน
-    other?: boolean; // อื่นๆ
-    otherText?: string; // ระบุอื่นๆ
+    receipt?: boolean;
+    birthCertificate?: boolean;
+    medicalCertificate?: boolean;
+    idCardCopy?: boolean;
+    deathCertificate?: boolean;
+    marriageCertificate?: boolean;
+    bankBookCopy?: boolean;
+    weddingCard?: boolean;
+    other?: boolean;
+    otherText?: string;
   };
 }
 
@@ -127,56 +127,56 @@ const TEAMS = [
   'Strategy',
 ];
 
-// Employee levels for internal training (ตาม PDF)
+// Employee levels for internal training (เธ•เธฒเธก PDF)
 const EMPLOYEE_LEVELS = [
-  'พนักงาน',
-  'เจ้าหน้าที่',
-  'ผู้ช่วยหัวหน้างาน',
-  'หัวหน้างาน',
-  'ผู้ช่วยผู้จัดการ',
-  'ผู้จัดการ',
-  'รองกรรมการผู้จัดการ',
-  'กรรมการผู้จัดการ / ประธาน'
+  'เธเธเธฑเธเธเธฒเธ',
+  'เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเน',
+  'เธเธนเนเธเนเธงเธขเธซเธฑเธงเธซเธเนเธฒเธเธฒเธ',
+  'เธซเธฑเธงเธซเธเนเธฒเธเธฒเธ',
+  'เธเธนเนเธเนเธงเธขเธเธนเนเธเธฑเธ”เธเธฒเธฃ',
+  'เธเธนเนเธเธฑเธ”เธเธฒเธฃ',
+  'เธฃเธญเธเธเธฃเธฃเธกเธเธฒเธฃเธเธนเนเธเธฑเธ”เธเธฒเธฃ',
+  'เธเธฃเธฃเธกเธเธฒเธฃเธเธนเนเธเธฑเธ”เธเธฒเธฃ / เธเธฃเธฐเธเธฒเธ'
 ];
 
 const DEPARTMENTS = [
-  'ทรัพยากรบุคคล',
+  'เธ—เธฃเธฑเธเธขเธฒเธเธฃเธเธธเธเธเธฅ',
 ];
 
 const BRANCHES = [
-  'สำนักงานสุรวงศ์',
-  'โรงงานนครปฐม',
+  'เธชเธณเธเธฑเธเธเธฒเธเธชเธธเธฃเธงเธเธจเน',
+  'เนเธฃเธเธเธฒเธเธเธเธฃเธเธเธก',
 ];
 
-// ประเภทกิจกรรมสำหรับเบิกเงินทดลอง
+// เธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธกเธชเธณเธซเธฃเธฑเธเน€เธเธดเธเน€เธเธดเธเธ—เธ”เธฅเธญเธ
 const ACTIVITY_TYPES = [
-  'จัดประชุม',
-  'ออกบูธ',
-  'ดีเลอร์',
-  'ซับดีลเลอร์',
-  'อื่นๆ ระบุ'
+  'เธเธฑเธ”เธเธฃเธฐเธเธธเธก',
+  'เธญเธญเธเธเธนเธ',
+  'เธ”เธตเน€เธฅเธญเธฃเน',
+  'เธเธฑเธเธ”เธตเธฅเน€เธฅเธญเธฃเน',
+  'เธญเธทเนเธเน เธฃเธฐเธเธธ'
 ];
 
 // Helper to get form title by welfare type
 const getFormTitle = (type: WelfareType): string => {
   const titles: Record<WelfareType, string> = {
-    wedding: 'แบบฟอร์มขอสวัสดิการค่าแต่งงาน',
-    training: 'แบบฟอร์มขอสวัสดิการค่าอบรม',
-    childbirth: 'แบบฟอร์มขอสวัสดิการค่าคลอดบุตร',
-    funeral: 'แบบฟอร์มขอสวัสดิการค่าช่วยเหลืองานศพ',
-    glasses: 'แบบฟอร์มขอสวัสดิการค่าตัดแว่น',
-    dental: 'แบบฟอร์มขอสวัสดิการค่าทำฟัน',
-    fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
-    medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
-    internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
-    advance: 'แบบขออนุมัติเบิกเงินทดลอง',
+    wedding: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเนเธ•เนเธเธเธฒเธ',
+    training: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธญเธเธฃเธก',
+    childbirth: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธเธฅเธญเธ”เธเธธเธ•เธฃ',
+    funeral: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธเนเธงเธขเน€เธซเธฅเธทเธญเธเธฒเธเธจเธ',
+    glasses: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธ•เธฑเธ”เนเธงเนเธ',
+    dental: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธ—เธณเธเธฑเธ',
+    fitness: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธญเธญเธเธเธณเธฅเธฑเธเธเธฒเธข',
+    medical: 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเนเธฒเธเธญเธเน€เธขเธตเนเธขเธกเธเธฃเธ“เธตเน€เธเนเธเธเนเธงเธข',
+    internal_training: 'เธเธญเธฃเนเธกเน€เธเธดเธเธเนเธฒเธญเธเธฃเธก (เธ เธฒเธขเนเธ)',
+    advance: 'เนเธเธเธเธญเธญเธเธธเธกเธฑเธ•เธดเน€เธเธดเธเน€เธเธดเธเธ—เธ”เธฅเธญเธ',
   };
 
-  return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
+  return titles[type] || 'เนเธเธเธเธญเธฃเนเธกเธเธญเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃ';
 };
 
 export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
-  // รองรับ editId จาก prop (modal edit) หรือจาก query string (หน้า /Forms)
+  // เธฃเธญเธเธฃเธฑเธ editId เธเธฒเธ prop (modal edit) เธซเธฃเธทเธญเธเธฒเธ query string (เธซเธเนเธฒ /Forms)
   const location = useLocation();
   let editIdNum: number | undefined = undefined;
   if (typeof editId === 'number') {
@@ -213,7 +213,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   } = useForm<FormValues>({
     defaultValues: {
       trainingTopics: [{ value: '' }, { value: '' }],
-      participants: [{ team: '', count: 0, selectedParticipants: [] }]
+      participants: [{ team: '', count: 0, selectedParticipants: [] }],
+      attachmentSelections: {
+        receipt: false,
+        birthCertificate: false,
+        medicalCertificate: false,
+        idCardCopy: false,
+        deathCertificate: false,
+        marriageCertificate: false,
+        bankBookCopy: false,
+        weddingCard: false,
+        other: false,
+        otherText: ''
+      }
     }
   });
 
@@ -268,7 +280,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     const workDays = calculateWorkDays(employeeData.start_date);
     if (workDays < 180) {
-      setWorkDaysError(`ไม่สามารถเบิกสวัสดิการอบรมได้ เนื่องจากอายุงานยังไม่ถึง 180 วัน (ปัจจุบันทำงานมาแล้ว ${workDays} วัน)`);
+      setWorkDaysError(`เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เน€เธเธดเธเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธญเธเธฃเธกเนเธ”เน เน€เธเธทเนเธญเธเธเธฒเธเธญเธฒเธขเธธเธเธฒเธเธขเธฑเธเนเธกเนเธ–เธถเธ 180 เธงเธฑเธ (เธเธฑเธเธเธธเธเธฑเธเธ—เธณเธเธฒเธเธกเธฒเนเธฅเนเธง ${workDays} เธงเธฑเธ)`);
       return false;
     }
 
@@ -276,7 +288,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     return true;
   };
 
-  // 1. ตั้งค่าขีดจำกัดและเงื่อนไขของสวัสดิการตาม type ทุกครั้งที่ type หรือ user เปลี่ยน
+  // 1. เธ•เธฑเนเธเธเนเธฒเธเธตเธ”เธเธณเธเธฑเธ”เนเธฅเธฐเน€เธเธทเนเธญเธเนเธเธเธญเธเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธ•เธฒเธก type เธ—เธธเธเธเธฃเธฑเนเธเธ—เธตเน type เธซเธฃเธทเธญ user เน€เธเธฅเธตเนเธขเธ
   useEffect(() => {
     if (!user) return;
     let limitAmount = 0;
@@ -284,7 +296,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     let limitMonthly = false;
     if (type === 'training') {
       limitAmount = trainingBudget || 0;
-      limitCondition = 'อ้างอิงจากงบประมาณคงเหลือของพนักงาน';
+      limitCondition = 'เธญเนเธฒเธเธญเธดเธเธเธฒเธเธเธเธเธฃเธฐเธกเธฒเธ“เธเธเน€เธซเธฅเธทเธญเธเธญเธเธเธเธฑเธเธเธฒเธ';
     } else {
       const limit = getWelfareLimit(type);
       limitAmount = limit.amount;
@@ -301,7 +313,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
 
-    // ถ้ามี editId ให้ดึงข้อมูลมา prefill
+    // เธ–เนเธฒเธกเธต editId เนเธซเนเธ”เธถเธเธเนเธญเธกเธนเธฅเธกเธฒ prefill
     const fetchEditData = async () => {
       if (editIdNum) {
         const { data, error } = await supabase
@@ -310,7 +322,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           .eq('id', editIdNum)
           .single();
         if (!error && data) {
-            // Map only fields that exist in the schema
+          // Map only fields that exist in the schema
           const dbData = data as any; // Type assertion for database fields
           reset({
             amount: dbData.amount,
@@ -364,8 +376,23 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             advanceOtherExpenses: dbData.advance_other_expenses || 0,
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
-            // Document selections
-            attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
+            // Attachment selections (if stored in future). Safe fallback.
+            attachmentSelections: dbData.attachment_selections
+              ? (typeof dbData.attachment_selections === 'string'
+                  ? JSON.parse(dbData.attachment_selections)
+                  : dbData.attachment_selections)
+              : {
+                  receipt: false,
+                  birthCertificate: false,
+                  medicalCertificate: false,
+                  idCardCopy: false,
+                  deathCertificate: false,
+                  marriageCertificate: false,
+                  bankBookCopy: false,
+                  weddingCard: false,
+                  other: false,
+                  otherText: ''
+                },
           });
           // Attachments
           if (data.attachment_url) {
@@ -406,25 +433,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [birthType, type, setValue]);
 
-  // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยน amount, VAT หรือ withholding tax
-  useEffect(() => {
-    const amount = watch('amount');
-    const vatAmount = Number(watch('tax7Percent')) || 0;
-    const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-    
-    if (type === 'training') {
-      // สมมติว่า remainingBudget ใช้ trainingBudget
-      const remainingBudget = currentRemainingBudget ?? 0;
-      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
-        calculateTrainingAmounts(Number(amount), Number(remainingBudget), vatAmount, withholdingAmount);
-      }
-    } else if (type === 'wedding' || type === 'childbirth' || type === 'funeral' || type === 'glasses' || type === 'dental' || type === 'fitness' || type === 'medical') {
-      // คำนวณสำหรับ welfare types อื่น ๆ
-      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
-        calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
-      }
-    }
-  }, [watch('amount'), watch('tax7Percent'), watch('withholdingTax3Percent'), type]);
+  // เธเธณเธเธงเธ“เธเธฅเธฅเธฑเธเธเนเนเธซเธกเนเธ—เธฑเธเธ—เธตเน€เธกเธทเนเธญเน€เธเธฅเธตเนเธขเธ amount, VAT เธซเธฃเธทเธญ withholding tax
+  // (เธขเนเธฒเธขเธกเธฒเธซเธฅเธฑเธเธเธฒเธเธเธฃเธฐเธเธฒเธจ currentRemainingBudget เน€เธเธทเนเธญเน€เธฅเธตเนเธขเธ TDZ)
 
   // Calculate total days when start or end date changes
   useEffect(() => {
@@ -588,27 +598,27 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // Create date and venue string
     let dateVenueInfo = '';
     if (startDate && endDate && startDate === endDate) {
-      dateVenueInfo = `${startDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+      dateVenueInfo = `${startDate} เน€เธงเธฅเธฒ ${startTime} - ${endTime} เธ. เธ“ ${venue}`;
     } else if (startDate && endDate) {
-      dateVenueInfo = `${startDate} ถึง ${endDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+      dateVenueInfo = `${startDate} เธ–เธถเธ ${endDate} เน€เธงเธฅเธฒ ${startTime} - ${endTime} เธ. เธ“ ${venue}`;
     } else if (startDate) {
-      dateVenueInfo = `${startDate} เวลา ${startTime} - ${endTime} น. ณ ${venue}`;
+      dateVenueInfo = `${startDate} เน€เธงเธฅเธฒ ${startTime} - ${endTime} เธ. เธ“ ${venue}`;
     }
 
     // Create CSV content
     const csvContent = [
       // Header with course info
-      ['แบบลงทะเบียนผู้เข้าอบรม'],
+      ['เนเธเธเธฅเธเธ—เธฐเน€เธเธตเธขเธเธเธนเนเน€เธเนเธฒเธญเธเธฃเธก'],
       [''],
       [formData.courseName || 'MBTI Training 2025'],
       [''],
       [dateVenueInfo],
       [''],
-      ['วิทยากร', '', '', '', ''],
+      ['เธงเธดเธ—เธขเธฒเธเธฃ', '', '', '', ''],
       [''],
       // Table headers
       ['No.', 'Name', 'Team', 'Position', 'Signature', ''],
-      ['', '', '', '', 'รอบเข้า', 'รอบบ่าย'],
+      ['', '', '', '', 'เธฃเธญเธเน€เธเนเธฒ', 'เธฃเธญเธเธเนเธฒเธข'],
       // Participant data
       ...allParticipants.map(p => [
         p.no,
@@ -643,12 +653,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     document.body.removeChild(link);
 
     toast({
-      title: 'ดาวน์โหลดสำเร็จ',
-      description: 'ไฟล์ CSV รายชื่อผู้เข้าอบรมถูกดาวน์โหลดเรียบร้อยแล้ว',
+      title: 'เธ”เธฒเธงเธเนเนเธซเธฅเธ”เธชเธณเน€เธฃเนเธ',
+      description: 'เนเธเธฅเน CSV เธฃเธฒเธขเธเธทเนเธญเธเธนเนเน€เธเนเธฒเธญเธเธฃเธกเธ–เธนเธเธ”เธฒเธงเธเนเนเธซเธฅเธ”เน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง',
     });
   };
 
-  // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
+  // เธเธฑเธเธเนเธเธฑเธเธชเธณเธซเธฃเธฑเธเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเนเธเธขเธฑเธ Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
 
@@ -683,14 +693,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       setFiles(prevFiles => [...prevFiles, ...uploadedUrls]);
 
       toast({
-        title: "อัพโหลดสำเร็จ",
-        description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
+        title: "เธญเธฑเธเนเธซเธฅเธ”เธชเธณเน€เธฃเนเธ",
+        description: `เธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง`,
       });
     } catch (error: any) {
       console.error('Error uploading files:', error);
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: `ไม่สามารถอัปโหลดไฟล์ได้: ${error.message}`,
+        title: "เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”",
+        description: `เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเนเธ”เน: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -699,7 +709,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   };
 
-  // ฟังก์ชันสำหรับลบไฟล์ที่อัพโหลด
+  // เธเธฑเธเธเนเธเธฑเธเธชเธณเธซเธฃเธฑเธเธฅเธเนเธเธฅเนเธ—เธตเนเธญเธฑเธเนเธซเธฅเธ”
   const handleRemoveFile = async (index: number) => {
     try {
       // Get the file URL to remove
@@ -719,14 +729,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
 
       toast({
-        title: "ลบไฟล์สำเร็จ",
-        description: "ลบไฟล์เรียบร้อยแล้ว",
+        title: "เธฅเธเนเธเธฅเนเธชเธณเน€เธฃเนเธ",
+        description: "เธฅเธเนเธเธฅเนเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง",
       });
     } catch (error: any) {
       console.error('Error removing file:', error);
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: `ไม่สามารถลบไฟล์ได้: ${error.message}`,
+        title: "เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”",
+        description: `เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธฅเธเนเธเธฅเนเนเธ”เน: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -734,17 +744,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
   // Get remaining budget from getBenefitLimits API to ensure consistency
   const [currentRemainingBudget, setCurrentRemainingBudget] = useState<number>(0);
-
-  // Recalculate training amounts when remaining budget updates
-  useEffect(() => {
-    if (type === 'training') {
-      const amount = Number(watch('amount')) || 0;
-      const vatAmount = Number(watch('tax7Percent')) || 0;
-      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-      calculateTrainingAmounts(amount, Number(currentRemainingBudget) || 0, vatAmount, withholdingAmount);
-    }
-  }, [currentRemainingBudget, type]);
-
 
   // Fetch remaining budget from getBenefitLimits API
   useEffect(() => {
@@ -755,7 +754,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         const { getBenefitLimits } = await import('@/services/welfareApi');
         const limits = await getBenefitLimits();
 
-        // สำหรับ glasses และ dental ใช้ budget_dentalglasses ร่วมกัน
+        // เธชเธณเธซเธฃเธฑเธ glasses เนเธฅเธฐ dental เนเธเน budget_dentalglasses เธฃเนเธงเธกเธเธฑเธ
         if (type === 'glasses' || type === 'dental') {
           const dentalLimit = limits.find(limit => limit.type === 'dental');
           setCurrentRemainingBudget(dentalLimit ? dentalLimit.remaining : (profile?.budget_dentalglasses ?? 0));
@@ -778,14 +777,32 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   }, [user, type, profile?.budget_dentalglasses, getRemainingBudget]);
 
   const remainingBudget = currentRemainingBudget;
+  // Recalculate when amount/VAT/withholding changes (after currentRemainingBudget is defined)
+  useEffect(() => {
+    const amount = watch('amount');
+    const vatAmount = Number(watch('tax7Percent')) || 0;
+    const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+
+    if (type === 'training') {
+      // Use actual remaining budget to compute overage
+      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
+        calculateTrainingAmounts(Number(amount), Number(currentRemainingBudget || 0), vatAmount, withholdingAmount);
+      }
+    } else if (type === 'wedding' || type === 'childbirth' || type === 'funeral' || type === 'glasses' || type === 'dental' || type === 'fitness' || type === 'medical') {
+      // Non-training calculation
+      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
+        calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
+      }
+    }
+  }, [watch('amount'), watch('tax7Percent'), watch('withholdingTax3Percent'), currentRemainingBudget, type]);
 
   const onSubmit = async (data: any) => {
     // Store form data and show signature modal for all types (including training)
     // Make sure we have employeeData before showing signature modal
     if (!employeeData) {
       toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่พบข้อมูลพนักงาน กรุณาลองใหม่อีกครั้ง',
+        title: 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”',
+        description: 'เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธเธเธฑเธเธเธฒเธ เธเธฃเธธเธ“เธฒเธฅเธญเธเนเธซเธกเนเธญเธตเธเธเธฃเธฑเนเธ',
         variant: 'destructive',
       });
       return;
@@ -794,7 +811,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // Check training eligibility before submission
     if (type === 'training' && !checkTrainingEligibility(employeeData)) {
       toast({
-        title: 'ไม่สามารถส่งคำร้องได้',
+        title: 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธชเนเธเธเธณเธฃเนเธญเธเนเธ”เน',
         description: workDaysError,
         variant: 'destructive',
       });
@@ -841,19 +858,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       }
 
       if (editIdNum) {
-        // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
+        // เธ•เธฃเธงเธเธชเธญเธเธชเธ–เธฒเธเธฐเธเธณเธฃเนเธญเธเธเนเธญเธเธญเธเธธเธเธฒเธ•เนเธซเนเนเธเนเนเธ
         const { data: currentRequest, error: fetchError } = await supabase
           .from('welfare_requests')
           .select('status')
           .eq('id', editIdNum)
           .single();
         if (fetchError || !currentRequest) {
-          throw new Error('ไม่พบข้อมูลคำร้อง หรือเกิดข้อผิดพลาดในการตรวจสอบสถานะ');
+          throw new Error('เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธเธณเธฃเนเธญเธ เธซเธฃเธทเธญเน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”เนเธเธเธฒเธฃเธ•เธฃเธงเธเธชเธญเธเธชเธ–เธฒเธเธฐ');
         }
         if (currentRequest.status && currentRequest.status.toLowerCase() === 'approved') {
           toast({
-            title: 'ไม่สามารถแก้ไขได้',
-            description: 'คำร้องนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้',
+            title: 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธเนเนเธเนเธ”เน',
+            description: 'เธเธณเธฃเนเธญเธเธเธตเนเนเธ”เนเธฃเธฑเธเธเธฒเธฃเธญเธเธธเธกเธฑเธ•เธดเนเธฅเนเธง เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธเนเนเธเนเธ”เน',
             variant: 'destructive',
           });
           setIsSubmitting(false);
@@ -861,7 +878,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         }
         // UPDATE EXISTING REQUEST
         const updateData: any = {
-          amount: Number(data.netAmount || data.amount || 0), // Net amount ยังคง map ไป column เดิม
+          amount: Number(data.netAmount || data.amount || 0), // Net amount เธขเธฑเธเธเธ map เนเธ column เน€เธ”เธดเธก
           details: data.details || '',
           title: data.title || '',
           attachment_url: JSON.stringify(files),
@@ -915,8 +932,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           advance_other_expenses: data.advanceOtherExpenses,
           advance_project_name: data.advanceProjectName,
           advance_project_location: data.advanceProjectLocation,
-          // Document selections
-          attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
+          // Optionally persist attachment selections if a column exists in DB in future
+          attachment_selections: data.attachmentSelections
+            ? JSON.stringify(data.attachmentSelections)
+            : null,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -928,14 +947,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
         if (updateError) {
           console.error('Supabase updateError:', updateError);
-          throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
+          throw new Error('เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธเนเนเธเธเธณเธฃเนเธญเธเนเธ”เน เธเธฃเธธเธ“เธฒเธฅเธญเธเนเธซเธกเน');
         }
 
         await refreshRequests();
 
         toast({
-          title: 'แก้ไขคำร้องสำเร็จ',
-          description: 'ข้อมูลคำร้องได้รับการแก้ไขเรียบร้อยแล้ว',
+          title: 'เนเธเนเนเธเธเธณเธฃเนเธญเธเธชเธณเน€เธฃเนเธ',
+          description: 'เธเนเธญเธกเธนเธฅเธเธณเธฃเนเธญเธเนเธ”เนเธฃเธฑเธเธเธฒเธฃเนเธเนเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง',
         });
         setTimeout(onBack, 2000);
         return;
@@ -956,8 +975,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     } catch (error: any) {
       console.error('Error submitting form:', error);
       toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: error.message || 'ไม่สามารถส่งคำร้องได้ กรุณาลองใหม่อีกครั้ง',
+        title: 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”',
+        description: error.message || 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธชเนเธเธเธณเธฃเนเธญเธเนเธ”เน เธเธฃเธธเธ“เธฒเธฅเธญเธเนเธซเธกเนเธญเธตเธเธเธฃเธฑเนเธ',
         variant: 'destructive',
       });
     } finally {
@@ -976,8 +995,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       } catch (error: any) {
         console.error('Error submitting form after signature:', error);
         toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: error.message || 'ไม่สามารถส่งคำร้องได้ กรุณาลองใหม่อีกครั้ง',
+          title: 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”',
+          description: error.message || 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธชเนเธเธเธณเธฃเนเธญเธเนเธ”เน เธเธฃเธธเธ“เธฒเธฅเธญเธเนเธซเธกเนเธญเธตเธเธเธฃเธฑเนเธ',
           variant: 'destructive',
         });
       } finally {
@@ -1004,34 +1023,23 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         if (!error && fetchedEmployeeData) {
           finalEmployeeData = fetchedEmployeeData;
         } else {
-          throw new Error('ไม่พบข้อมูลพนักงาน');
+          throw new Error('เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธเธเธฑเธเธเธฒเธ');
         }
       } catch (error) {
-        throw new Error('ไม่สามารถดึงข้อมูลพนักงานได้');
+        throw new Error('เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธ”เธถเธเธเนเธญเธกเธนเธฅเธเธเธฑเธเธเธฒเธเนเธ”เน');
       }
     }
 
     // Handle Internal Training differently
     if (type === 'internal_training') {
       const internalTrainingData = {
-        // Required WelfareRequest fields
-        type: 'internal_training' as const,
-        userId: profile.employee_id.toString(),
-        userName: finalEmployeeData.Name || user.email || 'Unknown User',
-        userDepartment: finalEmployeeData.Team || 'Unknown Department',
-        date: data.startDate || new Date().toISOString(),
-        status: 'pending_manager' as const,
-        amount: Number(data.totalAmount || data.amount || 0),
-        details: data.additionalNotes || data.details || '',
-        attachments: files,
-        notes: '',
-        managerId: finalEmployeeData?.Position,
-        
-        // Internal training specific fields
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
         request_type: 'internal_training',
+        status: 'pending_manager',
         title: data.courseName || '',
+        details: data.additionalNotes || data.details || '',
+        amount: Number(data.totalAmount || data.amount || 0),
         department_request: finalEmployeeData.Team || 'Unknown Department',
         department: data.department || finalEmployeeData.Team || 'Unknown Department',
         branch: data.branch || null,
@@ -1108,22 +1116,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         }
 
         toast({
-          title: 'ส่งคำร้องและอัปโหลด PDF สำเร็จ',
-          description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และ PDF ได้ถูกบันทึกในระบบแล้ว',
+          title: 'เธชเนเธเธเธณเธฃเนเธญเธเนเธฅเธฐเธญเธฑเธเนเธซเธฅเธ” PDF เธชเธณเน€เธฃเนเธ',
+          description: 'เธเธณเธฃเนเธญเธเธเธฒเธฃเธญเธเธฃเธกเธ เธฒเธขเนเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธฅเธฐ PDF เนเธ”เนเธ–เธนเธเธเธฑเธเธ—เธถเธเนเธเธฃเธฐเธเธเนเธฅเนเธง',
         });
       } catch (pdfError) {
         console.error('PDF generation/upload error:', pdfError);
         toast({
-          title: 'ส่งคำร้องสำเร็จ',
-          description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว แต่ไม่สามารถสร้าง/อัปโหลด PDF ได้ในขณะนี้',
+          title: 'เธชเนเธเธเธณเธฃเนเธญเธเธชเธณเน€เธฃเนเธ',
+          description: 'เธเธณเธฃเนเธญเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธ•เนเนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธชเธฃเนเธฒเธ/เธญเธฑเธเนเธซเธฅเธ” PDF เนเธ”เนเนเธเธเธ“เธฐเธเธตเน',
         });
       }
 
       await refreshInternalTrainingRequests();
       
       toast({
-        title: 'ส่งคำร้องสำเร็จ',
-        description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
+        title: 'เธชเนเธเธเธณเธฃเนเธญเธเธชเธณเน€เธฃเนเธ',
+        description: 'เธเธณเธฃเนเธญเธเธเธฒเธฃเธญเธเธฃเธกเธ เธฒเธขเนเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธฅเธฐเธญเธขเธนเนเนเธเธฃเธฐเธซเธงเนเธฒเธเธเธฒเธฃเธเธดเธเธฒเธฃเธ“เธฒ',
       });
 
       reset();
@@ -1164,9 +1172,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       course_name: data.courseName,
       organizer: data.organizer,
       is_vat_included: data.isVatIncluded,
-      userSignature: signature || userSignature, // เพิ่มลายเซ็น
-      // Document selections
-      attachmentSelections: data.attachmentSelections,
+      userSignature: signature || userSignature, // เน€เธเธดเนเธกเธฅเธฒเธขเน€เธเนเธ
       // Advance fields for requestData
       advanceDepartment: data.advanceDepartment,
       advanceDistrict: data.advanceDistrict,
@@ -1184,6 +1190,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       advanceOtherExpenses: data.advanceOtherExpenses,
       advanceProjectName: data.advanceProjectName,
       advanceProjectLocation: data.advanceProjectLocation,
+      // Attachment selections for PDF mapping
+      attachmentSelections: data.attachmentSelections,
     };
 
     const result = await submitRequest(requestData);
@@ -1205,14 +1213,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             status: 'pending_manager' as const,
             createdAt: requestData.createdAt,
             updatedAt: requestData.updatedAt,
-            userSignature: signature || userSignature,
-            // Map form fields to database field names for PDF generation
-            course_name: data.courseName,
-            organizer: data.organizer,
-            training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
-            start_date: data.startDate,
-            end_date: data.endDate,
-            total_days: data.totalDays
+            userSignature: signature || userSignature
           },
           user as any,
           finalEmployeeData,
@@ -1249,7 +1250,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           finalEmployeeData
         );
       }
-      // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย
+      // เธชเธฃเนเธฒเธเธเธทเนเธญเนเธเธฅเนเธ—เธตเนเธเธฅเธญเธ”เธ เธฑเธขเนเธ”เธขเนเธเน employee_id เธซเธฃเธทเธญ timestamp เนเธ—เธเธเธทเนเธญเนเธ—เธข
       const employeeId = finalEmployeeData?.employee_id || user?.id?.slice(-8) || 'user';
       const timestamp = Date.now();
       const filename = `welfare_${requestData.type}_emp${employeeId}_${timestamp}.pdf`;
@@ -1259,20 +1260,20 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', result.id);
       }
       toast({
-        title: 'ส่งคำร้องและอัปโหลด PDF สำเร็จ',
-        description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และ PDF ได้ถูกบันทึกในระบบแล้ว',
+        title: 'เธชเนเธเธเธณเธฃเนเธญเธเนเธฅเธฐเธญเธฑเธเนเธซเธฅเธ” PDF เธชเธณเน€เธฃเนเธ',
+        description: 'เธเธณเธฃเนเธญเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธฅเธฐ PDF เนเธ”เนเธ–เธนเธเธเธฑเธเธ—เธถเธเนเธเธฃเธฐเธเธเนเธฅเนเธง',
       });
     } catch (pdfError) {
       console.error('PDF generation/upload error:', pdfError);
       toast({
-        title: 'ส่งคำร้องสำเร็จ',
-        description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว แต่ไม่สามารถสร้าง/อัปโหลด PDF ได้ในขณะนี้',
+        title: 'เธชเนเธเธเธณเธฃเนเธญเธเธชเธณเน€เธฃเนเธ',
+        description: 'เธเธณเธฃเนเธญเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธ•เนเนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธชเธฃเนเธฒเธ/เธญเธฑเธเนเธซเธฅเธ” PDF เนเธ”เนเนเธเธเธ“เธฐเธเธตเน',
       });
     }
 
     toast({
-      title: 'ส่งคำร้องสำเร็จ',
-      description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
+      title: 'เธชเนเธเธเธณเธฃเนเธญเธเธชเธณเน€เธฃเนเธ',
+      description: 'เธเธณเธฃเนเธญเธเธเธญเธเธเธธเธ“เธ–เธนเธเธชเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง เนเธฅเธฐเธญเธขเธนเนเนเธเธฃเธฐเธซเธงเนเธฒเธเธเธฒเธฃเธเธดเธเธฒเธฃเธ“เธฒ',
     });
 
 
@@ -1284,13 +1285,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
 
 
-  // 3. อัปเดตฟังก์ชัน calculateTrainingAmounts
+  // 3. เธญเธฑเธเน€เธ”เธ•เธเธฑเธเธเนเธเธฑเธ calculateTrainingAmounts
   const calculateTrainingAmounts = (total: number, remainingBudget: number, customVat?: number, customWithholding?: number) => {
-    // ตรวจสอบค่าที่ส่งเข้ามา
+    // เธ•เธฃเธงเธเธชเธญเธเธเนเธฒเธ—เธตเนเธชเนเธเน€เธเนเธฒเธกเธฒ
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
     if (typeof remainingBudget !== 'number' || isNaN(remainingBudget)) remainingBudget = 0;
 
-    // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือ 0 ถ้าไม่ได้กรอก
+    // เนเธเนเธเนเธฒเธ—เธตเนเธเธนเนเนเธเนเธเธฃเธญเธเนเธ”เธขเธ•เธฃเธ เธซเธฃเธทเธญ 0 เธ–เนเธฒเนเธกเนเนเธ”เนเธเธฃเธญเธ
     const vat = customVat !== undefined && !isNaN(customVat) ? customVat : 0;
     const withholding = customWithholding !== undefined && !isNaN(customWithholding) ? customWithholding : 0;
 
@@ -1303,41 +1304,41 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     let employeePaymentValue = 0;
 
     if (grossAmount > remainingNum) {
-      // --- กรณีเกินงบประมาณ ---
+      // --- เธเธฃเธ“เธตเน€เธเธดเธเธเธเธเธฃเธฐเธกเธฒเธ“ ---
       excessAmountValue = grossAmount - remainingNum;
-      netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
+      netNum = grossAmount - withholding; // เนเธเนเนเธ: เธฅเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
 
       companyPaymentValue = excessAmountValue / 2;
-      employeePaymentValue = (excessAmountValue / 2) + withholding; // พนักงานต้องจ่ายส่วนเกิน + ภาษี ณ ที่จ่าย
+      employeePaymentValue = (excessAmountValue / 2) + withholding; // เธเธเธฑเธเธเธฒเธเธ•เนเธญเธเธเนเธฒเธขเธชเนเธงเธเน€เธเธดเธ + เธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
 
     } else {
-      // --- กรณีไม่เกินงบประมาณ ---
-      netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
+      // --- เธเธฃเธ“เธตเนเธกเนเน€เธเธดเธเธเธเธเธฃเธฐเธกเธฒเธ“ ---
+      netNum = grossAmount - withholding; // เนเธเนเนเธ: เธฅเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
       excessAmountValue = 0;
       companyPaymentValue = 0;
-      employeePaymentValue = withholding; // พนักงานจ่ายเฉพาะภาษี ณ ที่จ่าย
+      employeePaymentValue = withholding; // เธเธเธฑเธเธเธฒเธเธเนเธฒเธขเน€เธเธเธฒเธฐเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
     }
 
-    // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
+    // --- เธญเธฑเธเน€เธ”เธ•เธเนเธฒเธ—เธฑเนเธเธซเธกเธ”เนเธเธขเธฑเธเธเธญเธฃเนเธก ---
     setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
     setValue('netAmount', parseFloat((netNum || 0).toFixed(2)));
-    setValue('excessAmount', parseFloat((excessAmountValue || 0).toFixed(2))); // ตั้งค่า Field ใหม่
+    setValue('excessAmount', parseFloat((excessAmountValue || 0).toFixed(2))); // เธ•เธฑเนเธเธเนเธฒ Field เนเธซเธกเน
     setValue('companyPayment', parseFloat((companyPaymentValue || 0).toFixed(2)));
     setValue('employeePayment', parseFloat((employeePaymentValue || 0).toFixed(2)));
   };
 
-  // ฟังก์ชันคำนวณสำหรับ welfare types อื่น ๆ (ไม่ใช่ training)
+  // เธเธฑเธเธเนเธเธฑเธเธเธณเธเธงเธ“เธชเธณเธซเธฃเธฑเธ welfare types เธญเธทเนเธ เน (เนเธกเนเนเธเน training)
   const calculateNonTrainingAmounts = (total: number, customVat?: number, customWithholding?: number) => {
-    // ตรวจสอบค่าที่ส่งเข้ามา
+    // เธ•เธฃเธงเธเธชเธญเธเธเนเธฒเธ—เธตเนเธชเนเธเน€เธเนเธฒเธกเธฒ
     if (typeof total !== 'number' || isNaN(total) || total < 0) return;
 
-    // ใช้ค่าที่ผู้ใช้กรอกโดยตรง หรือ 0 ถ้าไม่ได้กรอก
+    // เนเธเนเธเนเธฒเธ—เธตเนเธเธนเนเนเธเนเธเธฃเธญเธเนเธ”เธขเธ•เธฃเธ เธซเธฃเธทเธญ 0 เธ–เนเธฒเนเธกเนเนเธ”เนเธเธฃเธญเธ
     const vat = customVat !== undefined && !isNaN(customVat) ? customVat : 0;
     const withholding = customWithholding !== undefined && !isNaN(customWithholding) ? customWithholding : 0;
 
     const netAmount = total + vat - withholding;
 
-    // อัปเดตค่าทั้งหมดไปยังฟอร์ม
+    // เธญเธฑเธเน€เธ”เธ•เธเนเธฒเธ—เธฑเนเธเธซเธกเธ”เนเธเธขเธฑเธเธเธญเธฃเนเธก
     setValue('totalAmount', parseFloat((total || 0).toFixed(2)));
     setValue('netAmount', parseFloat((netAmount || 0).toFixed(2)));
   };
@@ -1360,7 +1361,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         onClick={onBack}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        กลับ
+        เธเธฅเธฑเธ
       </Button>
 
       <div id="welfare-form-content" className="form-container">
@@ -1375,9 +1376,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
                 {type === 'childbirth' ? (
-                  <>คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</>
+                  <>เธเธฅเธญเธ”เธเธฃเธฃเธกเธเธฒเธ•เธด 4,000 เธเธฒเธ—, เธเนเธฒเธเธฅเธญเธ” 6,000 เธเธฒเธ—</>
                 ) : (
-                  <>วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี`}</>
+                  <>เธงเธเน€เธเธดเธเธชเธนเธเธชเธธเธ”: {isMonthly ? `${maxAmount} เธเธฒเธ—/เน€เธ”เธทเธญเธ` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} เธเธฒเธ—/เธเธต`}</>
                 )}
                 {condition && <> ({condition})</>}
               </AlertDescription>
@@ -1387,7 +1388,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
-              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
+              เธเธเธเธฃเธฐเธกเธฒเธ“เธเธเน€เธซเธฅเธทเธญเธชเธณเธซเธฃเธฑเธเธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธตเน: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} เธเธฒเธ—</span>
             </p>
           </div>
         )}
@@ -1396,13 +1397,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
-                วงเงินสูงสุด: {maxAmount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
+                เธงเธเน€เธเธดเธเธชเธนเธเธชเธธเธ”: {maxAmount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} เธเธฒเธ—
               </AlertDescription>
             </Alert>
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
-                งบประมาณคงเหลือ: {remainingBudget?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
+                เธเธเธเธฃเธฐเธกเธฒเธ“เธเธเน€เธซเธฅเธทเธญ: {remainingBudget?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} เธเธฒเธ—
               </AlertDescription>
             </Alert>
             {workDaysError && (
@@ -1417,7 +1418,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               <Alert>
                 <AlertCircle className="h-4 w-4 mr-2" />
                 <AlertDescription>
-                  อายุงาน: {calculateWorkDays(employeeData.start_date)} วัน (เข้าทำงานวันที่ {new Date(employeeData.start_date).toLocaleDateString('th-TH')})
+                  เธญเธฒเธขเธธเธเธฒเธ: {calculateWorkDays(employeeData.start_date)} เธงเธฑเธ (เน€เธเนเธฒเธ—เธณเธเธฒเธเธงเธฑเธเธ—เธตเน {new Date(employeeData.start_date).toLocaleDateString('th-TH')})
                 </AlertDescription>
               </Alert>
             )}
@@ -1430,7 +1431,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <Alert className="border-blue-200 bg-blue-50">
               <AlertCircle className="h-4 w-4 mr-2 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>เบิกเงินทดลอง:</strong> สามารถขออนุมัติได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องวงเงินหรืองบประมาณ ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
+                <strong>เน€เธเธดเธเน€เธเธดเธเธ—เธ”เธฅเธญเธ:</strong> เธชเธฒเธกเธฒเธฃเธ–เธเธญเธญเธเธธเธกเธฑเธ•เธดเนเธ”เนเธ•เธฅเธญเธ”เน€เธงเธฅเธฒ เนเธกเนเธกเธตเธเนเธญเธเธณเธเธฑเธ”เน€เธฃเธทเนเธญเธเธงเธเน€เธเธดเธเธซเธฃเธทเธญเธเธเธเธฃเธฐเธกเธฒเธ“ เธฃเธฐเธเธเธเธฐเธเธณเธเธงเธ“เธเธณเธเธงเธเน€เธเธดเธเนเธซเนเธญเธฑเธ•เนเธเธกเธฑเธ•เธดเธ•เธฒเธกเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธ—เธตเนเธเธฃเธญเธ
               </AlertDescription>
             </Alert>
           </div>
@@ -1442,12 +1443,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">หลักสูตร</label>
+                  <label className="form-label">เธซเธฅเธฑเธเธชเธนเธ•เธฃ</label>
                   <Input
-                    placeholder="ระบุชื่อหลักสูตร"
+                    placeholder="เธฃเธฐเธเธธเธเธทเนเธญเธซเธฅเธฑเธเธชเธนเธ•เธฃ"
                     className="form-input"
                     {...register('courseName', {
-                      required: 'กรุณาระบุชื่อหลักสูตร'
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธทเนเธญเธซเธฅเธฑเธเธชเธนเธ•เธฃ'
                     })}
                   />
                   {errors.courseName && (
@@ -1455,12 +1456,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">จัดขึ้นโดย</label>
+                  <label className="form-label">เธเธฑเธ”เธเธถเนเธเนเธ”เธข</label>
                   <Input
-                    placeholder="ระบุชื่อผู้จัด"
+                    placeholder="เธฃเธฐเธเธธเธเธทเนเธญเธเธนเนเธเธฑเธ”"
                     className="form-input"
                     {...register('organizer', {
-                      required: 'กรุณาระบุผู้จัด'
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธนเนเธเธฑเธ”'
                     })}
                   />
                   {errors.organizer && (
@@ -1471,12 +1472,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ตั้งแต่วันที่</label>
+                  <label className="form-label">เธ•เธฑเนเธเนเธ•เนเธงเธฑเธเธ—เธตเน</label>
                   <Input
                     type="date"
                     className="form-input"
                     {...register('startDate', {
-                      required: 'กรุณาระบุวันที่เริ่ม',
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธงเธฑเธเธ—เธตเนเน€เธฃเธดเนเธก',
                       onChange: (e) => {
                         const endDate = watch('endDate');
                         if (endDate && e.target.value > endDate) {
@@ -1491,15 +1492,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">ถึงวันที่</label>
+                  <label className="form-label">เธ–เธถเธเธงเธฑเธเธ—เธตเน</label>
                   <Input
                     type="date"
                     className="form-input"
                     {...register('endDate', {
-                      required: 'กรุณาระบุวันที่สิ้นสุด',
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธงเธฑเธเธ—เธตเนเธชเธดเนเธเธชเธธเธ”',
                       validate: value => {
                         const startDate = watch('startDate');
-                        return !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
+                        return !value || !startDate || value >= startDate || 'เธงเธฑเธเธ—เธตเนเธชเธดเนเธเธชเธธเธ”เธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒเธงเธฑเธเธ—เธตเนเน€เธฃเธดเนเธก';
                       }
                     })}
                   />
@@ -1509,7 +1510,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">รวมเป็นจำนวน</label>
+                  <label className="form-label">เธฃเธงเธกเน€เธเนเธเธเธณเธเธงเธ</label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
@@ -1517,19 +1518,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       readOnly
                       {...register('totalDays')}
                     />
-                    <span className="text-sm">วัน</span>
+                    <span className="text-sm">เธงเธฑเธ</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="form-label">โดยมีวัตถุประสงค์ที่ขอเข้าอบรม ดังนี้</label>
+                <label className="form-label">เนเธ”เธขเธกเธตเธงเธฑเธ•เธ–เธธเธเธฃเธฐเธชเธเธเนเธ—เธตเนเธเธญเน€เธเนเธฒเธญเธเธฃเธก เธ”เธฑเธเธเธตเน</label>
                 <div className="space-y-2">
                   {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2">
                       <Input
                         {...register(`trainingTopics.${index}.value` as const)}
-                        placeholder={`วัตถุประสงค์ที่ ${index + 1}`}
+                        placeholder={`เธงเธฑเธ•เธ–เธธเธเธฃเธฐเธชเธเธเนเธ—เธตเน ${index + 1}`}
                         className="form-input"
                       />
                       {fields.length > 2 && (
@@ -1552,28 +1553,24 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       variant="outline"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      เพิ่มวัตถุประสงค์
+                      เน€เธเธดเนเธกเธงเธฑเธ•เธ–เธธเธเธฃเธฐเธชเธเธเน
                     </Button>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
-                <label htmlFor="amount" className="form-label">จำนวนเงิน</label>
+                <label htmlFor="amount" className="form-label">เธเธณเธเธงเธเน€เธเธดเธ</label>
                 <Input
                   id="amount"
                   type="number"
                   step="0.01"
                   className="form-input"
-                  placeholder="ระบุจำนวนเงิน"
+                  placeholder="เธฃเธฐเธเธธเธเธณเธเธงเธเน€เธเธดเธ"
                   {...register('amount', {
-                    required: 'กรุณาระบุจำนวนเงิน',
+                    required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธณเธเธงเธเน€เธเธดเธ',
                     min: {
                       value: 1,
-                      message: 'จำนวนเงินต้องมากกว่า 0'
-                    },
-                    max: {
-                      value: maxAmount || 100000,
-                      message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
+                      message: 'เธเธณเธเธงเธเน€เธเธดเธเธ•เนเธญเธเธกเธฒเธเธเธงเนเธฒ 0'
                     },
                     onChange: (e) => {
                       const amount = Number(e.target.value);
@@ -1592,7 +1589,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                  <label className="form-label">เธ เธฒเธฉเธตเธกเธนเธฅเธเนเธฒเน€เธเธดเนเธก (7%)</label>
                   <Input
                     type="number"
                     className="form-input"
@@ -1601,7 +1598,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     placeholder="0.00"
                     defaultValue="0"
                     {...register('tax7Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
                         const vatAmount = Number(e.target.value) || 0;
@@ -1617,7 +1614,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
+                  <label className="form-label">เธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข (3%)</label>
                   <Input
                     type="number"
                     className="form-input"
@@ -1626,7 +1623,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     placeholder="0.00"
                     defaultValue="0"
                     {...register('withholdingTax3Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
                         const withholdingAmount = Number(e.target.value) || 0;
@@ -1642,7 +1639,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">จำนวนเงินสุทธิ</label>
+                  <label className="form-label">เธเธณเธเธงเธเน€เธเธดเธเธชเธธเธ—เธเธด</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -1654,9 +1651,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* 2. เพิ่ม Field 'ยอดส่วนเกินทั้งหมด' ในหน้าฟอร์ม (JSX) */}
+              {/* 2. เน€เธเธดเนเธก Field 'เธขเธญเธ”เธชเนเธงเธเน€เธเธดเธเธ—เธฑเนเธเธซเธกเธ”' เนเธเธซเธเนเธฒเธเธญเธฃเนเธก (JSX) */}
               <div className="space-y-2">
-                <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
+                <label className="form-label">เธขเธญเธ”เธชเนเธงเธเน€เธเธดเธเธ—เธฑเนเธเธซเธกเธ”</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1669,7 +1666,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">บริษัทจ่าย</label>
+                  <label className="form-label">เธเธฃเธดเธฉเธฑเธ—เธเนเธฒเธข</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -1680,7 +1677,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">พนักงานจ่าย</label>
+                  <label className="form-label">เธเธเธฑเธเธเธฒเธเธเนเธฒเธข</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -1697,21 +1694,21 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           {/* Funeral specific fields */}
           {type === 'funeral' && (
             <div className="space-y-2">
-              <label className="form-label">ประเภทสวัสดิการงานศพ</label>
+              <label className="form-label">เธเธฃเธฐเน€เธ เธ—เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ</label>
               <Select
                 onValueChange={(value) => setValue('funeralType', value as 'employee_spouse' | 'child' | 'parent')}
                 defaultValue={watch('funeralType')}
                 {...register('funeralType', {
-                  required: type === 'funeral' ? 'กรุณาเลือกประเภทสวัสดิการงานศพ' : false
+                  required: type === 'funeral' ? 'เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ' : false
                 })}
               >
                 <SelectTrigger className="form-input">
-                  <SelectValue placeholder="เลือกประเภทสวัสดิการงานศพ" />
+                  <SelectValue placeholder="เน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employee_spouse">สวัสดิการงานศพ พนักงาน/สามีหรือภรรยาของพนักงาน</SelectItem>
-                  <SelectItem value="child">สวัสดิการงานศพ บุตร ของพนักงาน</SelectItem>
-                  <SelectItem value="parent">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน</SelectItem>
+                  <SelectItem value="employee_spouse">เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ เธเธเธฑเธเธเธฒเธ/เธชเธฒเธกเธตเธซเธฃเธทเธญเธ เธฃเธฃเธขเธฒเธเธญเธเธเธเธฑเธเธเธฒเธ</SelectItem>
+                  <SelectItem value="child">เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ เธเธธเธ•เธฃ เธเธญเธเธเธเธฑเธเธเธฒเธ</SelectItem>
+                  <SelectItem value="parent">เธชเธงเธฑเธชเธ”เธดเธเธฒเธฃเธเธฒเธเธจเธ เธเธดเธ”เธฒ/เธกเธฒเธฃเธ”เธฒ เธเธญเธเธเธเธฑเธเธเธฒเธ</SelectItem>
                 </SelectContent>
               </Select>
               {errors.funeralType && (
@@ -1723,19 +1720,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           {/* Internal Training specific fields */}
           {type === 'internal_training' && (
             <>
-              {/* ส่วนที่ 1: รายละเอียดการอบรม */}
+              {/* เธชเนเธงเธเธ—เธตเน 1: เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธฃเธญเธเธฃเธก */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดการอบรม</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธฃเธญเธเธฃเธก</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">ฝ่าย/แผนกผู้ขออนุมัติ</label>
+                    <label className="form-label">เธเนเธฒเธข/เนเธเธเธเธเธนเนเธเธญเธญเธเธธเธกเธฑเธ•เธด</label>
                     <Select
                       onValueChange={(value) => setValue('department', value)}
                       defaultValue={watch('department')}
                     >
                       <SelectTrigger className="form-input">
-                        <SelectValue placeholder="เลือกฝ่าย/แผนก" />
+                        <SelectValue placeholder="เน€เธฅเธทเธญเธเธเนเธฒเธข/เนเธเธเธ" />
                       </SelectTrigger>
                       <SelectContent>
                         {DEPARTMENTS.map((dept) => (
@@ -1746,13 +1743,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">สาขา</label>
+                    <label className="form-label">เธชเธฒเธเธฒ</label>
                     <Select
                       onValueChange={(value) => setValue('branch', value)}
                       defaultValue={watch('branch')}
                     >
                       <SelectTrigger className="form-input">
-                        <SelectValue placeholder="เลือกสาขา" />
+                        <SelectValue placeholder="เน€เธฅเธทเธญเธเธชเธฒเธเธฒ" />
                       </SelectTrigger>
                       <SelectContent>
                         {BRANCHES.map((branch) => (
@@ -1764,12 +1761,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">ชื่อหลักสูตร/หัวข้ออบรม</label>
+                  <label className="form-label">เธเธทเนเธญเธซเธฅเธฑเธเธชเธนเธ•เธฃ/เธซเธฑเธงเธเนเธญเธญเธเธฃเธก</label>
                   <Input
-                    placeholder="ระบุชื่อหลักสูตรหรือหัวข้ออบรม"
+                    placeholder="เธฃเธฐเธเธธเธเธทเนเธญเธซเธฅเธฑเธเธชเธนเธ•เธฃเธซเธฃเธทเธญเธซเธฑเธงเธเนเธญเธญเธเธฃเธก"
                     className="form-input"
                     {...register('courseName', {
-                      required: 'กรุณาระบุชื่อหลักสูตรหรือหัวข้ออบรม'
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธทเนเธญเธซเธฅเธฑเธเธชเธนเธ•เธฃเธซเธฃเธทเธญเธซเธฑเธงเธเนเธญเธญเธเธฃเธก'
                     })}
                   />
                   {errors.courseName && (
@@ -1779,12 +1776,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">วันที่เริ่มอบรม</label>
+                    <label className="form-label">เธงเธฑเธเธ—เธตเนเน€เธฃเธดเนเธกเธญเธเธฃเธก</label>
                     <Input
                       type="date"
                       className="form-input"
                       {...register('startDate', {
-                        required: 'กรุณาระบุวันที่เริ่มอบรม'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธงเธฑเธเธ—เธตเนเน€เธฃเธดเนเธกเธญเธเธฃเธก'
                       })}
                     />
                     {errors.startDate && (
@@ -1793,15 +1790,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">วันที่สิ้นสุดอบรม</label>
+                    <label className="form-label">เธงเธฑเธเธ—เธตเนเธชเธดเนเธเธชเธธเธ”เธญเธเธฃเธก</label>
                     <Input
                       type="date"
                       className="form-input"
                       {...register('endDate', {
-                        required: 'กรุณาระบุวันที่สิ้นสุดอบรม',
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธงเธฑเธเธ—เธตเนเธชเธดเนเธเธชเธธเธ”เธญเธเธฃเธก',
                         validate: value => {
                           const startDate = watch('startDate');
-                          return !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
+                          return !value || !startDate || value >= startDate || 'เธงเธฑเธเธ—เธตเนเธชเธดเนเธเธชเธธเธ”เธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒเธงเธฑเธเธ—เธตเนเน€เธฃเธดเนเธก';
                         }
                       })}
                     />
@@ -1813,12 +1810,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">เวลาเริ่ม</label>
+                    <label className="form-label">เน€เธงเธฅเธฒเน€เธฃเธดเนเธก</label>
                     <Input
                       type="time"
                       className="form-input"
                       {...register('startTime', {
-                        required: 'กรุณาระบุเวลาเริ่ม'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเน€เธงเธฅเธฒเน€เธฃเธดเนเธก'
                       })}
                     />
                     {errors.startTime && (
@@ -1827,12 +1824,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">เวลาสิ้นสุด</label>
+                    <label className="form-label">เน€เธงเธฅเธฒเธชเธดเนเธเธชเธธเธ”</label>
                     <Input
                       type="time"
                       className="form-input"
                       {...register('endTime', {
-                        required: 'กรุณาระบุเวลาสิ้นสุด'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเน€เธงเธฅเธฒเธชเธดเนเธเธชเธธเธ”'
                       })}
                     />
                     {errors.endTime && (
@@ -1841,7 +1838,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">รวมระยะเวลาการอบรม (ชั่วโมง)</label>
+                    <label className="form-label">เธฃเธงเธกเธฃเธฐเธขเธฐเน€เธงเธฅเธฒเธเธฒเธฃเธญเธเธฃเธก (เธเธฑเนเธงเนเธกเธ)</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -1854,12 +1851,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">สถานที่ฝึกอบรม</label>
+                  <label className="form-label">เธชเธ–เธฒเธเธ—เธตเนเธเธถเธเธญเธเธฃเธก</label>
                   <Input
-                    placeholder="ระบุสถานที่ฝึกอบรม"
+                    placeholder="เธฃเธฐเธเธธเธชเธ–เธฒเธเธ—เธตเนเธเธถเธเธญเธเธฃเธก"
                     className="form-input"
                     {...register('venue', {
-                      required: 'กรุณาระบุสถานที่ฝึกอบรม'
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธชเธ–เธฒเธเธ—เธตเนเธเธถเธเธญเธเธฃเธก'
                     })}
                   />
                   {errors.venue && (
@@ -1868,19 +1865,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* ส่วนที่ 2: จำนวนผู้เข้าร่วมอบรม */}
+              {/* เธชเนเธงเธเธ—เธตเน 2: เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธกเธญเธเธฃเธก */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">จำนวนผู้เข้าร่วมอบรม</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธกเธญเธเธฃเธก</h3>
 
                 <div className="space-y-4">
-                  <label className="form-label">เลือกทีมและผู้เข้าร่วมอบรม</label>
+                  <label className="form-label">เน€เธฅเธทเธญเธเธ—เธตเธกเนเธฅเธฐเธเธนเนเน€เธเนเธฒเธฃเนเธงเธกเธญเธเธฃเธก</label>
                   <div className="space-y-6">
                     {participantFields.map((field, index) => {
                       const currentParticipant = watch(`participants.${index}`);
                       return (
                         <div key={field.id} className="space-y-4 border rounded-lg p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-600">ทีมที่ {index + 1}</span>
+                            <span className="text-sm font-medium text-gray-600">เธ—เธตเธกเธ—เธตเน {index + 1}</span>
                             {participantFields.length > 1 && (
                               <Button
                                 type="button"
@@ -1889,14 +1886,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                 onClick={() => removeParticipant(index)}
                               >
                                 <X className="h-4 w-4" />
-                                ลบทีม
+                                เธฅเธเธ—เธตเธก
                               </Button>
                             )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm text-gray-600 mb-1 block">เลือกทีม:</label>
+                              <label className="text-sm text-gray-600 mb-1 block">เน€เธฅเธทเธญเธเธ—เธตเธก:</label>
                               <Select
                                 onValueChange={(value) => {
                                   setValue(`participants.${index}.team`, value);
@@ -1906,7 +1903,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                 value={currentParticipant?.team || ''}
                               >
                                 <SelectTrigger className="form-input">
-                                  <SelectValue placeholder="เลือกทีม" />
+                                  <SelectValue placeholder="เน€เธฅเธทเธญเธเธ—เธตเธก" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {TEAMS.map((team) => (
@@ -1917,7 +1914,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                             </div>
 
                             <div>
-                              <label className="text-sm text-gray-600 mb-1 block">จำนวนผู้เข้าร่วม:</label>
+                              <label className="text-sm text-gray-600 mb-1 block">เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธก:</label>
                               <Input
                                 type="number"
                                 min="0"
@@ -1925,8 +1922,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                                 className="form-input"
                                 placeholder="0"
                                 {...register(`participants.${index}.count` as const, {
-                                  min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
-                                  max: { value: 50, message: 'จำนวนต้องไม่เกิน 50 คน' },
+                                  min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' },
+                                  max: { value: 50, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเน€เธเธดเธ 50 เธเธ' },
                                   valueAsNumber: true,
                                   onChange: () => {
                                     // Reset selected participants if count is reduced
@@ -1970,13 +1967,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       variant="outline"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      เพิ่มทีม
+                      เน€เธเธดเนเธกเธ—เธตเธก
                     </Button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label font-semibold">รวมจำนวนผู้เข้าอบรมทั้งหมด</label>
+                  <label className="form-label font-semibold">เธฃเธงเธกเธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธญเธเธฃเธกเธ—เธฑเนเธเธซเธกเธ”</label>
                   <div className="flex items-center gap-4">
                     <Input
                       type="number"
@@ -1999,18 +1996,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* ส่วนที่ 3: งบประมาณและค่าใช้จ่าย */}
+              {/* เธชเนเธงเธเธ—เธตเน 3: เธเธเธเธฃเธฐเธกเธฒเธ“เนเธฅเธฐเธเนเธฒเนเธเนเธเนเธฒเธข */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">งบประมาณและค่าใช้จ่าย</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธเธเธเธฃเธฐเธกเธฒเธ“เนเธฅเธฐเธเนเธฒเนเธเนเธเนเธฒเธข</h3>
 
 
 
-                {/* ค่าวิทยากร */}
+                {/* เธเนเธฒเธงเธดเธ—เธขเธฒเธเธฃ */}
                 <div className="border rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-700 mb-3">1. ค่าวิทยากร</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">1. เธเนเธฒเธงเธดเธ—เธขเธฒเธเธฃ</h4>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <label className="form-label text-sm">เธเธณเธเธงเธเน€เธเธดเธ</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2018,7 +2015,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('instructorFee', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                       {errors.instructorFee && (
@@ -2026,7 +2023,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm">เธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข (3%)</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2034,7 +2031,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('instructorFeeWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
@@ -2047,12 +2044,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('instructorFeeVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <label className="form-label text-sm font-semibold">เธฃเธงเธก</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2065,12 +2062,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 </div>
 
-                {/* ค่าห้อง อาหารและเครื่องดื่ม */}
+                {/* เธเนเธฒเธซเนเธญเธ เธญเธฒเธซเธฒเธฃเนเธฅเธฐเน€เธเธฃเธทเนเธญเธเธ”เธทเนเธก */}
                 <div className="border rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-700 mb-3">2. ค่าห้อง อาหารและเครื่องดื่ม</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">2. เธเนเธฒเธซเนเธญเธ เธญเธฒเธซเธฒเธฃเนเธฅเธฐเน€เธเธฃเธทเนเธญเธเธ”เธทเนเธก</h4>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <label className="form-label text-sm">เธเธณเธเธงเธเน€เธเธดเธ</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2078,7 +2075,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('roomFoodBeverage', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                       {errors.roomFoodBeverage && (
@@ -2086,7 +2083,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm">เธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข (3%)</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2094,7 +2091,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('roomFoodBeverageWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
@@ -2107,12 +2104,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('roomFoodBeverageVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <label className="form-label text-sm font-semibold">เธฃเธงเธก</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2125,12 +2122,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 </div>
 
-                {/* ค่าใช้จ่ายอื่นๆ */}
+                {/* เธเนเธฒเนเธเนเธเนเธฒเธขเธญเธทเนเธเน */}
                 <div className="border rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-semibold text-gray-700 mb-3">3. ค่าใช้จ่ายอื่นๆ</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">3. เธเนเธฒเนเธเนเธเนเธฒเธขเธญเธทเนเธเน</h4>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <label className="form-label text-sm">จำนวนเงิน</label>
+                      <label className="form-label text-sm">เธเธณเธเธงเธเน€เธเธดเธ</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2138,7 +2135,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('otherExpenses', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                       {errors.otherExpenses && (
@@ -2146,7 +2143,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm">เธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข (3%)</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2154,7 +2151,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('otherExpensesWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
@@ -2167,12 +2164,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         className="form-input"
                         placeholder="0.00"
                         {...register('otherExpensesVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                          min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                         })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">รวม</label>
+                      <label className="form-label text-sm font-semibold">เธฃเธงเธก</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2185,12 +2182,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 </div>
 
-                {/* สรุปรวม */}
+                {/* เธชเธฃเธธเธเธฃเธงเธก */}
                 <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
-                  <h4 className="font-bold text-blue-800 mb-4">สรุปรวมทั้งหมด</h4>
+                  <h4 className="font-bold text-blue-800 mb-4">เธชเธฃเธธเธเธฃเธงเธกเธ—เธฑเนเธเธซเธกเธ”</h4>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">รวมหักภาษี ณ ที่จ่าย</label>
+                      <label className="form-label text-sm font-semibold">เธฃเธงเธกเธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2201,7 +2198,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">รวม VAT</label>
+                      <label className="form-label text-sm font-semibold">เธฃเธงเธก VAT</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2212,7 +2209,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-bold">รวมเป็นเงินทั้งสิ้น</label>
+                      <label className="form-label text-sm font-bold">เธฃเธงเธกเน€เธเนเธเน€เธเธดเธเธ—เธฑเนเธเธชเธดเนเธ</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2223,7 +2220,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm font-semibold">เฉลี่ยต่อคน</label>
+                      <label className="form-label text-sm font-semibold">เน€เธเธฅเธตเนเธขเธ•เนเธญเธเธ</label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2237,22 +2234,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* ส่วนที่ 4: หมายเหตุ */}
+              {/* เธชเนเธงเธเธ—เธตเน 4: เธซเธกเธฒเธขเน€เธซเธ•เธธ */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">หมายเหตุ</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธซเธกเธฒเธขเน€เธซเธ•เธธ</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">ออกหนังสือรับรองหักภาษี ณ ที่จ่ายในนาม</label>
+                    <label className="form-label">เธญเธญเธเธซเธเธฑเธเธชเธทเธญเธฃเธฑเธเธฃเธญเธเธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธขเนเธเธเธฒเธก</label>
                     <Input
-                      placeholder="ระบุชื่อที่ต้องการออกหนังสือรับรอง"
+                      placeholder="เธฃเธฐเธเธธเธเธทเนเธญเธ—เธตเนเธ•เนเธญเธเธเธฒเธฃเธญเธญเธเธซเธเธฑเธเธชเธทเธญเธฃเธฑเธเธฃเธญเธ"
                       className="form-input"
                       {...register('taxCertificateName')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">จำนวนเงินที่ต้องหัก ณ ที่จ่าย</label>
+                    <label className="form-label">เธเธณเธเธงเธเน€เธเธดเธเธ—เธตเนเธ•เนเธญเธเธซเธฑเธ เธ“ เธ—เธตเนเธเนเธฒเธข</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -2265,10 +2262,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">หมายเหตุเพิ่มเติม</label>
+                  <label className="form-label">เธซเธกเธฒเธขเน€เธซเธ•เธธเน€เธเธดเนเธกเน€เธ•เธดเธก</label>
                   <Textarea
                     className="form-input min-h-[100px]"
-                    placeholder="กรอกรายละเอียดเพิ่มเติมถ้ามี"
+                    placeholder="เธเธฃเธญเธเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เน€เธเธดเนเธกเน€เธ•เธดเธกเธ–เนเธฒเธกเธต"
                     {...register('additionalNotes')}
                   />
                 </div>
@@ -2276,22 +2273,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </>
           )}
 
-          {/* Advance (เบิกเงินทดลอง) specific fields */}
+          {/* Advance (เน€เธเธดเธเน€เธเธดเธเธ—เธ”เธฅเธญเธ) specific fields */}
           {type === 'advance' && (
             <>
-              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
+              {/* เธชเนเธงเธเธ—เธตเน 1: เธเนเธญเธกเธนเธฅเธ—เธฑเนเธงเนเธ */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธเนเธญเธกเธนเธฅเธ—เธฑเนเธงเนเธ</h3>
 
-                {/* แผนกและเขต */}
+                {/* เนเธเธเธเนเธฅเธฐเน€เธเธ• */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">แผนก</label>
+                    <label className="form-label">เนเธเธเธ</label>
                     <Input
-                      placeholder="ระบุแผนก"
+                      placeholder="เธฃเธฐเธเธธเนเธเธเธ"
                       className="form-input"
                       {...register('advanceDepartment', {
-                        required: 'กรุณาระบุแผนก'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเนเธเธเธ'
                       })}
                     />
                     {errors.advanceDepartment && (
@@ -2300,12 +2297,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">เขต</label>
+                    <label className="form-label">เน€เธเธ•</label>
                     <Input
-                      placeholder="ระบุเขต"
+                      placeholder="เธฃเธฐเธเธธเน€เธเธ•"
                       className="form-input"
                       {...register('advanceDistrict', {
-                        required: 'กรุณาระบุเขต'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเน€เธเธ•'
                       })}
                     />
                     {errors.advanceDistrict && (
@@ -2314,15 +2311,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 </div>
 
-                {/* ประเภทกิจกรรม */}
+                {/* เธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธก */}
                 <div className="space-y-2">
-                  <label className="form-label">ประเภทกิจกรรม</label>
+                  <label className="form-label">เธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธก</label>
                   <Select
                     onValueChange={(value) => setValue('advanceActivityType', value)}
                     defaultValue={watch('advanceActivityType')}
                   >
                     <SelectTrigger className="form-input">
-                      <SelectValue placeholder="เลือกประเภทกิจกรรม" />
+                      <SelectValue placeholder="เน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธก" />
                     </SelectTrigger>
                     <SelectContent>
                       {ACTIVITY_TYPES.map((activity) => (
@@ -2335,15 +2332,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
 
-                {/* ฟิลด์ระบุอื่นๆ เมื่อเลือก "อื่นๆ ระบุ" */}
-                {watch('advanceActivityType') === 'อื่นๆ ระบุ' && (
+                {/* เธเธดเธฅเธ”เนเธฃเธฐเธเธธเธญเธทเนเธเน เน€เธกเธทเนเธญเน€เธฅเธทเธญเธ "เธญเธทเนเธเน เธฃเธฐเธเธธ" */}
+                {watch('advanceActivityType') === 'เธญเธทเนเธเน เธฃเธฐเธเธธ' && (
                   <div className="space-y-2">
-                    <label className="form-label">โปรดระบุ</label>
+                    <label className="form-label">เนเธเธฃเธ”เธฃเธฐเธเธธ</label>
                     <Input
-                      placeholder="ระบุประเภทกิจกรรมอื่นๆ"
+                      placeholder="เธฃเธฐเธเธธเธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธกเธญเธทเนเธเน"
                       className="form-input"
                       {...register('advanceActivityOther', {
-                        required: watch('advanceActivityType') === 'อื่นๆ ระบุ' ? 'กรุณาระบุประเภทกิจกรรม' : false
+                        required: watch('advanceActivityType') === 'เธญเธทเนเธเน เธฃเธฐเธเธธ' ? 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธฃเธฐเน€เธ เธ—เธเธดเธเธเธฃเธฃเธก' : false
                       })}
                     />
                     {errors.advanceActivityOther && (
@@ -2352,14 +2349,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 )}
 
-                {/* ข้อมูลสถานที่ */}
+                {/* เธเนเธญเธกเธนเธฅเธชเธ–เธฒเธเธ—เธตเน */}
                 <div className="space-y-2">
-                  <label className="form-label">ชื่อร้าน/บริษัท</label>
+                  <label className="form-label">เธเธทเนเธญเธฃเนเธฒเธ/เธเธฃเธดเธฉเธฑเธ—</label>
                   <Input
-                    placeholder="ระบุชื่อร้านหรือบริษัท"
+                    placeholder="เธฃเธฐเธเธธเธเธทเนเธญเธฃเนเธฒเธเธซเธฃเธทเธญเธเธฃเธดเธฉเธฑเธ—"
                     className="form-input"
                     {...register('advanceShopCompany', {
-                      required: 'กรุณาระบุชื่อร้าน/บริษัท'
+                      required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธทเนเธญเธฃเนเธฒเธ/เธเธฃเธดเธฉเธฑเธ—'
                     })}
                   />
                   {errors.advanceShopCompany && (
@@ -2369,12 +2366,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">อำเภอ</label>
+                    <label className="form-label">เธญเธณเน€เธ เธญ</label>
                     <Input
-                      placeholder="ระบุอำเภอ"
+                      placeholder="เธฃเธฐเธเธธเธญเธณเน€เธ เธญ"
                       className="form-input"
                       {...register('advanceAmphur', {
-                        required: 'กรุณาระบุอำเภอ'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธญเธณเน€เธ เธญ'
                       })}
                     />
                     {errors.advanceAmphur && (
@@ -2383,12 +2380,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">จังหวัด</label>
+                    <label className="form-label">เธเธฑเธเธซเธงเธฑเธ”</label>
                     <Input
-                      placeholder="ระบุจังหวัด"
+                      placeholder="เธฃเธฐเธเธธเธเธฑเธเธซเธงเธฑเธ”"
                       className="form-input"
                       {...register('advanceProvince', {
-                        required: 'กรุณาระบุจังหวัด'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธฑเธเธซเธงเธฑเธ”'
                       })}
                     />
                     {errors.advanceProvince && (
@@ -2398,18 +2395,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* ส่วนที่ 2: รายละเอียดงาน */}
+              {/* เธชเนเธงเธเธ—เธตเน 2: เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธ */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดงาน</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธ</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">วันที่จัด</label>
+                    <label className="form-label">เธงเธฑเธเธ—เธตเนเธเธฑเธ”</label>
                     <Input
                       type="date"
                       className="form-input"
                       {...register('advanceEventDate', {
-                        required: 'กรุณาระบุวันที่จัด'
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธงเธฑเธเธ—เธตเนเธเธฑเธ”'
                       })}
                     />
                     {errors.advanceEventDate && (
@@ -2418,15 +2415,15 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">จำนวนผู้เข้าร่วม</label>
+                    <label className="form-label">เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธก</label>
                     <Input
                       type="number"
                       min="0"
                       className="form-input"
                       placeholder="0"
                       {...register('advanceParticipants', {
-                        required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
-                        min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' },
+                        required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธก',
+                        min: { value: 1, message: 'เธเธณเธเธงเธเธเธนเนเน€เธเนเธฒเธฃเนเธงเธกเธ•เนเธญเธเธกเธฒเธเธเธงเนเธฒ 0' },
                         valueAsNumber: true
                       })}
                     />
@@ -2437,13 +2434,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
               </div>
 
-              {/* ส่วนที่ 3: ค่าใช้จ่าย */}
+              {/* เธชเนเธงเธเธ—เธตเน 3: เธเนเธฒเนเธเนเธเนเธฒเธข */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเนเธฒเนเธเนเธเนเธฒเธข</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">อัตราค่าใช้จ่ายต่อคน (บาท)</label>
+                    <label className="form-label">เธญเธฑเธ•เธฃเธฒเธเนเธฒเนเธเนเธเนเธฒเธขเธ•เนเธญเธเธ (เธเธฒเธ—)</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -2451,7 +2448,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       className="form-input"
                       placeholder="0.00"
                       {...register('advanceDailyRate', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                       })}
                     />
                     {errors.advanceDailyRate && (
@@ -2460,7 +2457,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">ค่าที่พัก (บาท)</label>
+                    <label className="form-label">เธเนเธฒเธ—เธตเนเธเธฑเธ (เธเธฒเธ—)</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -2468,7 +2465,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       className="form-input"
                       placeholder="0.00"
                       {...register('advanceAccommodationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                       })}
                     />
                     {errors.advanceAccommodationCost && (
@@ -2479,7 +2476,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="form-label">ค่าเดินทาง (บาท)</label>
+                    <label className="form-label">เธเนเธฒเน€เธ”เธดเธเธ—เธฒเธ (เธเธฒเธ—)</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -2487,7 +2484,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       className="form-input"
                       placeholder="0.00"
                       {...register('advanceTransportationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                       })}
                     />
                     {errors.advanceTransportationCost && (
@@ -2496,7 +2493,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">เบี้ยเลี้ยง (บาท)</label>
+                    <label className="form-label">เน€เธเธตเนเธขเน€เธฅเธตเนเธขเธ (เธเธฒเธ—)</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -2504,7 +2501,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       className="form-input"
                       placeholder="0.00"
                       {...register('advanceMealAllowance', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                        min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                       })}
                     />
                     {errors.advanceMealAllowance && (
@@ -2514,7 +2511,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">ค่าใช้จ่ายอื่นๆ (บาท)</label>
+                  <label className="form-label">เธเนเธฒเนเธเนเธเนเธฒเธขเธญเธทเนเธเน (เธเธฒเธ—)</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -2522,7 +2519,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     className="form-input"
                     placeholder="0.00"
                     {...register('advanceOtherExpenses', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
+                      min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' }
                     })}
                   />
                   {errors.advanceOtherExpenses && (
@@ -2531,7 +2528,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label font-semibold">รวมจำนวนเงินที่ขอเบิกทดลอง (บาท)</label>
+                  <label className="form-label font-semibold">เธฃเธงเธกเธเธณเธเธงเธเน€เธเธดเธเธ—เธตเนเธเธญเน€เธเธดเธเธ—เธ”เธฅเธญเธ (เธเธฒเธ—)</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -2550,26 +2547,26 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             <>
               {/* Original amount field */}
               <div className="space-y-2">
-                <label htmlFor="amount" className="form-label">จำนวนเงิน (บาท)</label>
+                <label htmlFor="amount" className="form-label">เธเธณเธเธงเธเน€เธเธดเธ (เธเธฒเธ—)</label>
                 <Input
                   id="amount"
                   type="number"
                   step="0.01"
                   className="form-input"
-                  placeholder="ระบุจำนวนเงิน"
+                  placeholder="เธฃเธฐเธเธธเธเธณเธเธงเธเน€เธเธดเธ"
                   {...register('amount', {
-                    required: 'กรุณาระบุจำนวนเงิน',
+                    required: 'เธเธฃเธธเธ“เธฒเธฃเธฐเธเธธเธเธณเธเธงเธเน€เธเธดเธ',
                     min: {
                       value: 1,
-                      message: 'จำนวนเงินต้องมากกว่า 0'
+                      message: 'เธเธณเธเธงเธเน€เธเธดเธเธ•เนเธญเธเธกเธฒเธเธเธงเนเธฒ 0'
                     },
                     max: {
                       value: maxAmount || 100000,
-                      message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
+                      message: `เธเธณเธเธงเธเน€เธเธดเธเธ•เนเธญเธเนเธกเนเน€เธเธดเธ ${maxAmount} เธเธฒเธ—`
                     },
                     validate: {
                       notMoreThanRemaining: value =>
-                        Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
+                        Number(value) <= remainingBudget || 'เธเธณเธเธงเธเน€เธเธดเธเน€เธเธดเธเธเธเธเธฃเธฐเธกเธฒเธ“เธ—เธตเนเน€เธซเธฅเธทเธญเธญเธขเธนเน'
                     },
                     onChange: (e) => {
                       const amount = Number(e.target.value);
@@ -2589,7 +2586,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               {/* VAT and Tax fields for non-training types */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                  <label className="form-label">เธ เธฒเธฉเธตเธกเธนเธฅเธเนเธฒเน€เธเธดเนเธก (7%)</label>
                   <Input
                     type="number"
                     className="form-input"
@@ -2598,7 +2595,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     placeholder="0.00"
                     defaultValue="0"
                     {...register('tax7Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
                         const vatAmount = Number(e.target.value) || 0;
@@ -2614,7 +2611,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
+                  <label className="form-label">เธซเธฑเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข (3%)</label>
                   <Input
                     type="number"
                     className="form-input"
@@ -2623,7 +2620,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     placeholder="0.00"
                     defaultValue="0"
                     {...register('withholdingTax3Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                      min: { value: 0, message: 'เธเธณเธเธงเธเธ•เนเธญเธเนเธกเนเธเนเธญเธขเธเธงเนเธฒ 0' },
                       onChange: (e) => {
                         const amount = watch('amount');
                         const withholdingAmount = Number(e.target.value) || 0;
@@ -2639,7 +2636,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">จำนวนเงินสุทธิ</label>
+                  <label className="form-label">เธเธณเธเธงเธเน€เธเธดเธเธชเธธเธ—เธเธด</label>
                   <Input
                     type="number"
                     step="0.01"
@@ -2655,16 +2652,16 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
           {/* Details Field */}
           <div className="space-y-2">
-            <label htmlFor="details" className="form-label">รายละเอียด</label>
+            <label htmlFor="details" className="form-label">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”</label>
             <Textarea
               id="details"
               className="form-input min-h-[100px]"
-              placeholder="กรอกรายละเอียดเพิ่มเติมถ้ามี"
+              placeholder="เธเธฃเธญเธเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เน€เธเธดเนเธกเน€เธ•เธดเธกเธ–เนเธฒเธกเธต"
               {...register('details', {
 
                 minLength: {
                   value: 0,
-                  message: 'รายละเอียดต้องมีความยาวอย่างน้อย 0 ตัวอักษร'
+                  message: 'เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธ•เนเธญเธเธกเธตเธเธงเธฒเธกเธขเธฒเธงเธญเธขเนเธฒเธเธเนเธญเธข 0 เธ•เธฑเธงเธญเธฑเธเธฉเธฃ'
                 }
               })}
             />
@@ -2673,134 +2670,56 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             )}
           </div>
 
-          {/* Document Selection - Only for welfare types (not training, internal_training, advance) */}
+          {/* Attachment checklist (placed above file upload) */}
           {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
-            <div className="space-y-4">
-              <label className="form-label">เลือกเอกสารที่แนบ</label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Row 1 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="receipt"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.receipt')}
-                    />
-                    <label htmlFor="receipt" className="text-sm text-gray-700">
-                      ใบเสร็จรับเงิน
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="idCardCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.idCardCopy')}
-                    />
-                    <label htmlFor="idCardCopy" className="text-sm text-gray-700">
-                      สำเนาบัตรประชาชน
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="bankBookCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.bankBookCopy')}
-                    />
-                    <label htmlFor="bankBookCopy" className="text-sm text-gray-700">
-                      สำเนาบัญชีธนาคาร
-                    </label>
-                  </div>
+            <div className="space-y-3">
+              <h3 className="text-md font-semibold text-gray-800">เน€เธฅเธทเธญเธเน€เธญเธเธชเธฒเธฃเธเธฃเธฐเธเธญเธเธเธฒเธฃเน€เธเธดเธ</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.receipt')} />
+                  <span>เนเธเน€เธชเธฃเนเธเธฃเธฑเธเน€เธเธดเธ</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.idCardCopy')} />
+                  <span>เธชเธณเน€เธเธฒเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.bankBookCopy')} />
+                  <span>เธชเธณเน€เธเธฒเธเธฑเธเธเธตเธเธเธฒเธเธฒเธฃ</span>
+                </label>
 
-                  {/* Row 2 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="birthCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.birthCertificate')}
-                    />
-                    <label htmlFor="birthCertificate" className="text-sm text-gray-700">
-                      สำเนาสูติบัตรบุตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="deathCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.deathCertificate')}
-                    />
-                    <label htmlFor="deathCertificate" className="text-sm text-gray-700">
-                      สำเนาใบมรณะบัตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="weddingCard"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.weddingCard')}
-                    />
-                    <label htmlFor="weddingCard" className="text-sm text-gray-700">
-                      การ์ดแต่งงาน
-                    </label>
-                  </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.birthCertificate')} />
+                  <span>เธชเธณเน€เธเธฒเธชเธนเธ•เธดเธเธฑเธ•เธฃเธเธธเธ•เธฃ</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.deathCertificate')} />
+                  <span>เธชเธณเน€เธเธฒเนเธเธกเธฃเธ“เธฐเธเธฑเธ•เธฃ</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.weddingCard')} />
+                  <span>เธเธฒเธฃเนเธ”เนเธ•เนเธเธเธฒเธ</span>
+                </label>
 
-                  {/* Row 3 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="medicalCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.medicalCertificate')}
-                    />
-                    <label htmlFor="medicalCertificate" className="text-sm text-gray-700">
-                      ใบรับรองแพทย์
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="marriageCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.marriageCertificate')}
-                    />
-                    <label htmlFor="marriageCertificate" className="text-sm text-gray-700">
-                      สำเนาทะเบียนสมรส
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="other"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.other')}
-                    />
-                    <label htmlFor="other" className="text-sm text-gray-700">
-                      อื่นๆ
-                    </label>
-                  </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.medicalCertificate')} />
+                  <span>เนเธเธฃเธฑเธเธฃเธญเธเนเธเธ—เธขเน</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" {...register('attachmentSelections.marriageCertificate')} />
+                  <span>เธชเธณเน€เธเธฒเธ—เธฐเน€เธเธตเธขเธเธชเธกเธฃเธช</span>
+                </label>
+                <div className="flex items-center gap-2 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" {...register('attachmentSelections.other')} />
+                    <span>เธญเธทเนเธเน</span>
+                  </label>
+                  <Input
+                    placeholder="เธฃเธฐเธเธธ..."
+                    className="h-8"
+                    {...register('attachmentSelections.otherText')}
+                  />
                 </div>
-                
-                {/* Other text input - show when "อื่นๆ" is checked */}
-                {watch('attachmentSelections.other') && (
-                  <div className="mt-4">
-                    <Input
-                      placeholder="ระบุเอกสารอื่นๆ"
-                      className="form-input"
-                      {...register('attachmentSelections.otherText')}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -2809,7 +2728,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           <div className="space-y-2">
             <label htmlFor="attachments" className="form-label flex items-center gap-2">
               <Paperclip className="h-4 w-4" />
-              แนบเอกสาร (ใบเสร็จรับเงิน, รายละเอียดหลักสูตร, ใบเสนอราคา/ใบแจ้งหนี้)
+              เนเธเธเน€เธญเธเธชเธฒเธฃ (เนเธเน€เธชเธฃเนเธเธฃเธฑเธเน€เธเธดเธ, เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธซเธฅเธฑเธเธชเธนเธ•เธฃ, เนเธเน€เธชเธเธญเธฃเธฒเธเธฒ/เนเธเนเธเนเธเธซเธเธตเน)
             </label>
             <div className="flex items-center gap-2">
               <Input
@@ -2824,10 +2743,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             {/* Show uploaded files */}
             {files.length > 0 && (
               <div className="mt-2">
-                <p className="text-sm font-medium mb-1">ไฟล์ที่อัพโหลด:</p>
+                <p className="text-sm font-medium mb-1">เนเธเธฅเนเธ—เธตเนเธญเธฑเธเนเธซเธฅเธ”:</p>
                 <ul className="text-sm space-y-1">
                   {files.map((file, index) => {
-                    const fileName = file.split('/').pop() || `ไฟล์ ${index + 1}`;
+                    const fileName = file.split('/').pop() || `เนเธเธฅเน ${index + 1}`;
                     return (
                       <li key={index} className="flex items-center justify-between group">
                         <div className="flex items-center gap-2 text-green-600">
@@ -2850,14 +2769,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                           onClick={() => handleRemoveFile(index)}
                         >
                           <X className="h-3.5 w-3.5" />
-                          <span className="sr-only">ลบไฟล์</span>
+                          <span className="sr-only">เธฅเธเนเธเธฅเน</span>
                         </Button>
                       </li>
                     );
                   })}
                 </ul>
                 <p className="text-xs text-gray-500 mt-1">
-                  จำนวนไฟล์ที่อัปโหลด: {files.length} ไฟล์
+                  เธเธณเธเธงเธเนเธเธฅเนเธ—เธตเนเธญเธฑเธเนเธซเธฅเธ”: {files.length} เนเธเธฅเน
                 </p>
               </div>
             )}
@@ -2872,10 +2791,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                กำลังส่งคำร้อง...
+                เธเธณเธฅเธฑเธเธชเนเธเธเธณเธฃเนเธญเธ...
               </>
             ) : (
-              'ส่งคำร้อง'
+              'เธชเนเธเธเธณเธฃเนเธญเธ'
             )}
           </Button>
 
@@ -2897,4 +2816,3 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     </div>
   );
 }
-

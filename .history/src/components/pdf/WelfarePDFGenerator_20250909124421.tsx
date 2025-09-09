@@ -15,6 +15,18 @@ interface WelfarePDFGeneratorProps {
   };
 }
 
+const DOCUMENT_TYPES = [
+  'ใบเสร็จรับเงิน',
+  'สำเนาสูติบัตรบุตร',
+  'ใบรับรองแพทย์',
+  'สำเนาบัตรประชาชน',
+  'สำเนาใบมรณะบัตร',
+  'สำเนาทะเบียนสมรส',
+  'สำเนาบัญชีธนาคาร',
+  'การ์ดแต่งงาน',
+  'อื่นๆ'
+];
+
 const createWelfareFormHTML = (
   welfareData: WelfareRequest,
   userData: User,
@@ -52,8 +64,8 @@ const createWelfareFormHTML = (
       day: '2-digit'
     }) : '';
 
-  // Attachment checkbox selections - use from welfareData if available
-  const att = welfareData.attachmentSelections || {};
+  // Attachment checkbox selections
+  const attachmentSelections = welfareData.attachmentSelections || {};
 
   const checkbox = (checked: boolean) => `
     <div style="
@@ -75,6 +87,13 @@ const createWelfareFormHTML = (
       ` : ''}
     </div>
   `;
+
+  const documentCheckboxes = DOCUMENT_TYPES.map((docType) => `
+    <div style="display: flex; align-items: center; margin-bottom: 4px;">
+      ${checkbox(attachmentSelections[docType] || false)}
+      <span>${docType}</span>
+    </div>
+  `).join('');
 
   return `
     <div style="
@@ -365,15 +384,15 @@ const createWelfareFormHTML = (
             <!-- Row 1 -->
             <div style="display: flex; margin-bottom: 8px; font-size: 11px;">
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.receipt)}
+                ${checkbox(!!attachmentSelections.receipt)}
                 <span>ใบเสร็จรับเงิน</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.idCardCopy)}
+                ${checkbox(!!attachmentSelections.idCardCopy)}
                 <span>สำเนาบัตรประชาชน</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.bankBookCopy)}
+                ${checkbox(!!attachmentSelections.bankBookCopy)}
                 <span>สำเนาบัญชีธนาคาร</span>
               </div>
             </div>
@@ -381,15 +400,15 @@ const createWelfareFormHTML = (
             <!-- Row 2 -->
             <div style="display: flex; margin-bottom: 8px; font-size: 11px;">
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.birthCertificate)}
+                ${checkbox(!!attachmentSelections.birthCertificate)}
                 <span>สำเนาสูติบัตรบุตร</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.deathCertificate)}
+                ${checkbox(!!attachmentSelections.deathCertificate)}
                 <span>สำเนาใบมรณะบัตร</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.weddingCard)}
+                ${checkbox(!!attachmentSelections.weddingCard)}
                 <span>การ์ดแต่งงาน</span>
               </div>
             </div>
@@ -397,16 +416,16 @@ const createWelfareFormHTML = (
             <!-- Row 3 -->
             <div style="display: flex; margin-bottom: 15px; font-size: 11px;">
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.medicalCertificate)}
+                ${checkbox(!!attachmentSelections.medicalCertificate)}
                 <span>ใบรับรองแพทย์</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.marriageCertificate)}
+                ${checkbox(!!attachmentSelections.marriageCertificate)}
                 <span>สำเนาทะเบียนสมรส</span>
               </div>
               <div style="width: 33.33%; display: flex; align-items: center;">
-                ${checkbox(!!att.other)}
-                <span>อื่นๆ${att.otherText ? `: ${att.otherText}` : ''}</span>
+                ${checkbox(!!attachmentSelections.other)}
+                <span>อื่นๆ${attachmentSelections.otherText ? `: ${attachmentSelections.otherText}` : ''}</span>
               </div>
             </div>
           </div>

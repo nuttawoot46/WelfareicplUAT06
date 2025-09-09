@@ -19,7 +19,8 @@ import {
   Crown,
   Database,
   Shield,
-  Activity
+  Activity,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -317,6 +318,13 @@ export function Sidebar() {
                     <UserPlus className="h-4 w-4" />
                     <span>จัดการผู้ใช้</span>
                   </Link>
+                  <Link to="/admin/support" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <HelpCircle className="h-4 w-4" />
+                    <span>จัดการ Support</span>
+                  </Link>
                   <Link to="/admin/report" className={cn(
                     "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
                     isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
@@ -329,6 +337,17 @@ export function Sidebar() {
               )}
             </div>
           )}
+
+          {/* Support/IT Contact */}
+          <Link to="/support" className={cn(
+            "nav-link group",
+            isActive('/support') ? "nav-link-active" : "text-white/90 hover:text-white"
+          )}>
+            <HelpCircle className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="transition-all duration-300 text-white font-medium">ติดต่อฝ่าย IT/Support</span>
+            )}
+          </Link>
 
           {/* Settings */}
           <Link to="/settings" className={cn(

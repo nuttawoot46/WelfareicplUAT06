@@ -87,6 +87,18 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               date: row.created_at,
               details: row.details,
               attachments,
+              // Parse attachment selections JSON if present
+              attachmentSelections: (() => {
+                try {
+                  if (!row.attachment_selections) return undefined;
+                  if (typeof row.attachment_selections === 'string') {
+                    return JSON.parse(row.attachment_selections);
+                  }
+                  return row.attachment_selections;
+                } catch {
+                  return undefined;
+                }
+              })(),
               createdAt: row.created_at,
               updatedAt: row.updated_at,
               title: row.title,
@@ -114,6 +126,20 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               })(),
               managerSignature: row.manager_signature,
               hrSignature: row.hr_signature,
+              // Training-specific fields
+              course_name: row.course_name,
+              organizer: row.organizer,
+              training_topics: row.training_topics,
+              start_date: row.start_date,
+              end_date: row.end_date,
+              total_days: row.total_days,
+              total_amount: row.total_amount,
+              tax7_percent: row.tax7_percent,
+              withholding_tax3_percent: row.withholding_tax3_percent,
+              net_amount: row.net_amount,
+              company_payment: row.company_payment,
+              employee_payment: row.employee_payment,
+              is_vat_included: row.is_vat_included,
             };
           })
         );
@@ -287,6 +313,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         created_at: new Date().toISOString(),
         details: requestData.details,
         attachment_url: attachmentsToSave,
+        // Store attachment checklist selections for PDF mapping
+        attachment_selections: requestData.attachmentSelections
+          ? JSON.stringify(requestData.attachmentSelections)
+          : JSON.stringify({}),
         title: requestData.title,
         manager_id: managerId,
         start_date: requestData.start_date,
@@ -297,11 +327,13 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         total_amount: requestData.total_amount,
         tax7_percent: requestData.tax7_percent,
         withholding_tax3_percent: requestData.withholding_tax3_percent,
+        net_amount: requestData.net_amount,
         excess_amount: requestData.excess_amount,
         company_payment: requestData.company_payment,
         employee_payment: requestData.employee_payment,
         course_name: requestData.course_name,
         organizer: requestData.organizer,
+        is_vat_included: requestData.is_vat_included,
         department_request: requestData.department_request,
         user_signature: requestData.userSignature, // บันทึกลายเซ็น
       };

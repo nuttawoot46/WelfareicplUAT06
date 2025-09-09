@@ -98,20 +98,7 @@ interface FormValues {
   advanceOtherExpenses?: number;
   advanceProjectName?: string;
   advanceProjectLocation?: string;
-
-  // Document selections for welfare types
-  attachmentSelections?: {
-    receipt?: boolean; // ใบเสร็จรับเงิน
-    birthCertificate?: boolean; // สำเนาสูติบัตรบุตร
-    medicalCertificate?: boolean; // ใบรับรองแพทย์
-    idCardCopy?: boolean; // สำเนาบัตรประชาชน
-    deathCertificate?: boolean; // สำเนาใบมรณะบัตร
-    marriageCertificate?: boolean; // สำเนาทะเบียนสมรส
-    bankBookCopy?: boolean; // สำเนาบัญชีธนาคาร
-    weddingCard?: boolean; // การ์ดแต่งงาน
-    other?: boolean; // อื่นๆ
-    otherText?: string; // ระบุอื่นๆ
-  };
+  attachmentSelections?: Record<string, boolean>; // New field for document selections
 }
 
 // Available teams/departments for internal training
@@ -310,7 +297,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           .eq('id', editIdNum)
           .single();
         if (!error && data) {
-            // Map only fields that exist in the schema
+          // Map only fields that exist in the schema
           const dbData = data as any; // Type assertion for database fields
           reset({
             amount: dbData.amount,
@@ -364,8 +351,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             advanceOtherExpenses: dbData.advance_other_expenses || 0,
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
-            // Document selections
-            attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
           });
           // Attachments
           if (data.attachment_url) {
@@ -915,8 +900,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           advance_other_expenses: data.advanceOtherExpenses,
           advance_project_name: data.advanceProjectName,
           advance_project_location: data.advanceProjectLocation,
-          // Document selections
-          attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -1014,24 +997,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // Handle Internal Training differently
     if (type === 'internal_training') {
       const internalTrainingData = {
-        // Required WelfareRequest fields
-        type: 'internal_training' as const,
-        userId: profile.employee_id.toString(),
-        userName: finalEmployeeData.Name || user.email || 'Unknown User',
-        userDepartment: finalEmployeeData.Team || 'Unknown Department',
-        date: data.startDate || new Date().toISOString(),
-        status: 'pending_manager' as const,
-        amount: Number(data.totalAmount || data.amount || 0),
-        details: data.additionalNotes || data.details || '',
-        attachments: files,
-        notes: '',
-        managerId: finalEmployeeData?.Position,
-        
-        // Internal training specific fields
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
         request_type: 'internal_training',
+        status: 'pending_manager',
         title: data.courseName || '',
+        details: data.additionalNotes || data.details || '',
+        amount: Number(data.totalAmount || data.amount || 0),
         department_request: finalEmployeeData.Team || 'Unknown Department',
         department: data.department || finalEmployeeData.Team || 'Unknown Department',
         branch: data.branch || null,
@@ -1066,9 +1038,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         is_vat_included: Boolean(data.isVatIncluded),
         userSignature: signature || userSignature, // Add user signature
         user_signature: signature || userSignature, // Add alternative field name
+        type: 'internal_training', // Add the type field
+        date: new Date().toISOString(), // Add the current date
+        userId: user?.id, // Add the user ID
+        userName: user?.name, // Add the user name
+        userDepartment: user?.department, // Add the user department
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        user_name: finalEmployeeData.Name || user.email || 'Unknown User'
       };
 
       const result = await submitInternalTrainingRequest(internalTrainingData);
@@ -1165,8 +1141,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       organizer: data.organizer,
       is_vat_included: data.isVatIncluded,
       userSignature: signature || userSignature, // เพิ่มลายเซ็น
-      // Document selections
-      attachmentSelections: data.attachmentSelections,
       // Advance fields for requestData
       advanceDepartment: data.advanceDepartment,
       advanceDistrict: data.advanceDistrict,
@@ -1205,14 +1179,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             status: 'pending_manager' as const,
             createdAt: requestData.createdAt,
             updatedAt: requestData.updatedAt,
-            userSignature: signature || userSignature,
-            // Map form fields to database field names for PDF generation
-            course_name: data.courseName,
-            organizer: data.organizer,
-            training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
-            start_date: data.startDate,
-            end_date: data.endDate,
-            total_days: data.totalDays
+            userSignature: signature || userSignature
           },
           user as any,
           finalEmployeeData,
@@ -1351,6 +1318,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
     return totalDays;
   };
+
+  // Add document types for welfare types except training, internal training, and advance
+  const DOCUMENT_TYPES = [
+    'ใบเสร็จรับเงิน',
+    'สำเนาสูติบัตรบุตร',
+    'ใบรับรองแพทย์',
+    'สำเนาบัตรประชาชน',
+    'สำเนาใบมรณะบัตร',
+    'สำเนาทะเบียนสมรส',
+    'สำเนาบัญชีธนาคาร',
+    'การ์ดแต่งงาน',
+    'อื่นๆ'
+  ];
+
+  // Check if document upload is required for the current welfare type
+  const isDocumentUploadRequired = !['training', 'internal_training', 'advance'].includes(type);
 
   return (
     <div className="animate-fade-in">
@@ -2276,275 +2259,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </>
           )}
 
-          {/* Advance (เบิกเงินทดลอง) specific fields */}
-          {type === 'advance' && (
-            <>
-              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
-
-                {/* แผนกและเขต */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">แผนก</label>
-                    <Input
-                      placeholder="ระบุแผนก"
-                      className="form-input"
-                      {...register('advanceDepartment', {
-                        required: 'กรุณาระบุแผนก'
-                      })}
-                    />
-                    {errors.advanceDepartment && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">เขต</label>
-                    <Input
-                      placeholder="ระบุเขต"
-                      className="form-input"
-                      {...register('advanceDistrict', {
-                        required: 'กรุณาระบุเขต'
-                      })}
-                    />
-                    {errors.advanceDistrict && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDistrict.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* ประเภทกิจกรรม */}
-                <div className="space-y-2">
-                  <label className="form-label">ประเภทกิจกรรม</label>
-                  <Select
-                    onValueChange={(value) => setValue('advanceActivityType', value)}
-                    defaultValue={watch('advanceActivityType')}
-                  >
-                    <SelectTrigger className="form-input">
-                      <SelectValue placeholder="เลือกประเภทกิจกรรม" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ACTIVITY_TYPES.map((activity) => (
-                        <SelectItem key={activity} value={activity}>{activity}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.advanceActivityType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
-                  )}
-                </div>
-
-                {/* ฟิลด์ระบุอื่นๆ เมื่อเลือก "อื่นๆ ระบุ" */}
-                {watch('advanceActivityType') === 'อื่นๆ ระบุ' && (
-                  <div className="space-y-2">
-                    <label className="form-label">โปรดระบุ</label>
-                    <Input
-                      placeholder="ระบุประเภทกิจกรรมอื่นๆ"
-                      className="form-input"
-                      {...register('advanceActivityOther', {
-                        required: watch('advanceActivityType') === 'อื่นๆ ระบุ' ? 'กรุณาระบุประเภทกิจกรรม' : false
-                      })}
-                    />
-                    {errors.advanceActivityOther && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceActivityOther.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* ข้อมูลสถานที่ */}
-                <div className="space-y-2">
-                  <label className="form-label">ชื่อร้าน/บริษัท</label>
-                  <Input
-                    placeholder="ระบุชื่อร้านหรือบริษัท"
-                    className="form-input"
-                    {...register('advanceShopCompany', {
-                      required: 'กรุณาระบุชื่อร้าน/บริษัท'
-                    })}
-                  />
-                  {errors.advanceShopCompany && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceShopCompany.message}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">อำเภอ</label>
-                    <Input
-                      placeholder="ระบุอำเภอ"
-                      className="form-input"
-                      {...register('advanceAmphur', {
-                        required: 'กรุณาระบุอำเภอ'
-                      })}
-                    />
-                    {errors.advanceAmphur && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">จังหวัด</label>
-                    <Input
-                      placeholder="ระบุจังหวัด"
-                      className="form-input"
-                      {...register('advanceProvince', {
-                        required: 'กรุณาระบุจังหวัด'
-                      })}
-                    />
-                    {errors.advanceProvince && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ส่วนที่ 2: รายละเอียดงาน */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดงาน</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">วันที่จัด</label>
-                    <Input
-                      type="date"
-                      className="form-input"
-                      {...register('advanceEventDate', {
-                        required: 'กรุณาระบุวันที่จัด'
-                      })}
-                    />
-                    {errors.advanceEventDate && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceEventDate.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">จำนวนผู้เข้าร่วม</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      className="form-input"
-                      placeholder="0"
-                      {...register('advanceParticipants', {
-                        required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
-                        min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' },
-                        valueAsNumber: true
-                      })}
-                    />
-                    {errors.advanceParticipants && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ส่วนที่ 3: ค่าใช้จ่าย */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">อัตราค่าใช้จ่ายต่อคน (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceDailyRate', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceDailyRate && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDailyRate.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าที่พัก (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceAccommodationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceAccommodationCost && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceAccommodationCost.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าเดินทาง (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceTransportationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceTransportationCost && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceTransportationCost.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">เบี้ยเลี้ยง (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceMealAllowance', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceMealAllowance && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceMealAllowance.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="form-label">ค่าใช้จ่ายอื่นๆ (บาท)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
-                    placeholder="0.00"
-                    {...register('advanceOtherExpenses', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                    })}
-                  />
-                  {errors.advanceOtherExpenses && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceOtherExpenses.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="form-label font-semibold">รวมจำนวนเงินที่ขอเบิกทดลอง (บาท)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-blue-50 font-bold text-lg"
-                    readOnly
-                    value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
-                    {...register('amount')}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
           {/* Continue with existing fields for other welfare types */}
           {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
             <>
@@ -2673,134 +2387,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             )}
           </div>
 
-          {/* Document Selection - Only for welfare types (not training, internal_training, advance) */}
-          {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
+          {/* Document upload section - moved below the details section */}
+          {isDocumentUploadRequired && (
             <div className="space-y-4">
-              <label className="form-label">เลือกเอกสารที่แนบ</label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Row 1 */}
-                  <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เอกสารที่ต้องแนบ</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {DOCUMENT_TYPES.map((docType, index) => (
+                  <div key={index} className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      id="receipt"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.receipt')}
+                      id={`document-${index}`}
+                      {...register(`attachmentSelections.${docType}`)}
+                      className="h-4 w-4"
                     />
-                    <label htmlFor="receipt" className="text-sm text-gray-700">
-                      ใบเสร็จรับเงิน
-                    </label>
+                    <label htmlFor={`document-${index}`} className="text-sm text-gray-700">{docType}</label>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="idCardCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.idCardCopy')}
-                    />
-                    <label htmlFor="idCardCopy" className="text-sm text-gray-700">
-                      สำเนาบัตรประชาชน
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="bankBookCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.bankBookCopy')}
-                    />
-                    <label htmlFor="bankBookCopy" className="text-sm text-gray-700">
-                      สำเนาบัญชีธนาคาร
-                    </label>
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="birthCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.birthCertificate')}
-                    />
-                    <label htmlFor="birthCertificate" className="text-sm text-gray-700">
-                      สำเนาสูติบัตรบุตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="deathCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.deathCertificate')}
-                    />
-                    <label htmlFor="deathCertificate" className="text-sm text-gray-700">
-                      สำเนาใบมรณะบัตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="weddingCard"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.weddingCard')}
-                    />
-                    <label htmlFor="weddingCard" className="text-sm text-gray-700">
-                      การ์ดแต่งงาน
-                    </label>
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="medicalCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.medicalCertificate')}
-                    />
-                    <label htmlFor="medicalCertificate" className="text-sm text-gray-700">
-                      ใบรับรองแพทย์
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="marriageCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.marriageCertificate')}
-                    />
-                    <label htmlFor="marriageCertificate" className="text-sm text-gray-700">
-                      สำเนาทะเบียนสมรส
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="other"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.other')}
-                    />
-                    <label htmlFor="other" className="text-sm text-gray-700">
-                      อื่นๆ
-                    </label>
-                  </div>
-                </div>
-                
-                {/* Other text input - show when "อื่นๆ" is checked */}
-                {watch('attachmentSelections.other') && (
-                  <div className="mt-4">
-                    <Input
-                      placeholder="ระบุเอกสารอื่นๆ"
-                      className="form-input"
-                      {...register('attachmentSelections.otherText')}
-                    />
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           )}

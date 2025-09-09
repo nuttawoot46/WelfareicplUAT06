@@ -25,6 +25,7 @@ import { AccountingReviewPage } from "./pages/AccountingReviewPage";
 import ManagerPDFApprovalPage from "./pages/ManagerPDFApprovalPage";
 import HRPDFApprovalPage from "./pages/HRPDFApprovalPage";
 import WorkflowTimelinePage from "./pages/WorkflowTimelinePage";
+import { SupportPage } from "./pages/SupportPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -143,6 +144,12 @@ const App = () => (
                   <Route path="/accounting-review" element={
                     <ProtectedRoute>
                       <AccountingReviewPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/support" element={
+                    <ProtectedRoute>
+                      <SupportPage />
                     </ProtectedRoute>
                   } />
                   

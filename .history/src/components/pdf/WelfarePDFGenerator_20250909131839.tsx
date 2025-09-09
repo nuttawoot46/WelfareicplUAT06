@@ -52,7 +52,7 @@ const createWelfareFormHTML = (
       day: '2-digit'
     }) : '';
 
-  // Attachment checkbox selections - use from welfareData if available
+  // Attachment checkbox selections
   const att = welfareData.attachmentSelections || {};
 
   const checkbox = (checked: boolean) => `

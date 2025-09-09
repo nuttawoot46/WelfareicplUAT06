@@ -98,20 +98,6 @@ interface FormValues {
   advanceOtherExpenses?: number;
   advanceProjectName?: string;
   advanceProjectLocation?: string;
-
-  // Document selections for welfare types
-  attachmentSelections?: {
-    receipt?: boolean; // ใบเสร็จรับเงิน
-    birthCertificate?: boolean; // สำเนาสูติบัตรบุตร
-    medicalCertificate?: boolean; // ใบรับรองแพทย์
-    idCardCopy?: boolean; // สำเนาบัตรประชาชน
-    deathCertificate?: boolean; // สำเนาใบมรณะบัตร
-    marriageCertificate?: boolean; // สำเนาทะเบียนสมรส
-    bankBookCopy?: boolean; // สำเนาบัญชีธนาคาร
-    weddingCard?: boolean; // การ์ดแต่งงาน
-    other?: boolean; // อื่นๆ
-    otherText?: string; // ระบุอื่นๆ
-  };
 }
 
 // Available teams/departments for internal training
@@ -310,7 +296,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           .eq('id', editIdNum)
           .single();
         if (!error && data) {
-            // Map only fields that exist in the schema
+          // Map only fields that exist in the schema
           const dbData = data as any; // Type assertion for database fields
           reset({
             amount: dbData.amount,
@@ -364,8 +350,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             advanceOtherExpenses: dbData.advance_other_expenses || 0,
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
-            // Document selections
-            attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
           });
           // Attachments
           if (data.attachment_url) {
@@ -915,8 +899,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           advance_other_expenses: data.advanceOtherExpenses,
           advance_project_name: data.advanceProjectName,
           advance_project_location: data.advanceProjectLocation,
-          // Document selections
-          attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -1014,24 +996,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     // Handle Internal Training differently
     if (type === 'internal_training') {
       const internalTrainingData = {
-        // Required WelfareRequest fields
-        type: 'internal_training' as const,
-        userId: profile.employee_id.toString(),
-        userName: finalEmployeeData.Name || user.email || 'Unknown User',
-        userDepartment: finalEmployeeData.Team || 'Unknown Department',
-        date: data.startDate || new Date().toISOString(),
-        status: 'pending_manager' as const,
-        amount: Number(data.totalAmount || data.amount || 0),
-        details: data.additionalNotes || data.details || '',
-        attachments: files,
-        notes: '',
-        managerId: finalEmployeeData?.Position,
-        
-        // Internal training specific fields
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
         request_type: 'internal_training',
+        status: 'pending_manager',
         title: data.courseName || '',
+        details: data.additionalNotes || data.details || '',
+        amount: Number(data.totalAmount || data.amount || 0),
         department_request: finalEmployeeData.Team || 'Unknown Department',
         department: data.department || finalEmployeeData.Team || 'Unknown Department',
         branch: data.branch || null,
@@ -1165,8 +1136,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       organizer: data.organizer,
       is_vat_included: data.isVatIncluded,
       userSignature: signature || userSignature, // เพิ่มลายเซ็น
-      // Document selections
-      attachmentSelections: data.attachmentSelections,
       // Advance fields for requestData
       advanceDepartment: data.advanceDepartment,
       advanceDistrict: data.advanceDistrict,
@@ -1205,14 +1174,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             status: 'pending_manager' as const,
             createdAt: requestData.createdAt,
             updatedAt: requestData.updatedAt,
-            userSignature: signature || userSignature,
-            // Map form fields to database field names for PDF generation
-            course_name: data.courseName,
-            organizer: data.organizer,
-            training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
-            start_date: data.startDate,
-            end_date: data.endDate,
-            total_days: data.totalDays
+            userSignature: signature || userSignature
           },
           user as any,
           finalEmployeeData,
@@ -2672,138 +2634,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               <p className="text-red-500 text-sm mt-1">{errors.details.message}</p>
             )}
           </div>
-
-          {/* Document Selection - Only for welfare types (not training, internal_training, advance) */}
-          {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
-            <div className="space-y-4">
-              <label className="form-label">เลือกเอกสารที่แนบ</label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Row 1 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="receipt"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.receipt')}
-                    />
-                    <label htmlFor="receipt" className="text-sm text-gray-700">
-                      ใบเสร็จรับเงิน
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="idCardCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.idCardCopy')}
-                    />
-                    <label htmlFor="idCardCopy" className="text-sm text-gray-700">
-                      สำเนาบัตรประชาชน
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="bankBookCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.bankBookCopy')}
-                    />
-                    <label htmlFor="bankBookCopy" className="text-sm text-gray-700">
-                      สำเนาบัญชีธนาคาร
-                    </label>
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="birthCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.birthCertificate')}
-                    />
-                    <label htmlFor="birthCertificate" className="text-sm text-gray-700">
-                      สำเนาสูติบัตรบุตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="deathCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.deathCertificate')}
-                    />
-                    <label htmlFor="deathCertificate" className="text-sm text-gray-700">
-                      สำเนาใบมรณะบัตร
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="weddingCard"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.weddingCard')}
-                    />
-                    <label htmlFor="weddingCard" className="text-sm text-gray-700">
-                      การ์ดแต่งงาน
-                    </label>
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="medicalCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.medicalCertificate')}
-                    />
-                    <label htmlFor="medicalCertificate" className="text-sm text-gray-700">
-                      ใบรับรองแพทย์
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="marriageCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.marriageCertificate')}
-                    />
-                    <label htmlFor="marriageCertificate" className="text-sm text-gray-700">
-                      สำเนาทะเบียนสมรส
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="other"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.other')}
-                    />
-                    <label htmlFor="other" className="text-sm text-gray-700">
-                      อื่นๆ
-                    </label>
-                  </div>
-                </div>
-                
-                {/* Other text input - show when "อื่นๆ" is checked */}
-                {watch('attachmentSelections.other') && (
-                  <div className="mt-4">
-                    <Input
-                      placeholder="ระบุเอกสารอื่นๆ"
-                      className="form-input"
-                      {...register('attachmentSelections.otherText')}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* File Upload */}
           <div className="space-y-2">

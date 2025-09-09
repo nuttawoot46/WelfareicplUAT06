@@ -130,12 +130,9 @@ const createInternalTrainingFormHTML = (
           <span style="margin-left: 5px;">${branch}</span>
           
           <span>มีแผนจะจัดอบรมเรื่อง</span>
-        </div>
-        
-        <div style="margin-bottom: 8px;">
+          
           <span style="margin-left: 10px;">${courseName}</span>
           
-        </div>
       </div>
 
       <!-- Date and Time Section -->
@@ -162,7 +159,7 @@ const createInternalTrainingFormHTML = (
         </div>
         
         <div style="margin-bottom: 12px;">
-          <span>ให้แก่พนักงานบริษัทฯ ในระดับ</span>
+          <span>ให้แก่พนักงานบริษัทฯ</span>
           
         </div>
       </div>
@@ -236,23 +233,14 @@ const createInternalTrainingFormHTML = (
         </div>
         
         <!-- รวมทั้งสิ้น -->
-        <div style="margin-top: 10px; padding-top: 6px; border-top: 1px solid black; font-weight: bold;">
-          <span>รวมทั้งสิ้น</span>
-          <span style="margin-left: 20px;">${formatCurrency(
-    (trainingData.instructor_fee || trainingData.instructorFee || 0) +
-    (trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) +
-    (trainingData.other_expenses || trainingData.otherExpenses || 0)
-  )}</span>
-          <span style="margin-left: 5px;">บาท</span>
-          <span style="margin-left: 20px;">คิดเป็นค่าใช้จ่าย/คน:</span>
-          <span style="margin-left: 5px;">${formatCurrency(
-    ((trainingData.instructor_fee || trainingData.instructorFee || 0) +
-      (trainingData.room_food_beverage || trainingData.roomFoodBeverage || 0) +
-      (trainingData.other_expenses || trainingData.otherExpenses || 0)) /
-    (participants.reduce((total, p) => total + (parseInt(p?.count?.toString() || '0') || 0), 0) || 1)
-  )}</span>
-          <span style="margin-left: 5px;">บาท</span>
-        </div>
+          <div style="margin-top: 10px; padding-top: 6px; border-top: 1px solid black; font-weight: bold;">
+            <span>รวมทั้งสิ้น</span>
+            <span style="margin-left: 20px;">${formatCurrency(trainingData.total_amount || trainingData.totalAmount || 0)}</span>
+            <span style="margin-left: 5px;">บาท</span>
+            <span style="margin-left: 20px;">คิดเป็นค่าใช้จ่าย/คน:</span>
+            <span style="margin-left: 5px;">${formatCurrency(trainingData.average_cost_per_person || trainingData.averageCostPerPerson || 0)}</span>
+            <span style="margin-left: 5px;">บาท</span>
+          </div>
       </div>
 
       <!-- Notes Section -->

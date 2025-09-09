@@ -1,6 +1,7 @@
 import { WelfareRequest, User } from '@/types';
 import { generateWelfarePDF } from '@/components/pdf/WelfarePDFGenerator';
 import { generateInternalTrainingPDF } from '@/components/pdf/InternalTrainingPDFGenerator';
+import { generateTrainingPDF } from '@/components/pdf/TrainingPDFGenerator';
 import { generateInternalTrainingPDFFromHTML } from '@/components/pdf/InternalTrainingPDFGeneratorHTML';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
@@ -25,6 +26,14 @@ export const createInitialPDF = async (
         request as any, // Cast to InternalTrainingRequest
         user,
         employeeData
+      );
+    } else if (request.type === 'training') {
+      // ใช้ Training PDF สำหรับอบรมภายนอก
+      pdfBlob = await generateTrainingPDF(
+        request,
+        user,
+        employeeData,
+        request.userSignature
       );
     } else {
       pdfBlob = await generateWelfarePDF(
@@ -159,8 +168,10 @@ export const addSignatureToPDF = async (
       name: actualEmployeeNameForUser || employeeData?.Name || updatedRequestData.employee_name || '',
       position: employeeData?.Position || '',
       role: 'employee' as const,
-      department: employeeData?.Team || updatedRequestData.department_user || '',
-      budget_fitness: 0
+      department: employeeData?.Team || updatedRequestData.department_user || updatedRequestData.department_request || '',
+      budget_fitness: 0,
+      training_budget: (employeeData as any)?.Budget_Training,
+      original_training_budget: (employeeData as any)?.Original_Budget_Training
     };
 
     // Convert database fields to WelfareRequest format
@@ -174,13 +185,25 @@ export const addSignatureToPDF = async (
       id: updatedRequestData.id,
       userId: updatedRequestData.employee_id?.toString() || updatedRequestData.userId || '',
       userName: actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || '',
-      userDepartment: employeeData?.Team || updatedRequestData.department_user || '',
+      userDepartment: employeeData?.Team || updatedRequestData.department_user || updatedRequestData.department_request || '',
       type: updatedRequestData.request_type,
       status: updatedRequestData.status,
       amount: updatedRequestData.amount || 0,
       date: updatedRequestData.created_at,
       details: updatedRequestData.details || '',
       attachments: updatedRequestData.attachment_url ? JSON.parse(updatedRequestData.attachment_url) : [],
+      // Bring through attachment checklist selections for PDF checkmarks
+      attachmentSelections: (() => {
+        try {
+          if (!updatedRequestData.attachment_selections) return undefined;
+          if (typeof updatedRequestData.attachment_selections === 'string') {
+            return JSON.parse(updatedRequestData.attachment_selections);
+          }
+          return updatedRequestData.attachment_selections;
+        } catch {
+          return undefined;
+        }
+      })(),
       createdAt: updatedRequestData.created_at,
       updatedAt: updatedRequestData.updated_at,
       title: updatedRequestData.title,
@@ -192,7 +215,8 @@ export const addSignatureToPDF = async (
       hrApproverName: updatedRequestData.hr_approver_name,
       hrApprovedAt: updatedRequestData.hr_approved_at,
       birth_type: updatedRequestData.birth_type,
-      department_user: updatedRequestData.department_user
+      department_user: updatedRequestData.department_user,
+      department_request: updatedRequestData.department_request
     };
 
     console.log('🔄 Generating PDF with signatures...');
@@ -392,7 +416,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
       console.log('🔍 Searching by numeric ID:', numericId);
       const { data: employeeById, error: errorById } = await supabase
         .from('Employee')
-        .select('Name, Position, Team, start_date')
+        .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
         .eq('id', numericId)
         .single();
 
@@ -404,8 +428,10 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
           Name: employeeById.Name,
           Position: employeeById.Position,
           Team: employeeById.Team,
-          start_date: employeeById.start_date
-        };
+          start_date: employeeById.start_date,
+          Budget_Training: (employeeById as any)?.Budget_Training,
+          Original_Budget_Training: (employeeById as any)?.Original_Budget_Training
+        } as any;
       }
     }
 
@@ -413,7 +439,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
     console.log('🔍 Fallback: Searching by email_user:', userId);
     const { data, error } = await supabase
       .from('Employee')
-      .select('Name, Position, Team, start_date')
+      .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
       .eq('"email_user"', userId)
       .single();
 
@@ -429,8 +455,10 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
       Name: data.Name,
       Position: data.Position,
       Team: data.Team,
-      start_date: data.start_date
-    };
+      start_date: data.start_date,
+      Budget_Training: (data as any)?.Budget_Training,
+      Original_Budget_Training: (data as any)?.Original_Budget_Training
+    } as any;
   } catch (error) {
     console.error('❌ Error fetching employee data:', error);
     return undefined;
@@ -452,15 +480,33 @@ const generateWelfarePDFAsBase64 = async (
     // Generate PDF as Blob
     let pdfBlob: Blob;
     
-    if (welfareData.type === 'internal_training') {
+  if (welfareData.type === 'internal_training') {
       // ใช้ HTML-to-PDF สำหรับ internal training เพื่อรองรับภาษาไทย
       pdfBlob = await generateInternalTrainingPDFFromHTML(
         welfareData as any, // Cast to InternalTrainingRequest
         userData,
         employeeData
       );
+    } else if (welfareData.type === 'training') {
+      // ใช้ Training PDF สำหรับอบรมภายนอก รวมลายเซ็น
+      pdfBlob = await generateTrainingPDF(
+        welfareData,
+        userData,
+        employeeData,
+        userSignature,
+        undefined,
+        managerSignature,
+        hrSignature
+      );
     } else {
-      pdfBlob = await generateWelfarePDF(welfareData, userData, employeeData, userSignature, managerSignature, hrSignature);
+      pdfBlob = await generateWelfarePDF(
+        welfareData,
+        userData,
+        employeeData,
+        userSignature,
+        managerSignature,
+        hrSignature
+      );
     }
 
     // Convert Blob to base64

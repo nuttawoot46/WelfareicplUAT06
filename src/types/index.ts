@@ -90,12 +90,14 @@ export interface WelfareRequest {
   total_amount?: number;
   tax7_percent?: number;
   withholding_tax3_percent?: number;
+  net_amount?: number;
   excess_amount?: number;
   company_payment?: number;
   employee_payment?: number;
   course_name?: string;
   organizer?: string;
   department_user?: string;
+  department_request?: string;
   // ลายเซ็นดิจิทัล
   userSignature?: string; // Base64 encoded signature image
   managerSignature?: string; // Manager's digital signature
@@ -153,6 +155,20 @@ export interface WelfareRequest {
   advanceExpectedReturnDate?: string;
   advanceUrgencyLevel?: string;
   advanceApprovalDeadline?: string;
+
+  // Attachment selections for PDF checkmarks
+  attachmentSelections?: {
+    receipt?: boolean; // ใบเสร็จรับเงิน
+    birthCertificate?: boolean; // สำเนาสูติบัตรบุตร
+    medicalCertificate?: boolean; // ใบรับรองแพทย์
+    idCardCopy?: boolean; // สำเนาบัตรประชาชน
+    deathCertificate?: boolean; // สำเนาใบมรณะบัตร
+    marriageCertificate?: boolean; // สำเนาทะเบียนสมรส
+    bankBookCopy?: boolean; // สำเนาบัญชีธนาคาร
+    weddingCard?: boolean; // การ์ดแต่งงาน
+    other?: boolean; // อื่นๆ
+    otherText?: string; // ระบุอื่นๆ
+  };
 }
 
 export interface Notification {
@@ -222,4 +238,41 @@ export interface InternalTrainingRequest extends WelfareRequest {
   accounting_approver_name?: string;
   accounting_approved_at?: string;
   pdf_url?: string;
+}
+// Support Ticket Types
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  category: 'account' | 'system' | 'network' | 'printer' | 'software' | 'database' | 'bug' | 'feature' | 'other';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'in-progress' | 'resolved' | 'closed';
+  assigned_to?: string;
+  resolution?: string;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string;
+}
+
+export interface SupportTicketComment {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  comment: string;
+  is_internal: boolean;
+  created_at: string;
+}
+
+export interface CreateTicketData {
+  title: string;
+  description: string;
+  category: SupportTicket['category'];
+  priority: SupportTicket['priority'];
+}
+
+export interface CreateCommentData {
+  ticket_id: string;
+  comment: string;
+  is_internal?: boolean;
 }
