@@ -57,7 +57,7 @@ function exportReportToCSV({
     if (reportType === 'internal_training') {
       csv += 'รายละเอียดการอบรมภายในทั้งหมด\r\n';
       csv += 'หลักสูตร,สถานที่,วันที่,ผู้เข้าอบรม,ชั่วโมง,ค่าใช้จ่าย,สถานะ,หมายเหตุ\r\n';
-      
+
       filteredRequests.forEach((req: any) => {
         csv += `"${req.courseName || req.title || req.details || 'ไม่ระบุ'}","${req.venue || 'ไม่ระบุ'}","${new Date(req.date).toLocaleDateString('th-TH')}","${req.totalParticipants || 0}","${req.totalHours || 0}","${req.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}","${statusSummary.find((s: any) => s.status === req.status)?.label || req.status}","${req.additionalNotes || 'ไม่มี'}"\r\n`;
       });
@@ -118,7 +118,7 @@ function exportReportToCSV({
     csv += 'สรุปการใช้สวัสดิการแยกตามประเภท\r\n';
     csv += 'ประเภทสวัสดิการ,จำนวนคำร้อง (รายการ),ยอดเงินที่ใช้ไป (บาท)\r\n';
   }
-  
+
   summaryByType.forEach((row: any) => {
     const typeLabel = reportType === 'internal_training' ? row.type : (welfareTypeLabels[row.type as WelfareType] || row.type);
     csv += `"${typeLabel}","${row.count.toLocaleString()}","${row.used.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"\r\n`;
@@ -138,7 +138,7 @@ function exportReportToCSV({
 
   // รายละเอียดคำร้องทั้งหมด
   csv += '\r\nรายละเอียดคำร้องทั้งหมด\r\n';
-  
+
   if (reportType === 'internal_training') {
     csv += 'วันที่,รหัสคำร้อง,หลักสูตร,สถานที่,ผู้เข้าอบรม,ชั่วโมง,ค่าใช้จ่าย (บาท),สถานะ,หมายเหตุ\r\n';
     filteredRequests.forEach((req: any) => {
@@ -159,7 +159,7 @@ function exportReportToCSV({
     ? `${dateRange.from.toISOString().slice(0, 10)}_${dateRange.to.toISOString().slice(0, 10)}`
     : new Date().toISOString().slice(0, 10);
 
-  const fileName = reportType === 'internal_training' 
+  const fileName = reportType === 'internal_training'
     ? `internal_training_report_${dateStr}.csv`
     : `welfare_report_${dateStr}.csv`;
 
@@ -225,7 +225,7 @@ const AdminReport = () => {
     if (reportType === 'internal_training') {
       // For internal training, we don't need type breakdown, so return summary by course/venue
       const map: Record<string, { count: number; used: number; remaining: number }> = {};
-      
+
       filteredRequests.forEach((req) => {
         const key = req.courseName || req.title || req.details || 'ไม่ระบุ';
         if (!map[key]) map[key] = { count: 0, used: 0, remaining: 0 };
@@ -359,7 +359,7 @@ const AdminReport = () => {
   // 3D Bar Chart Configuration
   const barData = useMemo(() => {
     const trainingColors = reportType === 'internal_training' ? generateTrainingColors(summaryByType) : {};
-    
+
     return {
       labels: summaryByType.map((d) => {
         if (reportType === 'internal_training') {
@@ -371,13 +371,13 @@ const AdminReport = () => {
         {
           label: reportType === 'internal_training' ? 'ค่าใช้จ่าย (บาท)' : 'ยอดใช้ไป (บาท)',
           data: summaryByType.map((d) => d.used),
-          backgroundColor: summaryByType.map((d) => 
-            reportType === 'internal_training' 
+          backgroundColor: summaryByType.map((d) =>
+            reportType === 'internal_training'
               ? trainingColors[d.type] || '#3b82f6'
               : barColors[d.type] || '#3b82f6'
           ),
-          borderColor: summaryByType.map((d) => 
-            reportType === 'internal_training' 
+          borderColor: summaryByType.map((d) =>
+            reportType === 'internal_training'
               ? trainingColors[d.type] || '#3b82f6'
               : barColors[d.type] || '#3b82f6'
           ),
@@ -516,7 +516,7 @@ const AdminReport = () => {
                 {reportType === 'welfare' ? 'ภาพรวมสวัสดิการ' : 'ภาพรวมการอบรมภายใน'}
               </h1>
               <p className="text-gray-600">
-                {reportType === 'welfare' 
+                {reportType === 'welfare'
                   ? 'รายงานและสถิติการใช้งานสวัสดิการของบริษัท'
                   : 'รายงานและสถิติการอบรมภายในของบริษัท'
                 }
@@ -604,7 +604,7 @@ const AdminReport = () => {
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-gray-700">ประเภทรายงาน:</span>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   variant={reportType === 'welfare' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setReportType('welfare')}
@@ -613,7 +613,7 @@ const AdminReport = () => {
                   <FileText className="w-4 h-4" />
                   สวัสดิการ
                 </Button>
-                <Button 
+                <Button
                   variant={reportType === 'internal_training' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setReportType('internal_training')}
@@ -698,8 +698,8 @@ const AdminReport = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
-                {reportType === 'welfare' 
-                  ? 'สรุปการใช้สวัสดิการแยกตามประเภท' 
+                {reportType === 'welfare'
+                  ? 'สรุปการใช้สวัสดิการแยกตามประเภท'
                   : 'สรุปค่าใช้จ่ายการอบรมภายในแยกตามหลักสูตร'
                 }
               </CardTitle>
@@ -781,8 +781,8 @@ const AdminReport = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {reportType === 'welfare' 
-                  ? 'ประเภทสวัสดิการยอดนิยม' 
+                {reportType === 'welfare'
+                  ? 'ประเภทสวัสดิการยอดนิยม'
                   : 'หลักสูตรการอบรมยอดนิยม'
                 }
               </CardTitle>
@@ -799,14 +799,14 @@ const AdminReport = () => {
                         <div className="flex items-center gap-2 mb-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ 
-                              backgroundColor: reportType === 'internal_training' 
+                            style={{
+                              backgroundColor: reportType === 'internal_training'
                                 ? trainingColors[item.type] || '#3b82f6'
-                                : barColors[item.type] || '#3b82f6' 
+                                : barColors[item.type] || '#3b82f6'
                             }}
                           />
                           <span className="text-gray-700 text-sm font-medium truncate">
-                            {reportType === 'welfare' 
+                            {reportType === 'welfare'
                               ? (welfareTypeLabels[item.type as WelfareType] || item.type)
                               : item.type
                             }
@@ -878,7 +878,7 @@ const AdminReport = () => {
                               </td>
                               <td className="py-3 px-4 text-gray-900 font-medium">{r.userName}</td>
                               <td className="py-3 px-4 text-gray-700">
-                                {reportType === 'welfare' 
+                                {reportType === 'welfare'
                                   ? (welfareTypeLabels[r.type] || r.type)
                                   : (r.courseName || r.title || r.details || 'ไม่ระบุ')
                                 }
@@ -946,7 +946,7 @@ const AdminReport = () => {
                       {(() => {
                         const totalParticipants = filteredRequests.reduce((sum, r) => sum + (r.totalParticipants || 0), 0);
                         const totalUsed = filteredRequests.reduce((sum, r) => r.status === 'completed' ? sum + r.amount : sum, 0);
-                        return totalParticipants > 0 
+                        return totalParticipants > 0
                           ? (totalUsed / totalParticipants).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                           : '0.00';
                       })()} บาท
@@ -1164,16 +1164,14 @@ const AdminReport = () => {
                       .map((req, index) => (
                         <tr
                           key={req.id}
-                          className={`border-b border-gray-100 transition-colors hover:bg-blue-50/30 ${
-                            index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                          }`}
+                          className={`border-b border-gray-100 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                            }`}
                         >
                           <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-200">
                             <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${
-                                req.status === 'completed' ? 'bg-green-500' : 
-                                req.status.includes('pending') ? 'bg-yellow-500' : 'bg-red-500'
-                              }`} />
+                              <div className={`w-2 h-2 rounded-full ${req.status === 'completed' ? 'bg-green-500' :
+                                  req.status.includes('pending') ? 'bg-yellow-500' : 'bg-red-500'
+                                }`} />
                               <span className="truncate max-w-[200px]" title={req.courseName || req.title || req.details}>
                                 {req.courseName || req.title || req.details || 'ไม่ระบุหลักสูตร'}
                               </span>
@@ -1203,11 +1201,10 @@ const AdminReport = () => {
                             {new Date(req.date).toLocaleDateString('th-TH')}
                           </td>
                           <td className="py-3 px-4 text-center bg-blue-50/50">
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                              req.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              req.status.includes('pending') ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${req.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                req.status.includes('pending') ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                              }`}>
                               {statusSummary.find(s => s.status === req.status)?.label || req.status}
                             </span>
                           </td>

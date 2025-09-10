@@ -29,6 +29,11 @@ export const createInitialPDF = async (
       );
     } else if (request.type === 'training') {
       // ใช้ Training PDF สำหรับอบรมภายนอก
+      console.log('=== createInitialPDF: Generating Training PDF ===');
+      console.log('request for training:', request);
+      console.log('user for training:', user);
+      console.log('employeeData for training:', employeeData);
+      
       pdfBlob = await generateTrainingPDF(
         request,
         user,
@@ -216,7 +221,14 @@ export const addSignatureToPDF = async (
       hrApprovedAt: updatedRequestData.hr_approved_at,
       birth_type: updatedRequestData.birth_type,
       department_user: updatedRequestData.department_user,
-      department_request: updatedRequestData.department_request
+      department_request: updatedRequestData.department_request,
+      // Training-specific fields
+      course_name: updatedRequestData.course_name,
+      organizer: updatedRequestData.organizer,
+      training_topics: updatedRequestData.training_topics,
+      start_date: updatedRequestData.start_date,
+      end_date: updatedRequestData.end_date,
+      total_days: updatedRequestData.total_days
     };
 
     console.log('🔄 Generating PDF with signatures...');
@@ -224,6 +236,23 @@ export const addSignatureToPDF = async (
     console.log('  - welfareRequestForPDF.userName:', welfareRequestForPDF.userName);
     console.log('  - userForPDF.name:', userForPDF.name);
     console.log('  - employeeData?.Name:', employeeData?.Name);
+    
+    // Debug training-specific data
+    if (updatedRequestData.request_type === 'training') {
+      console.log('🎓 Training Data Debug:');
+      console.log('  - course_name:', updatedRequestData.course_name);
+      console.log('  - organizer:', updatedRequestData.organizer);
+      console.log('  - training_topics:', updatedRequestData.training_topics);
+      console.log('  - start_date:', updatedRequestData.start_date);
+      console.log('  - end_date:', updatedRequestData.end_date);
+      console.log('  - total_days:', updatedRequestData.total_days);
+      console.log('  - welfareRequestForPDF.course_name:', welfareRequestForPDF.course_name);
+      console.log('  - welfareRequestForPDF.organizer:', welfareRequestForPDF.organizer);
+      console.log('  - welfareRequestForPDF.training_topics:', welfareRequestForPDF.training_topics);
+      console.log('  - welfareRequestForPDF.start_date:', welfareRequestForPDF.start_date);
+      console.log('  - welfareRequestForPDF.end_date:', welfareRequestForPDF.end_date);
+      console.log('  - welfareRequestForPDF.total_days:', welfareRequestForPDF.total_days);
+    }
 
     const newPdfBase64 = await generateWelfarePDFAsBase64(
       welfareRequestForPDF,
@@ -489,6 +518,11 @@ const generateWelfarePDFAsBase64 = async (
       );
     } else if (welfareData.type === 'training') {
       // ใช้ Training PDF สำหรับอบรมภายนอก รวมลายเซ็น
+      console.log('=== pdfManager: Generating Training PDF ===');
+      console.log('welfareData for training:', welfareData);
+      console.log('userData for training:', userData);
+      console.log('employeeData for training:', employeeData);
+      
       pdfBlob = await generateTrainingPDF(
         welfareData,
         userData,
