@@ -16,7 +16,7 @@ This feature creates a PDF generator that produces an exact replica of the Exter
 2. WHEN the PDF is generated THEN the system SHALL include the company logo in the top-left corner
 3. WHEN the PDF is generated THEN the system SHALL display the form title "แบบขออนุมัติส่งพนักงานเข้ารับการฝึกอบรม (External Training Application)" in the header
 4. WHEN the PDF is generated THEN the system SHALL include the form code "F-TRA-01-06 Rev: 02 01/09/2023" in the top-right corner
-5. WHEN the PDF is generated THEN the system SHALL include the approval workflow boxes (ต้นสังกัด → HR → VP) in the header
+5. WHEN the PDF is generated THEN the system SHALL include the approval workflow boxes (User → Manager → HR ) in the header
 
 ### Requirement 2
 

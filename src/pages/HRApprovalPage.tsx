@@ -325,16 +325,107 @@ export const HRApprovalPage = () => {
 
       // Handle PDF generation based on request type
       if (pendingApprovalRequest.type === 'internal_training') {
-        // Handle internal training PDF generation with both manager and HR signatures
+        // Get employee data for PDF generation
+        let employeeData;
+        try {
+          const employeeId = pendingApprovalRequest.employee_id || pendingApprovalRequest.userId;
+          const numericId = parseInt(employeeId, 10);
+          
+          if (!isNaN(numericId)) {
+            const { data: empData, error: empError } = await supabase
+              .from('Employee')
+              .select('Name, Position, Team, start_date')
+              .eq('id', numericId)
+              .single();
+            
+            if (!empError && empData) {
+              employeeData = empData;
+            }
+          }
+          
+          // Fallback to email lookup if numeric ID didn't work
+          if (!employeeData && employeeId) {
+            const { data: empData, error: empError } = await supabase
+              .from('Employee')
+              .select('Name, Position, Team, start_date')
+              .eq('"email_user"', employeeId)
+              .single();
+            
+            if (!empError && empData) {
+              employeeData = empData;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching employee data for PDF:', error);
+        }
+
+        // Create a proper InternalTrainingRequest object with all required fields
+        const internalTrainingRequest = {
+          ...pendingApprovalRequest,
+          // Ensure all required fields are present with proper fallbacks
+          course_name: pendingApprovalRequest.course_name || pendingApprovalRequest.title || 'หลักสูตรอบรม',
+          courseName: pendingApprovalRequest.course_name || pendingApprovalRequest.title || 'หลักสูตรอบรม',
+          department: pendingApprovalRequest.department || pendingApprovalRequest.userDepartment || 'ฝ่ายทรัพยากรบุคคล',
+          branch: pendingApprovalRequest.branch || 'สำนักงานสุรวงศ์',
+          start_date: pendingApprovalRequest.start_date || pendingApprovalRequest.date,
+          end_date: pendingApprovalRequest.end_date || pendingApprovalRequest.date,
+          startDate: pendingApprovalRequest.start_date || pendingApprovalRequest.date,
+          endDate: pendingApprovalRequest.end_date || pendingApprovalRequest.date,
+          start_time: pendingApprovalRequest.start_time || '09:00',
+          end_time: pendingApprovalRequest.end_time || '17:00',
+          startTime: pendingApprovalRequest.start_time || '09:00',
+          endTime: pendingApprovalRequest.end_time || '17:00',
+          total_hours: pendingApprovalRequest.total_hours || 7,
+          totalHours: pendingApprovalRequest.total_hours || 7,
+          venue: pendingApprovalRequest.venue || 'สถานที่อบรม',
+          participants: pendingApprovalRequest.participants || '[]',
+          instructor_fee: pendingApprovalRequest.instructor_fee || 0,
+          instructorFee: pendingApprovalRequest.instructor_fee || 0,
+          room_food_beverage: pendingApprovalRequest.room_food_beverage || 0,
+          roomFoodBeverage: pendingApprovalRequest.room_food_beverage || 0,
+          other_expenses: pendingApprovalRequest.other_expenses || 0,
+          otherExpenses: pendingApprovalRequest.other_expenses || 0,
+          total_amount: pendingApprovalRequest.total_amount || pendingApprovalRequest.amount || 0,
+          totalAmount: pendingApprovalRequest.total_amount || pendingApprovalRequest.amount || 0,
+          average_cost_per_person: pendingApprovalRequest.average_cost_per_person || 0,
+          averageCostPerPerson: pendingApprovalRequest.average_cost_per_person || 0,
+          withholding_tax_amount: pendingApprovalRequest.withholding_tax_amount || 0,
+          withholdingTaxAmount: pendingApprovalRequest.withholding_tax_amount || 0,
+          // Signature fields
+          userSignature: pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature,
+          user_signature: pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature,
+          managerSignature: updatedRequest.managerSignature,
+          manager_signature: updatedRequest.managerSignature,
+          hrSignature: signature,
+          hr_signature: signature,
+          manager_approver_name: pendingApprovalRequest.managerApproverName,
+          managerApproverName: pendingApprovalRequest.managerApproverName,
+          manager_approved_at: pendingApprovalRequest.managerApprovedAt,
+          managerApprovedAt: pendingApprovalRequest.managerApprovedAt,
+          hr_approver_name: profile?.display_name || user.email,
+          hrApproverName: profile?.display_name || user.email,
+          hr_approved_at: new Date().toISOString(),
+          hrApprovedAt: new Date().toISOString(),
+          createdAt: pendingApprovalRequest.createdAt || pendingApprovalRequest.date,
+          created_at: pendingApprovalRequest.createdAt || pendingApprovalRequest.date
+        };
+
+        console.log('=== HR Internal Training PDF Generation Debug ===');
+        console.log('internalTrainingRequest:', internalTrainingRequest);
+        console.log('employeeData:', employeeData);
+        
+        // Use the original PDF generator with proper signature support
         const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
         const pdfBlob = await generateInternalTrainingPDF(
-          pendingApprovalRequest as any,
+          internalTrainingRequest as any,
           user,
-          undefined,
+          employeeData,
           updatedRequest.managerSignature,
           signature,
-          pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature // Pass user signature
+          pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature
         );
+        
+        console.log('Generated PDF blob size:', pdfBlob.size);
         
         // Store updated PDF in database
         const { storePDFInDatabase } = await import('@/utils/pdfManager');

@@ -1,73 +1,365 @@
-# Welcome to your Lovable project
+# ระบบจัดการสวัสดิการพนักงาน (Employee Welfare Management System)
 
-## Project info
+## ภาพรวมของระบบ
 
-**URL**: https://lovable.dev/projects/9430a58b-00e1-4347-bb51-01aed5100e7a
+ระบบจัดการสวัสดิการพนักงานเป็นเว็บแอปพลิเคชันที่พัฒนาด้วย React + TypeScript สำหรับจัดการคำขอสวัสดิการต่างๆ ของพนักงาน รองรับการอนุมัติแบบหลายขั้นตอน และสร้างเอกสาร PDF อัตโนมัติ
 
-## How can I edit this code?
+## เทคโนโลยีที่ใช้
 
-There are several ways of editing your application.
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Framework**: Tailwind CSS, shadcn/ui, Radix UI
+- **Backend**: Supabase (PostgreSQL, Authentication, Real-time)
+- **PDF Generation**: jsPDF, html2canvas
+- **State Management**: React Context API, TanStack Query
+- **Charts**: Chart.js, Recharts
+- **Deployment**: Netlify
 
-**Use Lovable**
+## คุณสมบัติหลัก
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9430a58b-00e1-4347-bb51-01aed5100e7a) and start prompting.
+### 1. ระบบสวัสดิการ (Welfare System)
+- **สวัสดิการงานแต่งงาน**: เงินช่วยเหลืองานแต่งงาน
+- **สวัสดิการคลอดบุตร**: เงินช่วยเหลือคลอดบุตร
+- **สวัสดิการงานศพ**: เงินช่วยเหลืองานศพ
+- **สวัสดิการออกกำลังกาย**: เงินสนับสนุนค่าออกกำลังกาย
+- **สวัสดิการรักษาพยาบาล**: เงินช่วยเหลือค่ารักษาพยาบาล
+- **เบิกเงินทดลอง**: ระบบเบิกเงินทดลองสำหรับการเดินทางและค่าใช้จ่าย
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. ระบบฝึกอบรม (Training System)
+- **การฝึกอบรมภายใน**: จัดการหลักสูตรอบรมภายในองค์กร
+- **การฝึกอบรมภายนอก**: อนุมัติการเข้าร่วมอบรมภายนอก
 
-**Use your preferred IDE**
+### 3. ระบบอนุมัติ (Approval Workflow)
+- **อนุมัติระดับผู้จัดการ**: Manager Approval
+- **อนุมัติระดับ HR**: HR Final Approval
+- **ลายเซ็นดิจิทัล**: รองรับลายเซ็นอิเล็กทรอนิกส์
+- **การติดตาม**: ระบบติดตามสถานะคำขอแบบ Real-time
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 4. ระบบจัดการผู้ใช้ (User Management)
+- **บทบาทผู้ใช้**: Employee, Manager, HR, Admin, SuperAdmin
+- **การจัดการทีม**: จัดการสมาชิกในทีม
+- **สิทธิ์การเข้าถึง**: ระบบควบคุมสิทธิ์ตามบทบาท
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 5. ระบบรายงาน (Reporting System)
+- **Dashboard**: แดชบอร์ดสรุปข้อมูลสำคัญ
+- **รายงานสถิติ**: รายงานการใช้งานสวัสดิการ
+- **การส่งออกข้อมูล**: Export ข้อมูลเป็น Excel/PDF
 
-Follow these steps:
+### 6. ระบบ SuperAdmin
+- **จัดการระบบ**: การตั้งค่าระบบทั้งหมด
+- **จัดการฐานข้อมูล**: Backup, Export, Maintenance
+- **ความปลอดภัย**: การตั้งค่าความปลอดภัย, Audit Logs
+- **การตรวจสอบ**: ติดตามการใช้งานระบบ
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## การติดตั้งและเริ่มต้นใช้งาน
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### ข้อกำหนดระบบ
+- Node.js 18+ และ npm
+- Git
+- บัญชี Supabase (สำหรับฐานข้อมูล)
 
-# Step 3: Install the necessary dependencies.
-npm i
+### ขั้นตอนการติดตั้ง
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+1. **Clone Repository**
+```bash
+git clone <repository-url>
+cd <project-name>
+```
+
+2. **ติดตั้ง Dependencies**
+```bash
+npm install
+```
+
+3. **ตั้งค่า Environment Variables**
+สร้างไฟล์ `.env` และเพิ่มข้อมูลต่อไปนี้:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+4. **เริ่มต้น Development Server**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. **เข้าถึงแอปพลิเคชัน**
+เปิดเบราว์เซอร์และไปที่ `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## โครงสร้างโปรเจค
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/          # React Components
+│   ├── auth/           # Authentication components
+│   ├── dashboard/      # Dashboard components
+│   ├── forms/          # Form components
+│   ├── layout/         # Layout components
+│   ├── pdf/            # PDF generation components
+│   ├── signature/      # Digital signature components
+│   └── ui/             # UI components (shadcn/ui)
+├── context/            # React Context providers
+├── hooks/              # Custom React hooks
+├── pages/              # Page components
+│   ├── admin/          # Admin pages
+│   ├── auth/           # Authentication pages
+│   └── superadmin/     # SuperAdmin pages
+├── services/           # API services
+├── types/              # TypeScript type definitions
+└── utils/              # Utility functions
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## การใช้งานระบบ
 
-## What technologies are used for this project?
+### สำหรับพนักงาน (Employee)
 
-This project is built with:
+1. **เข้าสู่ระบบ**
+   - ใช้อีเมลและรหัสผ่านที่ได้รับจาก HR
+   - ระบบจะนำไปยังหน้า Dashboard
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+2. **ยื่นคำขอสวัสดิการ**
+   - เลือก "ยื่นคำขอใหม่" จากเมนูหลัก
+   - เลือกประเภทสวัสดิการที่ต้องการ
+   - กรอกข้อมูลในฟอร์ม
+   - แนบเอกสารประกอบ (ถ้ามี)
+   - ลงลายเซ็นดิจิทัล
+   - ส่งคำขอ
 
-## How can I deploy this project?
+3. **ติดตามสถานะคำขอ**
+   - ดูสถานะคำขอในหน้า Dashboard
+   - ได้รับการแจ้งเตือนเมื่อมีการอัปเดต
+   - ดาวน์โหลดเอกสาร PDF ที่อนุมัติแล้ว
 
-Simply open [Lovable](https://lovable.dev/projects/9430a58b-00e1-4347-bb51-01aed5100e7a) and click on Share -> Publish.
+### สำหรับผู้จัดการ (Manager)
 
-## Can I connect a custom domain to my Lovable project?
+1. **อนุมัติคำขอ**
+   - เข้าหน้า "อนุมัติคำขอ"
+   - ตรวจสอบรายละเอียดคำขอ
+   - อนุมัติหรือปฏิเสธคำขอ
+   - ลงลายเซ็นดิจิทัล
 
-Yes, you can!
+2. **จัดการทีม**
+   - ดูรายชื่อสมาชิกในทีม
+   - ตรวจสอบประวัติการใช้สวัสดิการ
+   - ดูรายงานสรุปของทีม
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### สำหรับ HR
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **อนุมัติขั้นสุดท้าย**
+   - ตรวจสอบคำขอที่ผ่านการอนุมัติจากผู้จัดการ
+   - อนุมัติขั้นสุดท้าย
+   - ลงลายเซ็นดิจิทัล
+
+2. **จัดการผู้ใช้**
+   - เพิ่ม/แก้ไข/ลบข้อมูลพนักงาน
+   - กำหนดบทบาทและสิทธิ์
+   - รีเซ็ตรหัสผ่าน
+
+3. **ดูรายงาน**
+   - รายงานการใช้งานสวัสดิการ
+   - สถิติการอนุมัติ
+   - ส่งออกข้อมูลเป็น Excel
+
+### สำหรับ Admin
+
+1. **จัดการระบบ**
+   - ตั้งค่าวงเงินสวัสดิการ
+   - จัดการประเภทสวัสดิการ
+   - ดูรายงานระบบ
+
+2. **จัดการผู้ใช้ขั้นสูง**
+   - สร้างบัญชี Admin อื่น
+   - จัดการสิทธิ์ระดับสูง
+
+### สำหรับ SuperAdmin
+
+1. **จัดการระบบทั้งหมด**
+   - เข้าถึงการตั้งค่าระบบทั้งหมด
+   - จัดการฐานข้อมูล
+   - ตั้งค่าความปลอดภัย
+
+2. **ตรวจสอบและควบคุม**
+   - ดู Audit Logs
+   - ตรวจสอบการใช้งานระบบ
+   - จัดการ Backup
+
+## ประเภทสวัสดิการและเงื่อนไข
+
+### 1. สวัสดิการงานแต่งงาน
+- **วงเงิน**: ตามที่บริษัทกำหนด
+- **เงื่อนไข**: ต้องทำงานครบ 180 วัน
+- **เอกสาร**: ใบสำคัญการสมรส
+
+### 2. สวัสดิการคลอดบุตร
+- **วงเงิน**: ตามที่บริษัทกำหนด
+- **เงื่อนไข**: ต้องทำงานครบ 180 วัน
+- **เอกสาร**: ใบเกิดบุตร
+
+### 3. สวัสดิการงานศพ
+- **วงเงิน**: ตามที่บริษัทกำหนด
+- **เงื่อนไข**: ต้องทำงานครบ 180 วัน
+- **เอกสาร**: ใบมรณบัตร
+
+### 4. สวัสดิการออกกำลังกาย
+- **วงเงิน**: ตามที่บริษัทกำหนด
+- **เงื่อนไข**: ต้องทำงานครบ 180 วัน
+- **เอกสาร**: ใบเสร็จค่าสมาชิกฟิตเนส
+
+### 5. สวัสดิการรักษาพยาบาล
+- **วงเงิน**: ตามที่บริษัทกำหนด
+- **เงื่อนไข**: ต้องทำงานครบ 180 วัน
+- **เอกสาร**: ใบเสร็จค่ารักษา
+
+### 6. เบิกเงินทดลอง
+- **วงเงิน**: ไม่จำกัด
+- **เงื่อนไข**: ไม่มีข้อจำกัดอายุงาน
+- **เอกสาร**: ไม่จำเป็น (ระบุรายละเอียดในฟอร์ม)
+
+## ขั้นตอนการอนุมัติ
+
+### 1. พนักงานยื่นคำขอ
+- กรอกฟอร์มและแนบเอกสาร
+- ลงลายเซ็นดิจิทัล
+- ส่งคำขอเข้าสู่ระบบ
+
+### 2. ผู้จัดการอนุมัติ
+- ตรวจสอบความถูกต้อง
+- อนุมัติหรือปฏิเสธ
+- ลงลายเซ็นดิจิทัล
+
+### 3. HR อนุมัติขั้นสุดท้าย
+- ตรวจสอบความสมบูรณ์
+- อนุมัติขั้นสุดท้าย
+- ลงลายเซ็นดิจิทัล
+
+### 4. เสร็จสิ้นกระบวนการ
+- ระบบสร้าง PDF สมบูรณ์
+- ส่งการแจ้งเตือนให้ผู้เกี่ยวข้อง
+- พนักงานสามารถดาวน์โหลดเอกสารได้
+
+## การสร้าง PDF
+
+ระบบรองรับการสร้าง PDF หลายรูปแบบ:
+
+### 1. PDF สวัสดิการทั่วไป
+- ใช้ jsPDF สำหรับสร้าง PDF
+- รองรับภาษาอังกฤษและตัวเลข
+- มีลายเซ็นดิจิทัล
+
+### 2. PDF การฝึกอบรมภายใน
+- ใช้ HTML-to-PDF สำหรับรองรับภาษาไทย
+- ใช้ฟอนต์ Sarabun จาก Google Fonts
+- แสดงผลภาษาไทยได้สมบูรณ์
+
+### 3. PDF การฝึกอบรมภายนอก
+- รองรับข้อมูลหลักสูตรและผู้เข้าร่วม
+- คำนวณค่าใช้จ่ายอัตโนมัติ
+- มีตารางรายละเอียดครบถ้วน
+
+## การแก้ไขปัญหาที่พบบ่อย
+
+### 1. ปัญหาการเข้าสู่ระบบ
+- ตรวจสอบอีเมลและรหัสผ่าน
+- ลองรีเฟรชหน้าเว็บ
+- ติดต่อ HR หากยังไม่สามารถเข้าได้
+
+### 2. ปัญหาการอัปโหลดไฟล์
+- ตรวจสอบขนาดไฟล์ (ไม่เกิน 10MB)
+- รองรับไฟล์ประเภท: PDF, JPG, PNG
+- ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
+
+### 3. ปัญหาการแสดงผลภาษาไทย
+- ใช้เบราว์เซอร์ที่รองรับ UTF-8
+- ตรวจสอบการตั้งค่าภาษาในเบราว์เซอร์
+
+### 4. ปัญหาการสร้าง PDF
+- ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
+- ลองรีเฟรชหน้าเว็บ
+- ติดต่อ IT Support หากปัญหายังคงอยู่
+
+## การพัฒนาและปรับปรุง
+
+### Scripts ที่มีให้ใช้งาน
+
+```bash
+# เริ่มต้น development server
+npm run dev
+
+# Build สำหรับ production
+npm run build
+
+# Build สำหรับ development
+npm run build:dev
+
+# ตรวจสอบ code quality
+npm run lint
+
+# Preview build
+npm run preview
+```
+
+### การ Deploy
+
+1. **Netlify (แนะนำ)**
+   - เชื่อมต่อ GitHub repository
+   - ตั้งค่า build command: `npm run build`
+   - ตั้งค่า publish directory: `dist`
+
+2. **Manual Deploy**
+   ```bash
+   npm run build
+   # อัปโหลดโฟลเดอร์ dist ไปยัง web server
+   ```
+
+## การสนับสนุนและติดต่อ
+
+### ช่องทางการติดต่อ
+- **IT Support**: สำหรับปัญหาทางเทคนิค
+- **HR Department**: สำหรับปัญหาเกี่ยวกับสวัสดิการ
+- **System Admin**: สำหรับปัญหาการเข้าถึงระบบ
+
+### การรายงานปัญหา
+1. อธิบายปัญหาที่พบอย่างละเอียด
+2. แนบภาพหน้าจอ (ถ้ามี)
+3. ระบุเบราว์เซอร์และเวอร์ชันที่ใช้
+4. ระบุขั้นตอนที่ทำก่อนเกิดปัญหา
+
+## การอัปเดตและบำรุงรักษา
+
+### การอัปเดตระบบ
+- ระบบจะมีการอัปเดตเป็นระยะ
+- การแจ้งเตือนจะปรากฏในระบบ
+- ข้อมูลจะได้รับการสำรองอัตโนมัติ
+
+### การสำรองข้อมูล
+- ข้อมูลจะถูกสำรองทุกวันอัตโนมัติ
+- SuperAdmin สามารถสร้าง backup เพิ่มเติมได้
+- ข้อมูลสำรองจะเก็บไว้ 30 วัน
+
+## ความปลอดภัย
+
+### การรักษาความปลอดภัย
+- ข้อมูลเข้ารหัสด้วย SSL/TLS
+- การยืนยันตัวตนแบบหลายขั้นตอน
+- ระบบ Audit Log ติดตามการใช้งาน
+- การควบคุมสิทธิ์การเข้าถึงตามบทบาท
+
+### ข้อแนะนำด้านความปลอดภัย
+- ใช้รหัสผ่านที่แข็งแกร่ง
+- ไม่แชร์บัญชีผู้ใช้กับผู้อื่น
+- ออกจากระบบเมื่อใช้งานเสร็จ
+- รายงานกิจกรรมที่น่าสงสัย
+
+---
+
+## เวอร์ชันและการอัปเดต
+
+**เวอร์ชันปัจจุบัน**: 1.0.0
+
+### ประวัติการอัปเดต
+- **v1.0.0**: เปิดตัวระบบครั้งแรก
+- รองรับสวัสดิการครบทุกประเภท
+- ระบบอนุมัติแบบหลายขั้นตอน
+- การสร้าง PDF อัตโนมัติ
+- ระบบ SuperAdmin สมบูรณ์
+
+สำหรับข้อมูลเพิ่มเติมหรือการสนับสนุน กรุณาติดต่อทีม IT Support ของบริษัท

@@ -68,7 +68,11 @@ const createInternalTrainingFormHTML = (
   // Get user signature from trainingData or parameter
   const finalUserSignature = userSignature || trainingData.userSignature || trainingData.user_signature;
 
-
+  console.log('=== PDF Data Debug ===');
+  console.log('employeeName:', employeeName);
+  console.log('employeePosition:', employeePosition);
+  console.log('employeeTeam:', employeeTeam);
+  console.log('finalUserSignature length:', finalUserSignature?.length || 0);
 
   const startDate = formatThaiDate(trainingData.start_date || trainingData.startDate);
   const endDate = formatThaiDate(trainingData.end_date || trainingData.endDate);
@@ -78,6 +82,14 @@ const createInternalTrainingFormHTML = (
   const venue = trainingData.venue || 'สถานที่อบรม';
   const department = trainingData.department || trainingData.userDepartment || 'ฝ่ายทรัพยากรบุคคล';
   const branch = trainingData.branch || 'สำนักงานสุรวงศ์';
+
+  console.log('=== Formatted Data ===');
+  console.log('startDate:', startDate);
+  console.log('endDate:', endDate);
+  console.log('courseName:', courseName);
+  console.log('venue:', venue);
+  console.log('department:', department);
+  console.log('participants:', participants);
 
   return `
     <div style="
@@ -335,9 +347,20 @@ export const generateInternalTrainingPDF = async (
   hrSignature?: string,
   userSignature?: string
 ): Promise<Blob> => {
+  console.log('=== generateInternalTrainingPDF Debug ===');
+  console.log('trainingData:', trainingData);
+  console.log('userData:', userData);
+  console.log('employeeData:', employeeData);
+  console.log('managerSignature length:', managerSignature?.length || 0);
+  console.log('hrSignature length:', hrSignature?.length || 0);
+  console.log('userSignature length:', userSignature?.length || 0);
+
   // Create a temporary div to hold the HTML content
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = createInternalTrainingFormHTML(trainingData, userData, employeeData, managerSignature, hrSignature, userSignature);
+  const htmlContent = createInternalTrainingFormHTML(trainingData, userData, employeeData, managerSignature, hrSignature, userSignature);
+  console.log('Generated HTML content length:', htmlContent.length);
+
+  tempDiv.innerHTML = htmlContent;
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';
