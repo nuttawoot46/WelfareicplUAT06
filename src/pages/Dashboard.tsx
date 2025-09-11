@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { File, ClipboardCheck, ClipboardX, Clipboard } from 'lucide-react';
 import { AnimatedBorderShadow } from '@/components/effects/AnimatedBorderShadow';
+import N8nChatbot from '@/components/chatbot/N8nChatbot';
 
 const Dashboard = () => {
   const { user, profile} = useAuth();
@@ -64,6 +65,9 @@ const displayInitial = displayName.charAt(0).toUpperCase();
       
       {/* Benefit Limit Summary */}
       <BenefitLimitSummary />
+      
+      {/* N8n Chatbot */}
+      <N8nChatbot />
     </Layout>
   );
 };
