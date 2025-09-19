@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 import { ParticipantSelector } from './ParticipantSelector';
+import { AdvanceForm } from './AdvanceForm';
 
 interface WelfareFormProps {
   type: WelfareType;
@@ -81,23 +82,7 @@ interface FormValues {
   withholdingTaxAmount?: number;
   additionalNotes?: string;
 
-  // Advance (เบิกเงินทดลอง) fields
-  advanceDepartment?: string; // แผนก
-  advanceDistrict?: string; // เขต
-  advanceActivityType?: string; // ประเภทกิจกรรม
-  advanceActivityOther?: string; // ระบุอื่นๆ
-  advanceShopCompany?: string; // ชื่อร้าน/บริษัท
-  advanceAmphur?: string; // อำเภอ
-  advanceProvince?: string; // จังหวัด
-  advanceEventDate?: string; // วันที่จัด
-  advanceParticipants?: number; // จำนวนผู้เข้าร่วม
-  advanceDailyRate?: number;
-  advanceAccommodationCost?: number;
-  advanceTransportationCost?: number;
-  advanceMealAllowance?: number;
-  advanceOtherExpenses?: number;
-  advanceProjectName?: string;
-  advanceProjectLocation?: string;
+
 
   // Document selections for welfare types
   attachmentSelections?: {
@@ -148,14 +133,7 @@ const BRANCHES = [
   'โรงงานนครปฐม',
 ];
 
-// ประเภทกิจกรรมสำหรับเบิกเงินทดลอง
-const ACTIVITY_TYPES = [
-  'จัดประชุม',
-  'ออกบูธ',
-  'ดีเลอร์',
-  'ซับดีลเลอร์',
-  'อื่นๆ ระบุ'
-];
+
 
 // Helper to get form title by welfare type
 const getFormTitle = (type: WelfareType): string => {
@@ -169,15 +147,20 @@ const getFormTitle = (type: WelfareType): string => {
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
     internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
-    advance: 'แบบขออนุมัติเบิกเงินทดลอง',
+    advance: 'แบบขออนุมัติเบิกเงินล่วงหน้า',
   };
 
   return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
 };
 
 export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
+  // If type is 'advance', render the separate AdvanceForm component
+  if (type === 'advance') {
+    return <AdvanceForm onBack={onBack} editId={editId} />;
+  }
   // รองรับ editId จาก prop (modal edit) หรือจาก query string (หน้า /Forms)
   const location = useLocation();
+  const navigate = useNavigate();
   let editIdNum: number | undefined = undefined;
   if (typeof editId === 'number') {
     editIdNum = editId;
@@ -229,6 +212,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     control,
     name: "participants"
   });
+
+
 
   // Fetch employee data when component mounts
   useEffect(() => {
@@ -347,23 +332,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             otherExpensesTotal: dbData.other_expenses_total || 0,
             withholdingTax: dbData.withholding_tax || 0,
             vat: dbData.vat || 0,
-            // Advance fields
-            advanceDepartment: dbData.advance_department || '',
-            advanceDistrict: dbData.advance_district || '',
-            advanceActivityType: dbData.advance_activity_type || '',
-            advanceActivityOther: dbData.advance_activity_other || '',
-            advanceShopCompany: dbData.advance_shop_company || '',
-            advanceAmphur: dbData.advance_amphur || '',
-            advanceProvince: dbData.advance_province || '',
-            advanceEventDate: dbData.advance_event_date || '',
-            advanceParticipants: dbData.advance_participants || 0,
-            advanceDailyRate: dbData.advance_daily_rate || 0,
-            advanceAccommodationCost: dbData.advance_accommodation_cost || 0,
-            advanceTransportationCost: dbData.advance_transportation_cost || 0,
-            advanceMealAllowance: dbData.advance_meal_allowance || 0,
-            advanceOtherExpenses: dbData.advance_other_expenses || 0,
-            advanceProjectName: dbData.advance_project_name || '',
-            advanceProjectLocation: dbData.advance_project_location || '',
             // Document selections
             attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
           });
@@ -481,21 +449,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   }, [watch('startTime'), watch('endTime'), watch('startDate'), watch('endDate'), setValue, type]);
 
-  // Calculate advance total amount
-  useEffect(() => {
-    if (type === 'advance') {
-      // Calculate total amount
-      const dailyRate = Number(watch('advanceDailyRate')) || 0;
-      const accommodationCost = Number(watch('advanceAccommodationCost')) || 0;
-      const transportationCost = Number(watch('advanceTransportationCost')) || 0;
-      const mealAllowance = Number(watch('advanceMealAllowance')) || 0;
-      const otherExpenses = Number(watch('advanceOtherExpenses')) || 0;
-      const participants = Number(watch('advanceParticipants')) || 0;
 
-      const totalAmount = (dailyRate * participants) + accommodationCost + transportationCost + mealAllowance + otherExpenses;
-      setValue('amount', Math.round(totalAmount * 100) / 100);
-    }
-  }, [watch('advanceDailyRate'), watch('advanceAccommodationCost'), watch('advanceTransportationCost'), watch('advanceMealAllowance'), watch('advanceOtherExpenses'), watch('advanceParticipants'), setValue, type]);
 
   // Calculate internal training costs with separate tax calculations
   useEffect(() => {
@@ -898,23 +852,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           other_expenses_total: data.otherExpensesTotal,
           withholding_tax: data.withholdingTax,
           vat: data.vat,
-          // Advance fields
-          advance_department: data.advanceDepartment,
-          advance_district: data.advanceDistrict,
-          advance_activity_type: data.advanceActivityType,
-          advance_activity_other: data.advanceActivityOther,
-          advance_shop_company: data.advanceShopCompany,
-          advance_amphur: data.advanceAmphur,
-          advance_province: data.advanceProvince,
-          advance_event_date: data.advanceEventDate,
-          advance_participants: data.advanceParticipants,
-          advance_daily_rate: data.advanceDailyRate,
-          advance_accommodation_cost: data.advanceAccommodationCost,
-          advance_transportation_cost: data.advanceTransportationCost,
-          advance_meal_allowance: data.advanceMealAllowance,
-          advance_other_expenses: data.advanceOtherExpenses,
-          advance_project_name: data.advanceProjectName,
-          advance_project_location: data.advanceProjectLocation,
           // Document selections
           attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
         };
@@ -941,8 +878,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         return;
       }
 
-      // For wedding and advance types, show signature modal before submitting
-      if (['wedding', 'advance'].includes(type)) {
+      // For wedding type, show signature modal before submitting
+      if (type === 'wedding') {
         // Store form data temporarily
         setPendingFormData({ data, employeeData });
         setShowSignatureModal(true);
@@ -986,8 +923,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       }
     }
   };
-
-
 
   // Process form submission with PDF (for all types including training)
   const processFormSubmission = async (data: any, employeeData: any, signature?: string) => {
@@ -1167,23 +1102,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       userSignature: signature || userSignature, // เพิ่มลายเซ็น
       // Document selections
       attachmentSelections: data.attachmentSelections,
-      // Advance fields for requestData
-      advanceDepartment: data.advanceDepartment,
-      advanceDistrict: data.advanceDistrict,
-      advanceActivityType: data.advanceActivityType,
-      advanceActivityOther: data.advanceActivityOther,
-      advanceShopCompany: data.advanceShopCompany,
-      advanceAmphur: data.advanceAmphur,
-      advanceProvince: data.advanceProvince,
-      advanceEventDate: data.advanceEventDate,
-      advanceParticipants: data.advanceParticipants,
-      advanceDailyRate: data.advanceDailyRate,
-      advanceAccommodationCost: data.advanceAccommodationCost,
-      advanceTransportationCost: data.advanceTransportationCost,
-      advanceMealAllowance: data.advanceMealAllowance,
-      advanceOtherExpenses: data.advanceOtherExpenses,
-      advanceProjectName: data.advanceProjectName,
-      advanceProjectLocation: data.advanceProjectLocation,
     };
 
     const result = await submitRequest(requestData);
@@ -1218,21 +1136,6 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           finalEmployeeData,
           signature || userSignature,
           remainingBudget
-        );
-      } else if (type === 'advance') {
-        // Use Advance PDF Generator for advance type
-        blob = await generateAdvancePDF(
-          {
-            ...requestData,
-            id: result.id || Date.now(),
-            status: 'pending_manager' as const,
-            createdAt: requestData.createdAt,
-            updatedAt: requestData.updatedAt,
-            userSignature: signature || userSignature
-          },
-          user as any,
-          finalEmployeeData,
-          signature || userSignature
         );
       } else {
         // Use Welfare PDF Generator for other types
@@ -1424,17 +1327,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           </div>
         )}
 
-        {/* Special info for advance payment */}
-        {type === 'advance' && (
-          <div className="mb-6">
-            <Alert className="border-blue-200 bg-blue-50">
-              <AlertCircle className="h-4 w-4 mr-2 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                <strong>เบิกเงินทดลอง:</strong> สามารถขออนุมัติได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องวงเงินหรืองบประมาณ ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Training specific fields */}
@@ -2276,274 +2169,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
             </>
           )}
 
-          {/* Advance (เบิกเงินทดลอง) specific fields */}
-          {type === 'advance' && (
-            <>
-              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
 
-                {/* แผนกและเขต */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">แผนก</label>
-                    <Input
-                      placeholder="ระบุแผนก"
-                      className="form-input"
-                      {...register('advanceDepartment', {
-                        required: 'กรุณาระบุแผนก'
-                      })}
-                    />
-                    {errors.advanceDepartment && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">เขต</label>
-                    <Input
-                      placeholder="ระบุเขต"
-                      className="form-input"
-                      {...register('advanceDistrict', {
-                        required: 'กรุณาระบุเขต'
-                      })}
-                    />
-                    {errors.advanceDistrict && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDistrict.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* ประเภทกิจกรรม */}
-                <div className="space-y-2">
-                  <label className="form-label">ประเภทกิจกรรม</label>
-                  <Select
-                    onValueChange={(value) => setValue('advanceActivityType', value)}
-                    defaultValue={watch('advanceActivityType')}
-                  >
-                    <SelectTrigger className="form-input">
-                      <SelectValue placeholder="เลือกประเภทกิจกรรม" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ACTIVITY_TYPES.map((activity) => (
-                        <SelectItem key={activity} value={activity}>{activity}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.advanceActivityType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
-                  )}
-                </div>
-
-                {/* ฟิลด์ระบุอื่นๆ เมื่อเลือก "อื่นๆ ระบุ" */}
-                {watch('advanceActivityType') === 'อื่นๆ ระบุ' && (
-                  <div className="space-y-2">
-                    <label className="form-label">โปรดระบุ</label>
-                    <Input
-                      placeholder="ระบุประเภทกิจกรรมอื่นๆ"
-                      className="form-input"
-                      {...register('advanceActivityOther', {
-                        required: watch('advanceActivityType') === 'อื่นๆ ระบุ' ? 'กรุณาระบุประเภทกิจกรรม' : false
-                      })}
-                    />
-                    {errors.advanceActivityOther && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceActivityOther.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* ข้อมูลสถานที่ */}
-                <div className="space-y-2">
-                  <label className="form-label">ชื่อร้าน/บริษัท</label>
-                  <Input
-                    placeholder="ระบุชื่อร้านหรือบริษัท"
-                    className="form-input"
-                    {...register('advanceShopCompany', {
-                      required: 'กรุณาระบุชื่อร้าน/บริษัท'
-                    })}
-                  />
-                  {errors.advanceShopCompany && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceShopCompany.message}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">อำเภอ</label>
-                    <Input
-                      placeholder="ระบุอำเภอ"
-                      className="form-input"
-                      {...register('advanceAmphur', {
-                        required: 'กรุณาระบุอำเภอ'
-                      })}
-                    />
-                    {errors.advanceAmphur && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">จังหวัด</label>
-                    <Input
-                      placeholder="ระบุจังหวัด"
-                      className="form-input"
-                      {...register('advanceProvince', {
-                        required: 'กรุณาระบุจังหวัด'
-                      })}
-                    />
-                    {errors.advanceProvince && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ส่วนที่ 2: รายละเอียดงาน */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดงาน</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">วันที่จัด</label>
-                    <Input
-                      type="date"
-                      className="form-input"
-                      {...register('advanceEventDate', {
-                        required: 'กรุณาระบุวันที่จัด'
-                      })}
-                    />
-                    {errors.advanceEventDate && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceEventDate.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">จำนวนผู้เข้าร่วม</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      className="form-input"
-                      placeholder="0"
-                      {...register('advanceParticipants', {
-                        required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
-                        min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' },
-                        valueAsNumber: true
-                      })}
-                    />
-                    {errors.advanceParticipants && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ส่วนที่ 3: ค่าใช้จ่าย */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">อัตราค่าใช้จ่ายต่อคน (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceDailyRate', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceDailyRate && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceDailyRate.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าที่พัก (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceAccommodationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceAccommodationCost && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceAccommodationCost.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="form-label">ค่าเดินทาง (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceTransportationCost', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceTransportationCost && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceTransportationCost.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="form-label">เบี้ยเลี้ยง (บาท)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="form-input"
-                      placeholder="0.00"
-                      {...register('advanceMealAllowance', {
-                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                      })}
-                    />
-                    {errors.advanceMealAllowance && (
-                      <p className="text-red-500 text-sm mt-1">{errors.advanceMealAllowance.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="form-label">ค่าใช้จ่ายอื่นๆ (บาท)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
-                    placeholder="0.00"
-                    {...register('advanceOtherExpenses', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                    })}
-                  />
-                  {errors.advanceOtherExpenses && (
-                    <p className="text-red-500 text-sm mt-1">{errors.advanceOtherExpenses.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="form-label font-semibold">รวมจำนวนเงินที่ขอเบิกทดลอง (บาท)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-blue-50 font-bold text-lg"
-                    readOnly
-                    value={watch('amount') ? Number(watch('amount')).toFixed(2) : ''}
-                    {...register('amount')}
-                  />
-                </div>
-              </div>
-            </>
-          )}
 
           {/* Continue with existing fields for other welfare types */}
           {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (

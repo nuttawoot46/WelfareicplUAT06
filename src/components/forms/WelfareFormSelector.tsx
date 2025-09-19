@@ -97,14 +97,7 @@ const InternalTrainingIcon = () => (
   </svg>
 );
 
-const AdvanceIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M12 9v6"/>
-    <path d="M9 12h6"/>
-  </svg>
-);
+
 
 export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [selected, setSelected] = useState<WelfareType | null>(null);
@@ -146,8 +139,8 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   // ฟังก์ชันตรวจสอบว่าประเภทสวัสดิการสามารถเลือกได้หรือไม่
   const isWelfareTypeAvailable = (type: WelfareType): { available: boolean; reason?: string } => {
-    // Training, Internal Training และ Advance สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
-    if (type === 'training' || type === 'internal_training' || type === 'advance') {
+    // Training และ Internal Training สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
+    if (type === 'training' || type === 'internal_training') {
       return { available: true };
     }
     
@@ -190,32 +183,11 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   const welfareOptions: WelfareOption[] = [
     {
-      id: 'wedding',
-      title: 'สวัสดิการงานสมรส',
-      description: `คงเหลือ: ${getRemainingAmount('wedding').toLocaleString()} บาท`,
-      icon: <WeddingIcon />,
-      color: 'text-welfare-blue',
-    },
-    {
       id: 'training',
       title: 'ค่าอบรม',
       description: `คงเหลือ: ${getRemainingAmount('training').toLocaleString()} บาท`,
       icon: <TrainingIcon />,
       color: 'text-welfare-teal',
-    },
-    {
-      id: 'childbirth',
-      title: 'ค่าคลอดบุตร',
-      description: `คงเหลือ: ${getRemainingAmount('childbirth').toLocaleString()} บาท`,
-      icon: <ChildbirthIcon />,
-      color: 'text-welfare-pink',
-    },
-    {
-      id: 'funeral',
-      title: 'ค่าช่วยเหลืองานศพ',
-      description: `คงเหลือ: ${getRemainingAmount('funeral').toLocaleString()} บาท`,
-      icon: <FuneralIcon />,
-      color: 'text-welfare-purple',
     },
     {
       id: 'glasses',
@@ -246,18 +218,34 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       color: 'text-welfare-red',
     },
     {
+      id: 'wedding',
+      title: 'สวัสดิการงานสมรส',
+      description: `คงเหลือ: ${getRemainingAmount('wedding').toLocaleString()} บาท`,
+      icon: <WeddingIcon />,
+      color: 'text-welfare-blue',
+    },
+    
+    {
+      id: 'childbirth',
+      title: 'ค่าคลอดบุตร',
+      description: `คงเหลือ: ${getRemainingAmount('childbirth').toLocaleString()} บาท`,
+      icon: <ChildbirthIcon />,
+      color: 'text-welfare-pink',
+    },
+    {
+      id: 'funeral',
+      title: 'ค่าช่วยเหลืองานศพ',
+      description: `คงเหลือ: ${getRemainingAmount('funeral').toLocaleString()} บาท`,
+      icon: <FuneralIcon />,
+      color: 'text-welfare-purple',
+    },
+
+    {
       id: 'internal_training',
       title: 'อบรมภายใน',
       description: 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร',
       icon: <InternalTrainingIcon />,
       color: 'text-welfare-indigo',
-    },
-    {
-      id: 'advance',
-      title: 'เบิกเงินทดลอง',
-      description: 'สำหรับการขออนุมัติเบิกเงินทดลองสำหรับภารกิจต่างๆ',
-      icon: <AdvanceIcon />,
-      color: 'text-welfare-cyan',
     },
   ];
 
@@ -322,8 +310,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                   option.id === 'dental' ? 'orange' :
                   option.id === 'fitness' ? 'green' :
                   option.id === 'medical' ? 'red' :
-                  option.id === 'internal_training' ? 'indigo' : 
-                  option.id === 'advance' ? 'cyan' : 'blue'}`
+                  option.id === 'internal_training' ? 'indigo' : 'blue'}`
               )}
               onClick={() => !isDisabled && handleSelect(option.id)}
             >

@@ -6,14 +6,17 @@ import { useWelfareRequests } from '@/hooks/useWelfareRequests';
 export function WelfareStatusCards() {
   const { requests } = useWelfareRequests();
 
+  // Filter out accounting-related requests (advance type) - only show welfare requests
+  const welfareRequests = requests.filter(r => r.request_type !== 'advance');
+
   // Count requests by status (new detailed statuses)
-  const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
-  const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
-  const pendingHRCount = requests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
-  const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
-  const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
-  const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
-  const rejectedHRCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
+  const pendingManagerCount = welfareRequests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
+  const pendingAccountingCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
+  const pendingHRCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
+  const completedCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'completed').length;
+  const rejectedManagerCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
+  const rejectedAccountingCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
+  const rejectedHRCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">

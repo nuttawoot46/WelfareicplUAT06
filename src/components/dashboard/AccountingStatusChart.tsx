@@ -9,10 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/context/AuthContext';
 import { WelfareEditModal } from '@/components/forms/WelfareEditModal';
 
-
-
-// Interface for welfare requests from database
-interface WelfareRequestItem {
+// Interface for accounting requests from database
+interface AccountingRequestItem {
   id: number;
   employee_id: number;
   employee_name: string;
@@ -21,7 +19,6 @@ interface WelfareRequestItem {
   amount: number;
   created_at: string;
   details?: string;
-
   manager_notes?: string;
   attachment_url?: string;
   attachments?: string[];
@@ -93,31 +90,17 @@ const getStatusClass = (status: string) => {
 const getRequestTypeText = (requestType: string) => {
   if (!requestType) return 'ไม่ระบุ';
   switch (requestType.toLowerCase()) {
-    case 'wedding':
-      return 'ค่าแต่งงาน';
-    case 'training':
-      return 'ค่าอบรม';
-    case 'childbirth':
-      return 'ค่าคลอดบุตร';
-    case 'funeral':
-      return 'ค่าช่วยเหลืองานศพ';
-    case 'glasses':
-      return 'ค่าตัดแว่น';
-    case 'dental':
-      return 'ค่าทำฟัน';
-    case 'fitness':
-      return 'ค่าออกกำลังกาย';
-    case 'medical':
-      return 'ค่าของเยี่ยมกรณีเจ็บป่วย';
-    case 'internal_training':
-      return 'ค่าอบรมภายใน';
+    case 'advance':
+      return 'เบิกเงินล่วงหน้า';
+    case 'expense-clearing':
+      return 'เคลียร์ค่าใช้จ่าย';
     default:
       return requestType;
   }
 };
 
 // ฟังก์ชัน export CSV ที่รองรับภาษาไทย (UTF-8 BOM)
-const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv") => {
+const exportToCSV = (data: AccountingRequestItem[], filename = "accounting_report.csv") => {
   if (!data || data.length === 0) return;
 
   // สร้าง header
@@ -159,10 +142,9 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
   URL.revokeObjectURL(url);
 };
 
-const WelfareStatusChart: React.FC = React.memo(() => {
-  // state เดิมที่มีอยู่แล้ว
+const AccountingStatusChart: React.FC = React.memo(() => {
   const { profile } = useAuth();
-  const [requests, setRequests] = useState<WelfareRequestItem[]>([]);
+  const [requests, setRequests] = useState<AccountingRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -172,8 +154,9 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
   // Double click handler for editing - เฉพาะสถานะ pending_manager เท่านั้น
-  const handleDoubleClick = (request: WelfareRequestItem) => {
+  const handleDoubleClick = (request: AccountingRequestItem) => {
     if (request.status === 'pending_manager') {
       setEditId(request.id);
       setEditType(request.request_type);
@@ -182,7 +165,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   };
 
   // Single click handler for edit button
-  const handleEdit = (request: WelfareRequestItem) => {
+  const handleEdit = (request: AccountingRequestItem) => {
     setEditId(request.id);
     setEditType(request.request_type);
     setEditModalOpen(true);
@@ -203,16 +186,17 @@ const WelfareStatusChart: React.FC = React.memo(() => {
       }
       setError(null);
 
+      // Filter only accounting-related requests (advance and expense-clearing types)
       const { data, error: fetchError } = await supabase
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .neq('request_type', 'advance') // Exclude accounting requests
+        .in('request_type', ['advance', 'expense-clearing']) // Only accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {
         console.error('Database error:', fetchError);
-        throw new Error(`ไม่สามารถโหลดข้อมูลการเบิกสวัสดิการได้: ${fetchError.message}`);
+        throw new Error(`ไม่สามารถโหลดข้อมูลการเบิกบัญชีได้: ${fetchError.message}`);
       }
 
       if (!data) {
@@ -221,7 +205,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
       }
 
       // Map attachment_url to attachments array with better error handling
-      const mapped = data.map((req: WelfareRequestItem) => {
+      const mapped = data.map((req: AccountingRequestItem) => {
         let attachments: string[] = [];
 
         try {
@@ -365,18 +349,15 @@ const WelfareStatusChart: React.FC = React.memo(() => {
     return result;
   }, [requests, selectedStatus, selectedYear, selectedMonth]);
 
-
-
-
   return (
     <>
       <Card className="w-full">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกสวัสดิการ</CardTitle>
+              <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกบัญชี</CardTitle>
               <CardDescription className="mt-1">
-                ข้อมูลการเบิกสวัสดิการของคุณ • เอกสารสีเขียวคือ PDF ที่ HR อนุมัติแล้ว สามารถดาวน์โหลดเพื่อปริ้นได้
+                ข้อมูลการเบิกเงินล่วงหน้าของคุณ • เอกสารสีเขียวคือ PDF ที่ HR อนุมัติแล้ว สามารถดาวน์โหลดเพื่อปริ้นได้
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -476,12 +457,12 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               <div className="text-lg font-medium mb-2">
                 {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
                   ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา'
-                  : 'ไม่พบข้อมูลการยื่นเบิกสวัสดิการ'}
+                  : 'ไม่พบข้อมูลการยื่นเบิกบัญชี'}
               </div>
               <p className="text-sm">
                 {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
                   ? 'ลองเปลี่ยนตัวกรองหรือเพิ่มข้อมูลใหม่'
-                  : 'เริ่มต้นโดยการยื่นคำร้องขอสวัสดิการใหม่'}
+                  : 'เริ่มต้นโดยการยื่นคำร้องขอเบิกเงินล่วงหน้าใหม่'}
               </p>
             </div>
           ) : (
@@ -572,7 +553,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                                         // เป็น URL - ดาวน์โหลดโดยตรง
                                         const link = document.createElement('a');
                                         link.href = request.pdf_request_hr;
-                                        link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                        link.download = `accounting_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
                                         link.target = '_blank';
                                         document.body.appendChild(link);
                                         link.click();
@@ -595,7 +576,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                                             const url = URL.createObjectURL(blob);
                                             const link = document.createElement('a');
                                             link.href = url;
-                                            link.download = `welfare_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
+                                            link.download = `accounting_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
                                             document.body.appendChild(link);
                                             link.click();
                                             document.body.removeChild(link);
@@ -663,7 +644,6 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         </CardContent>
       </Card>
 
-
       {/* Popup Edit Modal */}
       <WelfareEditModal
         open={editModalOpen}
@@ -687,6 +667,6 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   );
 });
 
-WelfareStatusChart.displayName = 'WelfareStatusChart';
+AccountingStatusChart.displayName = 'AccountingStatusChart';
 
-export default WelfareStatusChart;
+export default AccountingStatusChart;

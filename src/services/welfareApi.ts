@@ -217,3 +217,50 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
     ];
   }
 };
+
+
+// Get employee data for PDF generation and other purposes
+export const getEmployeeData = async (userId: string): Promise<{ Name: string; Position: string; Team: string; start_date?: string } | undefined> => {
+  try {
+    // First try to get by numeric ID
+    const numericId = parseInt(userId, 10);
+    if (!isNaN(numericId)) {
+      const { data: employeeById, error: errorById } = await supabase
+        .from('Employee')
+        .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
+        .eq('id', numericId)
+        .single();
+
+      if (!errorById && employeeById) {
+        return {
+          Name: employeeById.Name,
+          Position: employeeById.Position,
+          Team: employeeById.Team,
+          start_date: employeeById.start_date
+        };
+      }
+    }
+
+    // If not found by ID, try by email
+    const { data, error } = await supabase
+      .from('Employee')
+      .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
+      .eq('"email_user"', userId)
+      .single();
+
+    if (error || !data) {
+      console.error('Error fetching employee data:', error);
+      return undefined;
+    }
+
+    return {
+      Name: data.Name,
+      Position: data.Position,
+      Team: data.Team,
+      start_date: data.start_date
+    };
+  } catch (error) {
+    console.error('Error fetching employee data:', error);
+    return undefined;
+  }
+};

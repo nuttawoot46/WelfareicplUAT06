@@ -140,6 +140,30 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               company_payment: row.company_payment,
               employee_payment: row.employee_payment,
               is_vat_included: row.is_vat_included,
+              // Advance payment specific fields
+              advanceDepartment: row.advance_department,
+              advanceDistrict: row.advance_district,
+              advanceActivityType: row.advance_activity_type,
+              advanceActivityOther: row.advance_activity_other,
+              advanceShopCompany: row.advance_shop_company,
+              advanceAmphur: row.advance_amphur,
+              advanceProvince: row.advance_province,
+              advanceEventDate: row.advance_event_date,
+              advanceParticipants: row.advance_participants,
+              advanceDailyRate: row.advance_daily_rate,
+              advanceAccommodationCost: row.advance_accommodation_cost,
+              advanceTransportationCost: row.advance_transportation_cost,
+              advanceMealAllowance: row.advance_meal_allowance,
+              advanceOtherExpenses: row.advance_other_expenses,
+              advanceProjectName: row.advance_project_name,
+              advanceProjectLocation: row.advance_project_location,
+              advanceLocation: row.advance_location,
+              advanceDealerName: row.advance_dealer_name,
+              advanceSubdealerName: row.advance_subdealer_name,
+              advanceExpenseItems: row.advance_expense_items,
+              // Expense clearing specific fields
+              originalAdvanceRequestId: row.original_advance_request_id,
+              expenseClearingItems: row.expense_clearing_items,
             };
           })
         );
@@ -276,6 +300,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const submitRequest = async (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     setIsLoading(true);
     try {
+      console.log('📥 WelfareContext - Received requestData:', requestData);
+      console.log('📥 WelfareContext - Amount received:', requestData.amount, typeof requestData.amount);
       let managerId: number | null = null;
       if (user?.id) {
         try {
@@ -319,8 +345,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
           : JSON.stringify({}),
         title: requestData.title,
         manager_id: managerId,
-        start_date: requestData.start_date,
-        end_date: requestData.end_date,
+        start_date: requestData.start_date || null,
+        end_date: requestData.end_date || null,
         total_days: requestData.total_days,
         birth_type: requestData.birth_type,
         training_topics: requestData.training_topics,
@@ -336,13 +362,59 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         is_vat_included: requestData.is_vat_included,
         department_request: requestData.department_request,
         user_signature: requestData.userSignature, // บันทึกลายเซ็น
+        
+        // Advance payment specific fields
+        advance_department: (requestData as any).advanceDepartment,
+        advance_district: (requestData as any).advanceDistrict,
+        advance_activity_type: (requestData as any).advanceActivityType,
+        advance_activity_other: (requestData as any).advanceActivityOther,
+        advance_shop_company: (requestData as any).advanceShopCompany,
+        advance_amphur: (requestData as any).advanceAmphur,
+        advance_province: (requestData as any).advanceProvince,
+        advance_event_date: (requestData as any).advanceEventDate || null,
+        advance_participants: (requestData as any).advanceParticipants,
+        advance_daily_rate: (requestData as any).advanceDailyRate,
+        advance_accommodation_cost: (requestData as any).advanceAccommodationCost,
+        advance_transportation_cost: (requestData as any).advanceTransportationCost,
+        advance_meal_allowance: (requestData as any).advanceMealAllowance,
+        advance_other_expenses: (requestData as any).advanceOtherExpenses,
+        advance_project_name: (requestData as any).advanceProjectName,
+        advance_project_location: (requestData as any).advanceProjectLocation,
+        advance_expense_items: (requestData as any).advanceExpenseItems 
+          ? JSON.stringify((requestData as any).advanceExpenseItems) 
+          : null,
+        advance_location: (requestData as any).advanceLocation,
+        total_participants: (requestData as any).advanceParticipants,
+        advance_dealer_name: (requestData as any).advanceDealerName,
+        advance_subdealer_name: (requestData as any).advanceSubdealerName,
+        
+        // Expense clearing specific fields
+        original_advance_request_id: (requestData as any).originalAdvanceRequestId,
+        expense_clearing_items: (() => {
+          const items = (requestData as any).expenseClearingItems;
+          if (!items) return null;
+          
+          // Ensure it's an array before stringifying
+          const itemsArray = Array.isArray(items) ? items : [items];
+          console.log('🔍 Expense clearing items to save:', itemsArray);
+          return JSON.stringify(itemsArray);
+        })(),
       };
       // requestDataObj ไม่มี id อยู่แล้ว
 
+      console.log('🔍 WelfareContext - Inserting data to Supabase:', requestDataObj);
+      
       const { data, error } = await supabase
         .from('welfare_requests')
         .insert(requestDataObj)
         .select();
+        
+      if (error) {
+        console.error('❌ Supabase insert error:', error);
+        console.error('❌ Error details:', error.details);
+        console.error('❌ Error hint:', error.hint);
+        console.error('❌ Error message:', error.message);
+      }
 
       if (error) {
         throw new Error(error.message);

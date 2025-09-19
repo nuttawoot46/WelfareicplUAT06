@@ -70,8 +70,10 @@ export const getWelfareTypeLabel = (type: string): string => {
     'dental': 'ค่าทำฟัน',
     'fitness': 'ค่าออกกำลังกาย',
     'medical': 'ของเยี่ยมกรณีเจ็บป่วย',
-    'internal_training': 'อบรมภายใน'
+    'internal_training': 'อบรมภายใน',
+    'advance': 'เบิกเงินล่วงหน้า',
+    'expense-clearing': 'เคลียร์ค่าใช้จ่าย'
   };
-  
+
   return welfareTypeLabels[type] || type;
 };

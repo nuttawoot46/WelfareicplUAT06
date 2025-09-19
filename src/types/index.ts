@@ -53,7 +53,8 @@ export type WelfareType =
   | 'fitness'
   | 'medical'
   | 'internal_training'
-  | 'advance';
+  | 'advance'
+  | 'expense-clearing';
 
 export interface WelfareRequest {
   id: number;
@@ -155,6 +156,16 @@ export interface WelfareRequest {
   advanceExpectedReturnDate?: string;
   advanceUrgencyLevel?: string;
   advanceApprovalDeadline?: string;
+  advanceSubdealerName?: string;
+  advanceDealerName?: string;
+  advanceLocation?: string;
+  advanceParticipants?: number;
+  advanceEventDate?: string;
+  advanceExpenseItems?: any[] | string;
+
+  // Expense clearing specific fields
+  originalAdvanceRequestId?: number;
+  expenseClearingItems?: any[] | string;
 
   // Attachment selections for PDF checkmarks
   attachmentSelections?: {

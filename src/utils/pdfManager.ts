@@ -14,6 +14,14 @@ import {
   createInitialWelfarePDF,
   addSignatureToWelfarePDF
 } from './welfarePdfManager';
+import {
+  createInitialAdvancePDF,
+  addSignatureToAdvancePDF
+} from './advancePdfManager';
+import {
+  createInitialExpenseClearingPDF,
+  addSignatureToExpenseClearingPDF
+} from './expenseClearingPdfManager';
 
 /**
  * Create initial PDF when request is submitted
@@ -32,6 +40,10 @@ export const createInitialPDF = async (
       return await createInitialInternalTrainingPDF(request, user, employeeData);
     } else if (request.type === 'training') {
       return await createInitialExternalTrainingPDF(request, user, employeeData);
+    } else if (request.type === 'advance') {
+      return await createInitialAdvancePDF(request, user, employeeData);
+    } else if (request.type === 'expense-clearing') {
+      return await createInitialExpenseClearingPDF(request, user, employeeData);
     } else {
       // General welfare requests (fitness, medical, etc.)
       return await createInitialWelfarePDF(request, user, employeeData);
@@ -74,6 +86,10 @@ export const addSignatureToPDF = async (
       return await addSignatureToInternalTrainingPDF(requestId, signatureType, signature, approverName);
     } else if (requestData.request_type === 'training') {
       return await addSignatureToExternalTrainingPDF(requestId, signatureType, signature, approverName);
+    } else if (requestData.request_type === 'advance') {
+      return await addSignatureToAdvancePDF(requestId, signatureType as 'manager' | 'hr' | 'accounting', signature, approverName);
+    } else if (requestData.request_type === 'expense-clearing') {
+      return await addSignatureToExpenseClearingPDF(requestId, signatureType as 'manager' | 'hr' | 'accounting', signature, approverName);
     } else {
       // General welfare requests (fitness, medical, etc.)
       return await addSignatureToWelfarePDF(requestId, signatureType, signature, approverName);

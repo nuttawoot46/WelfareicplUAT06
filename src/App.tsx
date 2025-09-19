@@ -13,8 +13,12 @@ import { Toaster as HotToast } from 'react-hot-toast';
 // Import Pages
 import IndexPage from "./pages/Index"; // หน้า Login ของคุณ
 import DashboardPage from "./pages/Dashboard";
+import WelfareDashboard from "./pages/WelfareDashboard";
+import AccountingDashboard from "./pages/AccountingDashboard";
 import NotFoundPage from "./pages/NotFound";
 import Forms from "./pages/Forms";
+import { WelfareFormsPage } from "./pages/WelfareFormsPage";
+import { AccountingFormsPage } from "./pages/AccountingFormsPage";
 import Admin from "./pages/Admin";  
 import SuperAdmin from "./pages/SuperAdmin";
 import Notifications from "./pages/Notifications";
@@ -97,9 +101,33 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/welfare-dashboard" element={
+                    <ProtectedRoute>
+                      <WelfareDashboard />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounting-dashboard" element={
+                    <ProtectedRoute>
+                      <AccountingDashboard />
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/forms" element={
                     <ProtectedRoute>
                       <Forms />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/welfare-forms" element={
+                    <ProtectedRoute>
+                      <WelfareFormsPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounting-forms" element={
+                    <ProtectedRoute>
+                      <AccountingFormsPage />
                     </ProtectedRoute>
                   } />
                   

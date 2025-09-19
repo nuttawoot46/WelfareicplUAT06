@@ -128,7 +128,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl font-bold text-welfare-blue">
           <span>สรุปวงเงินสวัสดิการ</span>
-          <span className="text-base font-normal text-gray-400">(Top {limit})</span>
+          
         </CardTitle>
 
       </CardHeader>

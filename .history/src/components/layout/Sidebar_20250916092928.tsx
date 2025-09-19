@@ -8,7 +8,6 @@ import {
   Settings,
   CheckSquare,
   Bell,
-  HomeIcon,
   Menu,
   X,
   Users,
@@ -123,58 +122,19 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {/* Dashboard Menu with Dropdown */}
-          <div className="relative">
-            <div
-              className={cn(
-                "nav-link group cursor-pointer",
-                isSubmenuActive(['/dashboard', '/welfare-dashboard', '/accounting-dashboard']) ? "nav-link-active" : "text-white/90 hover:text-white"
-              )}
-              onClick={() => isOpen && toggleSubmenu('dashboard')}
-              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, dashboard: true }))}
-              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, dashboard: false }))}
-            >
-              <ChartBar className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <>
-                  <span className="transition-all duration-300 text-white font-medium">แดชบอร์ด</span>
-                  <ChevronDown className={cn(
-                    "h-4 w-4 ml-auto transition-transform duration-200",
-                    openSubmenus.dashboard && "rotate-180"
-                  )} />
-                </>
-              )}
-            </div>
-
-            {/* Dashboard Submenu */}
-            {(openSubmenus.dashboard || !isOpen) && (
-              <div className={cn(
-                isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-              )}>
-                <Link to="/dashboard" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <ChartBar className="h-4 w-4" />
-                  <span>หน้าหลัก</span>
-                </Link>
-                <Link to="/welfare-dashboard" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <BarChart3 className="h-4 w-4" />
-                  <span>แดชบอร์ดสวัสดิการ</span>
-                </Link>
-                <Link to="/accounting-dashboard" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <FileText className="h-4 w-4" />
-                  <span>แดชบอร์ดบัญชี</span>
-                </Link>
-              </div>
+          {/* Dashboard */}
+          <Link
+            to="/dashboard"
+            className={cn(
+              "nav-link group",
+              isActive('/dashboard') ? "nav-link-active" : "text-white/90 hover:text-white"
             )}
-          </div>
+          >
+            <ChartBar className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="transition-all duration-300 text-white font-medium">แดชบอร์ด</span>
+            )}
+          </Link>
 
           {/* Accounting Review Menu (for accounting role only) */}
           {(userRole === 'accounting' || userRole === 'accountingandmanager') && (
@@ -203,7 +163,7 @@ export function Sidebar() {
               <File className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
                 <>
-                  <span className="transition-all duration-300 text-white font-medium">แบบฟอร์ม</span>
+                  <span className="transition-all duration-300 text-white font-medium">แบบฟอร์มขอสวัสดิการและอบรม</span>
                   <ChevronDown className={cn(
                     "h-4 w-4 ml-auto transition-transform duration-200",
                     openSubmenus.forms && "rotate-180"

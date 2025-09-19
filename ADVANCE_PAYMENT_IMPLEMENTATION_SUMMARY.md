@@ -1,129 +1,162 @@
-# สรุปการเพิ่มระบบเบิกเงินทดลอง (Advance Payment)
+# สรุปการพัฒนาระบบเบิกเงินล่วงหน้า (Advance Payment System)
 
-## สิ่งที่ได้ทำเสร็จแล้ว
+## ภาพรวมการพัฒนา
+ได้พัฒนาระบบเบิกเงินล่วงหน้าที่สมบูรณ์ตามรูปแบบ PDF ที่ให้มา โดยมี Flow การอนุมัติเป็น: **User > Manager > Accounting** (ไม่ผ่าน HR ตามที่ร้องขอ)
 
-### 1. การอัปเดตฐานข้อมูล (add_advance_columns.sql)
-- เพิ่ม type ใหม่ 'advance' ใน constraint check
-- เพิ่มคอลัมน์ใหม่สำหรับข้อมูลเบิกเงินทดลอง:
-  - `advance_department`: แผนก
-  - `advance_district`: เขต
-  - `advance_activity_type`: ประเภทกิจกรรม
-  - `advance_activity_other`: ระบุอื่นๆ
-  - `advance_shop_company`: ชื่อร้าน/บริษัท
-  - `advance_amphur`: อำเภอ
-  - `advance_province`: จังหวัด
-  - `advance_travel_days`: จำนวนวันเดินทาง
-  - `advance_work_days`: จำนวนวันปฏิบัติงาน
-  - `advance_total_days`: รวมจำนวนวัน
-  - `advance_daily_rate`: อัตราค่าใช้จ่ายรายวัน
-  - `advance_accommodation_cost`: ค่าที่พัก
-  - `advance_transportation_cost`: ค่าเดินทาง
-  - `advance_meal_allowance`: เบี้ยเลี้ยง
-  - `advance_other_expenses`: ค่าใช้จ่ายอื่นๆ
-  - `advance_project_name`: ชื่อโครงการ
-  - `advance_project_location`: สถานที่โครงการ
-  - `advance_expected_return_date`: วันที่คาดว่าจะกลับ
-  - `advance_urgency_level`: ระดับความเร่งด่วน
-  - `advance_approval_deadline`: วันที่ต้องการอนุมัติ
+## ไฟล์ที่สร้างใหม่
 
-### 2. การอัปเดต Type Definitions (src/types/index.ts)
-- เพิ่ม 'advance' ใน WelfareType union
-- เพิ่มฟิลด์ advance ทั้งหมดใน WelfareRequest interface
+### 1. PDF Generator
+- **`src/components/pdf/AdvancePDFGenerator.tsx`**
+  - สร้าง PDF ตามรูปแบบที่ให้มาเป๊ะๆ
+  - รองรับการแสดงข้อมูลทั้งหมดตาม PDF ต้นฉบับ
+  - มีตารางรายละเอียดค่าใช้จ่ายครบถ้วน
+  - รองรับลายเซ็นดิจิทัล
 
-### 3. การอัปเดต WelfareForm Component (src/components/forms/WelfareForm.tsx)
-- เพิ่มฟิลด์ advance ใน FormValues interface
-- เพิ่ม form title สำหรับ advance
-- เพิ่ม JSX form fields สำหรับ advance แบ่งเป็น 3 ส่วน:
-  1. ข้อมูลทั่วไป
-  2. ระยะเวลา
-  3. รายละเอียดค่าใช้จ่าย
-- เพิ่ม useEffect สำหรับคำนวณจำนวนวันและยอดเงินรวมอัตโนมัติ
-- เพิ่มการจัดการข้อมูล advance ในส่วน edit และ submit
+### 2. PDF Manager
+- **`src/utils/advancePdfManager.ts`**
+  - จัดการการสร้างและอัปโหลด PDF
+  - รองรับการอัปเดต PDF เมื่อมีลายเซ็นใหม่
+  - ฟังก์ชันดาวน์โหลด PDF
 
-### 4. การอัปเดต WelfareFormSelector (src/components/forms/WelfareFormSelector.tsx)
-- เพิ่ม AdvanceIcon component
-- เพิ่มตัวเลือก advance ใน welfareOptions array
-- เพิ่มการจัดการสีและสไตล์สำหรับ advance
-- **อัปเดตการตรวจสอบสิทธิ์**: เบิกเงินทดลองสามารถเลือกได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องอายุงานหรืองบประมาณ
+### 3. หน้าเบิกเงินล่วงหน้า
+- **`src/pages/AdvancePaymentPage.tsx`**
+  - ฟอร์มครบถ้วนตามข้อมูลใน PDF
+  - รองรับการคำนวณค่าใช้จ่ายอัตโนมัติ
+  - ระบบลายเซ็นดิจิทัล
+  - การตรวจสอบข้อมูลก่อนส่ง
 
-### 5. การสร้าง PDF Generator ใหม่ (src/components/pdf/AdvancePDFGenerator.tsx)
-- สร้าง generateAdvancePDF function
-- รองรับการแสดงข้อมูลเบิกเงินทดลองในรูปแบบ PDF
-- มีตาราง breakdown ค่าใช้จ่าย
-- รองรับลายเซ็นดิจิทัล
-- มีส่วนสำหรับการอนุมัติของผู้จัดการและ HR
+### 4. Database Migration
+- **`supabase/migrations/20241223000000_add_advance_payment_fields.sql`**
+  - เพิ่มฟิลด์สำหรับเบิกเงินล่วงหน้า
+  - เพิ่มฟิลด์สำหรับการอนุมัติของ Accounting
+  - อัปเดต enum สำหรับสถานะใหม่
 
-## ฟิลด์หลักที่ใช้ในฟอร์ม
+## ไฟล์ที่อัปเดต
 
-### ข้อมูลทั่วไป
-- แผนก (required) - ไว้ด้านบนสุด
-- เขต (required) - ไว้ด้านบนสุด
-- ประเภทกิจกรรม (dropdown): จัดประชุม, ออกบูธ, ดีเลอร์, ซับดีลเลอร์, อื่นๆ ระบุ
-- โปรดระบุ (แสดงเมื่อเลือก "อื่นๆ ระบุ")
-- ชื่อร้าน/บริษัท (required)
-- อำเภอ (required)
-- จังหวัด (required)
+### 1. Navigation & Routing
+- **`src/components/layout/Sidebar.tsx`** - เพิ่มลิงก์เบิกเงินล่วงหน้า
+- **`src/App.tsx`** - เพิ่ม route สำหรับหน้าเบิกเงินล่วงหน้า
 
-### ระยะเวลา
-- วันที่เริ่มต้น (required)
-- วันที่สิ้นสุด (required)
-- จำนวนวันเดินทาง
-- จำนวนวันปฏิบัติงาน
-- รวมจำนวนวัน (คำนวณอัตโนมัติ)
-- วันที่คาดว่าจะกลับ
-- วันที่ต้องการอนุมัติ (required)
+### 2. Form Components
+- **`src/components/forms/WelfareFormSelector.tsx`** - เพิ่มตัวเลือกเบิกเงินล่วงหน้า
+- **`src/components/forms/WelfareForm.tsx`** - เปลี่ยนเส้นทางไปหน้าเฉพาะ
 
-### รายละเอียดค่าใช้จ่าย
-- อัตราค่าใช้จ่ายรายวัน
-- ค่าที่พัก
-- ค่าเดินทาง
-- เบี้ยเลี้ยง
-- ค่าใช้จ่ายอื่นๆ
-- รวมจำนวนเงินที่ขอเบิกทดลอง (คำนวณอัตโนมัติ)
+### 3. API Services
+- **`src/services/welfareApi.ts`** - เพิ่มฟังก์ชันสำหรับ advance payment
 
-## การคำนวณอัตโนมัติ
+## คุณสมบัติหลัก
 
-### จำนวนวันรวม
-```javascript
-const totalDays = travelDays + workDays;
+### 1. ฟอร์มเบิกเงินล่วงหน้า
+- **ข้อมูลพื้นฐาน**: แผนก, เขต, ประเภทกิจกรรม
+- **รายละเอียดกิจกรรม**: กิจกรรม, วันที่, สถานที่, จำนวนผู้เข้าร่วม
+- **ค่าใช้จ่าย**: อัตราต่อวัน, จำนวนวัน, ค่าที่พัก, ค่าเดินทาง, ค่าอาหาร, ค่าใช้จ่ายอื่นๆ
+- **การคำนวณอัตโนมัติ**: รวมจำนวนเงินทั้งหมด
+
+### 2. PDF Generator
+- **รูปแบบเป๊ะๆ**: ตามรูปแบบ PDF ที่ให้มา
+- **ข้อมูลครบถ้วน**: แสดงข้อมูลทุกฟิลด์ที่กรอก
+- **ตารางค่าใช้จ่าย**: แสดงรายละเอียดตามตัวอย่าง
+- **ลายเซ็น 2 ช่อง**: ผู้ขอเบิก + ผู้อนุมัติ (Manager) เท่านั้น
+- **หมายเหตุสำหรับบัญชี**: เพิ่มส่วนแจ้งฝ่ายบัญชี
+
+### 3. Flow การอนุมัติ (ปรับปรุงแล้ว)
+```
+User (ลงลายเซ็น) → Manager (ลงลายเซ็น) → ส่งต่อ Accounting → เสร็จสิ้น
 ```
 
-### จำนวนเงินรวม
-```javascript
-const totalAmount = (dailyRate * totalDays) + accommodationCost + transportationCost + mealAllowance + otherExpenses;
-```
+### 4. สถานะการอนุมัติ
+- `pending_manager` - รอผู้จัดการอนุมัติ
+- `pending_accounting` - ส่งต่อให้ฝ่ายบัญชีแล้ว (สำหรับ advance เท่านั้น)
+- `pending_hr` - ส่งต่อให้ HR (สำหรับประเภทอื่น)
+- `completed` - อนุมัติเสร็จสิ้น
+- `rejected_manager` - ผู้จัดการปฏิเสธ
+- `rejected_accounting` - ฝ่ายบัญชีปฏิเสธ
 
-## สิ่งที่ต้องทำต่อ
+## ฟิลด์ในฐานข้อมูล
 
-1. **รัน SQL migration** เพื่อเพิ่มคอลัมน์ใหม่ในฐานข้อมูล
-```sql
--- รันไฟล์ add_advance_columns.sql
-```
+### Advance Payment Fields
+- `advance_department` - แผนก
+- `advance_district` - เขต
+- `advance_activity_type` - ประเภทกิจกรรม
+- `advance_activity_other` - กิจกรรมอื่นๆ
+- `advance_daily_rate` - อัตราค่าใช้จ่ายต่อวัน
+- `advance_total_days` - จำนวนวันทั้งหมด
+- `advance_accommodation_cost` - ค่าที่พัก
+- `advance_transportation_cost` - ค่าเดินทาง
+- `advance_meal_allowance` - ค่าอาหาร
+- `advance_other_expenses` - ค่าใช้จ่ายอื่นๆ
 
-2. **แก้ไข linting errors** ที่เหลืออยู่
-
-3. **ทดสอบการทำงาน** ของฟอร์มและ PDF generation
-
-4. **เพิ่มการจัดการ advance ใน dashboard และ reports** หากต้องการ
-
-5. **ทดสอบฟีเจอร์ใหม่** ในสภาพแวดล้อม staging
+### Accounting Approval Fields
+- `accounting_approver_id` - ID ผู้อนุมัติฝ่ายบัญชี
+- `accounting_approver_name` - ชื่อผู้อนุมัติฝ่ายบัญชี
+- `accounting_approved_at` - วันที่อนุมัติ
+- `accounting_notes` - หมายเหตุจากฝ่ายบัญชี
 
 ## การใช้งาน
 
-ผู้ใช้สามารถเลือก "เบิกเงินทดลอง" จากหน้า WelfareFormSelector และกรอกฟอร์มตามฟิลด์ที่กำหนด ระบบจะคำนวณจำนวนวันและยอดเงินรวมอัตโนมัติ และสร้าง PDF สำหรับการอนุมัติ
+### สำหรับผู้ใช้ทั่วไป
+1. เข้าเมนู "เบิกเงินล่วงหน้า" ใน Sidebar
+2. กรอกข้อมูลในฟอร์ม
+3. ระบบจะคำนวณยอดรวมอัตโนมัติ
+4. ลงลายเซ็นดิจิทัล
+5. ส่งคำขอ
 
-### ข้อดีของระบบเบิกเงินทดลอง:
-- **ไม่มีข้อจำกัด**: สามารถเบิกได้ตลอดเวลา ไม่ต้องรออายุงาน 180 วัน
-- **ไม่จำกัดยอดเงิน**: ไม่มีงบประมาณคงเหลือที่ต้องตรวจสอบ
-- **ไม่แสดงวงเงินสูงสุด**: หน้าฟอร์มจะไม่แสดงข้อมูลวงเงินและงบประมาณคงเหลือ
-- **คำนวณอัตโนมัติ**: ระบบจะคำนวณจำนวนวันและยอดเงินให้เอง
-- **ครบถ้วน**: รองรับทุกประเภทค่าใช้จ่าย (เดินทาง, ที่พัก, เบี้ยเลี้ยง, อื่นๆ)
-- **UI เฉพาะ**: มีข้อความแจ้งเตือนพิเศษอธิบายลักษณะการเบิกเงินทดลอง
+### สำหรับผู้จัดการ
+1. เข้าหน้า "อนุมัติคำร้อง (ผู้จัดการ)"
+2. ดู PDF และรายละเอียด
+3. อนุมัติหรือปฏิเสธ
+4. ระบบจะส่งต่อไปฝ่ายบัญชี (ถ้าอนุมัติ)
 
-## โครงสร้างไฟล์ที่เปลี่ยนแปลง
+### สำหรับฝ่ายบัญชี
+1. เข้าหน้า "รายการรอตรวจสอบ (บัญชี)"
+2. ดูรายการที่ผ่านการอนุมัติจากผู้จัดการแล้ว
+3. อนุมัติขั้นสุดท้าย
 
-1. `add_advance_columns.sql` - SQL migration script
-2. `src/types/index.ts` - Type definitions
-3. `src/components/forms/WelfareForm.tsx` - Main form component
-4. `src/components/forms/WelfareFormSelector.tsx` - Form selector
-5. `src/components/pdf/AdvancePDFGenerator.tsx` - PDF generator (ใหม่)
+## การทดสอบ
+1. ทดสอบการสร้างคำขอเบิกเงินล่วงหน้า
+2. ทดสอบการสร้าง PDF
+3. ทดสอบ Flow การอนุมัติ
+4. ทดสอบการแสดงผลในหน้าต่างๆ
+
+## หมายเหตุ
+- ระบบนี้ไม่ผ่าน HR ตามที่ร้องขอ
+- PDF จะถูกสร้างตามรูปแบบเดิมเป๊ะๆ
+- รองรับลายเซ็นดิจิทัลครบถ้วน
+- มีการตรวจสอบข้อมูลก่อนส่ง
+- รองรับการคำนวณค่าใช้จ่ายอัตโนมัติ
+## 
+การปรับปรุงล่าสุด
+
+### 1. PDF Generator
+- ✅ ปรับให้มีแค่ 2 ช่องลายเซ็น (User + Manager)
+- ✅ เพิ่มหมายเหตุสำหรับฝ่ายบัญชี
+- ✅ แสดงวันที่ลงลายเซ็นของแต่ละฝ่าย
+
+### 2. Flow การอนุมัติ
+- ✅ Manager อนุมัติแล้วส่งต่อไป `pending_accounting` (สำหรับ advance)
+- ✅ ประเภทอื่นยังคงส่งไป `pending_hr` ตามเดิม
+- ✅ ข้อความแจ้งเตือนปรับตามประเภท request
+
+### 3. การแสดงผล
+- ✅ AccountingReviewPage แสดง advance payment ที่มีสถานะ `pending_accounting`
+- ✅ ApprovalPage แสดงสถานะที่ถูกต้องตามประเภท
+
+### 4. Database
+- ✅ เพิ่มฟิลด์สำหรับ advance payment
+- ✅ เพิ่มฟิลด์สำหรับการอนุมัติของ accounting
+- ✅ ปรับ constraint ให้รองรับ 'advance' type
+
+## สรุปการทำงาน
+
+1. **User** กรอกฟอร์มเบิกเงินล่วงหน้าและลงลายเซ็น
+2. **Manager** เห็นคำขอใน ApprovalPage และลงลายเซ็นอนุมัติ
+3. ระบบส่งต่อไป **Accounting** (สถานะ: `pending_accounting`)
+4. **Accounting** เห็นคำขอใน AccountingReviewPage พร้อม PDF ที่มีลายเซ็นครบ
+5. Accounting ดำเนินการจ่ายเงินตามรายละเอียด
+
+## ข้อดี
+- ✅ Flow สั้นและรวดเร็ว (ไม่ผ่าน HR)
+- ✅ PDF มีลายเซ็นครบก่อนถึง Accounting
+- ✅ ข้อมูลครบถ้วนตามรูปแบบเดิม
+- ✅ ใช้ระบบเดิมที่มีอยู่ (ไม่ต้องสร้างใหม่)
+- ✅ รองรับทั้ง single และ bulk approval
