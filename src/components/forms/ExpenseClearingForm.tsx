@@ -234,15 +234,21 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         // Load expense items from original request
         if (data.advance_expense_items) {
           const expenseItems = JSON.parse(data.advance_expense_items);
-          setValue('expenseClearingItems', expenseItems.map((item: any) => ({
-            ...item,
-            requestAmount: Number(item.requestAmount) || 0,
-            usedAmount: 0, // Reset used amount for clearing
-            taxRate: Number(item.taxRate) || 0,
-            tax: 0,
-            vat: 0,
-            refund: 0
-          })));
+          setValue('expenseClearingItems', expenseItems.map((item: any) => {
+            const requestAmount = Number(item.requestAmount) || 0;
+            const usedAmount = 0; // Reset used amount for clearing
+            const refund = requestAmount - usedAmount; // Calculate refund
+            
+            return {
+              ...item,
+              requestAmount,
+              usedAmount,
+              taxRate: Number(item.taxRate) || 0,
+              tax: 0,
+              vat: 0,
+              refund
+            };
+          }));
         }
 
         toast({
@@ -277,8 +283,25 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     }, 0);
   };
 
-  // Update total amount when refund changes
+  // Update individual refund values and total amount when items change
   useEffect(() => {
+    const expenseItems = watchedExpenseItems || [];
+    
+    // Update individual refund values for each item
+    expenseItems.forEach((item, index) => {
+      const requestAmount = typeof item.requestAmount === 'string' 
+        ? parseFloat(item.requestAmount) || 0 
+        : Number(item.requestAmount) || 0;
+      const usedAmount = typeof item.usedAmount === 'string' 
+        ? parseFloat(item.usedAmount) || 0 
+        : Number(item.usedAmount) || 0;
+      const refund = requestAmount - usedAmount;
+      
+      // Update the refund field for this item
+      setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
+    });
+    
+    // Update total amount
     const refundAmount = calculateTotalRefund();
     console.log('💰 Updating expense clearing amount field:', refundAmount);
     console.log('💰 Expense clearing items:', watchedExpenseItems);
@@ -371,28 +394,32 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     
     data.amount = calculatedRefund;
     
-    // แปลงข้อมูลใน expense items ให้เป็น number ทั้งหมด
-    data.expenseClearingItems = expenseItems.map(item => ({
-      ...item,
-      requestAmount: typeof item.requestAmount === 'string' 
+    // แปลงข้อมูลใน expense items ให้เป็น number ทั้งหมด และคำนวณ refund ใหม่
+    data.expenseClearingItems = expenseItems.map(item => {
+      const requestAmount = typeof item.requestAmount === 'string' 
         ? parseFloat(item.requestAmount) || 0 
-        : Number(item.requestAmount) || 0,
-      usedAmount: typeof item.usedAmount === 'string' 
+        : Number(item.requestAmount) || 0;
+      const usedAmount = typeof item.usedAmount === 'string' 
         ? parseFloat(item.usedAmount) || 0 
-        : Number(item.usedAmount) || 0,
-      taxRate: typeof item.taxRate === 'string' 
-        ? parseFloat(item.taxRate) || 0 
-        : Number(item.taxRate) || 0,
-      tax: typeof item.tax === 'string' 
-        ? parseFloat(item.tax) || 0 
-        : Number(item.tax) || 0,
-      vat: typeof item.vat === 'string' 
-        ? parseFloat(item.vat) || 0 
-        : Number(item.vat) || 0,
-      refund: typeof item.refund === 'string' 
-        ? parseFloat(item.refund) || 0 
-        : Number(item.refund) || 0
-    }));
+        : Number(item.usedAmount) || 0;
+      const refund = requestAmount - usedAmount; // คำนวณ refund ใหม่ (อนุญาตให้เป็นลบได้)
+      
+      return {
+        ...item,
+        requestAmount,
+        usedAmount,
+        taxRate: typeof item.taxRate === 'string' 
+          ? parseFloat(item.taxRate) || 0 
+          : Number(item.taxRate) || 0,
+        tax: typeof item.tax === 'string' 
+          ? parseFloat(item.tax) || 0 
+          : Number(item.tax) || 0,
+        vat: typeof item.vat === 'string' 
+          ? parseFloat(item.vat) || 0 
+          : Number(item.vat) || 0,
+        refund // ใช้ค่า refund ที่คำนวณใหม่
+      };
+    });
 
     console.log('🚀 Expense clearing form submitted with data:', data);
     console.log('🚀 Calculated refund amount:', calculatedRefund);

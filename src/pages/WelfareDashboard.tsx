@@ -16,6 +16,9 @@ import N8nChatbot from '@/components/chatbot/N8nChatbot';
 const WelfareDashboard = () => {
   const { user, profile} = useAuth();
   const { welfareRequests } = useWelfare();
+  
+  // Filter out accounting requests (advance and expense-clearing) - only show welfare requests
+  const welfareOnlyRequests = welfareRequests.filter(r => r.type !== 'advance' && r.type !== 'expense-clearing');
   // Get user information with priority to profile data
 const displayName = profile?.display_name ||
   `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
@@ -33,7 +36,7 @@ const displayInitial = displayName.charAt(0).toUpperCase();
       {user?.role === 'employee' && (
         <div className="mb-8">
           <RemainingBudgetCard 
-            requests={welfareRequests} 
+            requests={welfareOnlyRequests} 
             userId={user.id} 
             maxBudget={10000}
           />

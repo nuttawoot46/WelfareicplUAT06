@@ -6,20 +6,17 @@ import { useWelfareRequests } from '@/hooks/useWelfareRequests';
 export function WelfareStatusCards() {
   const { requests } = useWelfareRequests();
 
-  // Filter out accounting-related requests (advance type) - only show welfare requests
-  const welfareRequests = requests.filter(r => r.request_type !== 'advance');
+  // Requests are already filtered for welfare types only (excludes advance and expense-clearing)
 
-  // Count requests by status (new detailed statuses)
-  const pendingManagerCount = welfareRequests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
-  const pendingAccountingCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
-  const pendingHRCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
-  const completedCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'completed').length;
-  const rejectedManagerCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
-  const rejectedAccountingCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
-  const rejectedHRCount = welfareRequests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
+  // Count requests by status (welfare flow: manager -> HR -> completed)
+  const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
+  const pendingHRCount = requests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
+  const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
+  const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
+  const rejectedHRCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
       <StatusCard
         title="รออนุมัติโดยหัวหน้า"
         count={pendingManagerCount}
@@ -30,12 +27,6 @@ export function WelfareStatusCards() {
         title="รอตรวจสอบโดย HR"
         count={pendingHRCount}
         status="pending_hr"
-        icon={<Clipboard className="h-5 w-5 text-amber-700" />}
-      />
-      <StatusCard
-        title="รอตรวจสอบโดยบัญชี"
-        count={pendingAccountingCount}
-        status="pending_accounting"
         icon={<Clipboard className="h-5 w-5 text-amber-700" />}
       />
       <StatusCard
@@ -55,12 +46,6 @@ export function WelfareStatusCards() {
         count={rejectedHRCount}
         status="rejected_hr"
         icon={<XCircle className="h-5 w-5 text-purple-700" />}
-      />
-      <StatusCard
-        title="ปฏิเสธโดยบัญชี"
-        count={rejectedAccountingCount}
-        status="rejected_accounting"
-        icon={<XCircle className="h-5 w-5 text-pink-700" />}
       />
     </div>
   );

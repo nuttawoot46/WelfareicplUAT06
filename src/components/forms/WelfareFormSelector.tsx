@@ -139,6 +139,11 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   // ฟังก์ชันตรวจสอบว่าประเภทสวัสดิการสามารถเลือกได้หรือไม่
   const isWelfareTypeAvailable = (type: WelfareType): { available: boolean; reason?: string } => {
+    // Exclude accounting types from welfare forms
+    if (type === 'advance' || type === 'expense-clearing') {
+      return { available: false, reason: 'ใช้ฟอร์มบัญชีแทน' };
+    }
+    
     // Training และ Internal Training สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
     if (type === 'training' || type === 'internal_training') {
       return { available: true };
@@ -171,6 +176,11 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   // ฟังก์ชันดึงข้อมูลยอดเงินคงเหลือสำหรับแสดงผล
   const getRemainingAmount = (type: WelfareType): number => {
+    // Exclude accounting types
+    if (type === 'advance' || type === 'expense-clearing') {
+      return 0;
+    }
+    
     // สำหรับ glasses และ dental ใช้ budget_dentalglasses ร่วมกัน
     if (type === 'glasses' || type === 'dental') {
       const limit = benefitLimits.find(limit => limit.type === 'dental');
@@ -181,6 +191,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     return limit ? limit.remaining : 0;
   };
 
+  // Only include welfare types, exclude accounting types (advance, expense-clearing)
   const welfareOptions: WelfareOption[] = [
     {
       id: 'training',
@@ -224,7 +235,6 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       icon: <WeddingIcon />,
       color: 'text-welfare-blue',
     },
-    
     {
       id: 'childbirth',
       title: 'ค่าคลอดบุตร',
@@ -239,7 +249,6 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       icon: <FuneralIcon />,
       color: 'text-welfare-purple',
     },
-
     {
       id: 'internal_training',
       title: 'อบรมภายใน',

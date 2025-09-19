@@ -207,7 +207,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .neq('request_type', 'advance') // Exclude accounting requests
+        .not('request_type', 'in', '(advance,expense-clearing)') // Exclude accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -388,10 +388,9 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                 <option value="all">สถานะทั้งหมด</option>
                 <option value="pending_manager">รออนุมัติโดยหัวหน้า</option>
                 <option value="pending_hr">รอตรวจสอบโดย HR</option>
-                <option value="pending_accounting">รอตรวจสอบโดยบัญชี</option>
                 <option value="completed">เสร็จสมบูรณ์</option>
                 <option value="rejected_manager">ปฏิเสธโดยหัวหน้า</option>
-                <option value="rejected_accounting">ปฏิเสธโดยบัญชี</option>
+                <option value="rejected_hr">ปฏิเสธโดย HR</option>
               </select>
               {/* Year Filter */}
               <select
@@ -544,9 +543,9 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                             </>
                           )}
 
-                          {/* PDF ที่ HR approve แล้ว - แสดงเฉพาะเมื่อสถานะเป็น pending_accounting หรือ completed */}
+                          {/* PDF ที่ HR approve แล้ว - แสดงเฉพาะเมื่อสถานะเป็น completed */}
                           {request.pdf_request_hr &&
-                            (request.status === 'pending_accounting' || request.status === 'completed') && (
+                            request.status === 'completed' && (
                               <div className="flex flex-col items-center">
                                 <Button
                                   variant="ghost"

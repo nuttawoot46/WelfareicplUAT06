@@ -17,6 +17,9 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
 }) => {
   const { getWelfareLimit, getRemainingBudget } = useWelfare();
   
+  // Filter out accounting requests (advance and expense-clearing) - only use welfare requests
+  const welfareOnlyRequests = requests.filter(r => r.type !== 'advance' && r.type !== 'expense-clearing');
+  
   // Get welfare-specific limits and remaining amounts
   const dentalGlassesLimit = getWelfareLimit('dental').amount;
   const dentalGlassesRemaining = getRemainingBudget(userId, 'dental');
