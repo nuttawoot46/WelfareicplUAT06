@@ -40,12 +40,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/welfare-dashboard">
-                <Button className="w-full bg-welfare-blue hover:bg-welfare-blue/90">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  เข้าสู่แดชบอร์ดสวัสดิการ
-                </Button>
-              </Link>
+              
             </CardContent>
           </Card>
 

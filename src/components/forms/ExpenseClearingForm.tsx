@@ -51,11 +51,14 @@ interface ExpenseClearingFormValues {
     name: string;
     taxRate: number;
     requestAmount: number;
-    usedAmount: number;
-    tax: number;
-    vat: number;
+    taxAmount: number;
+    netAmount: number;
     refund: number;
   }[];
+
+  // Dealer/Subdealer checkboxes
+  isDealerActivity?: boolean;
+  isSubdealerActivity?: boolean;
 
   // Document selections for expense clearing
   attachmentSelections?: {
@@ -71,21 +74,19 @@ interface ExpenseClearingFormValues {
 const ACTIVITY_TYPES = [
   'จัดประชุม',
   'ออกบูธ',
-  'ดีลเลอร์',
-  'ซับดีลเลอร์',
   'อื่นๆ',
 ];
 
 // รายการค่าใช้จ่ายเคลียร์
 const EXPENSE_CLEARING_CATEGORIES = [
-  'ค่าอาหารและเครื่องดื่ม',
-  'ค่าเช่าสถานที่',
-  'ค่าบริการ/ค่าสนับสนุนร้านค้า/ค่าจ้างทำป้าย/ค่าจ้างอื่นๆ/ค่าบริการสถานที่',
-  'ค่าดนตรี/เครื่องเสียง/MC',
-  'ของรางวัลเพื่อการชิงโชค',
-  'ค่าโฆษณา (โฆษณาทางวิทยุ)',
-  'อุปกรณ์และอื่นๆ',
-  'ของขวัญแจกช่วงเล่นเกม'
+  { name: 'ค่าอาหารและเครื่องดื่ม', taxRate: 0 },
+  { name: 'ค่าเช่าสถานที่', taxRate: 5 },
+  { name: 'ค่าบริการ/ค่าสนับสนุนร้านค้า/ค่าจ้างทำป้าย/ค่าจ้างอื่นๆ/ค่าบริการสถานที่', taxRate: 3 },
+  { name: 'ค่าดนตรี/เครื่องเสียง/MC', taxRate: 3 },
+  { name: 'ของรางวัลเพื่อการชิงโชค', taxRate: 5 },
+  { name: 'ค่าโฆษณา (โฆษณาทางวิทยุ)', taxRate: 2 },
+  { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 },
+  { name: 'ของขวัญแจกช่วงเล่นเกม', taxRate: 0 }
 ];
 
 export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps) {
@@ -121,7 +122,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     formState: { errors }
   } = useForm<ExpenseClearingFormValues>({
     defaultValues: {
-      expenseClearingItems: [{ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, tax: 0, vat: 0, refund: 0 }]
+      expenseClearingItems: [{ name: '', taxRate: 0, requestAmount: 0, taxAmount: 0, netAmount: 0, refund: 0 }]
     }
   });
 
@@ -236,16 +237,16 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           const expenseItems = JSON.parse(data.advance_expense_items);
           setValue('expenseClearingItems', expenseItems.map((item: any) => {
             const requestAmount = Number(item.requestAmount) || 0;
-            const usedAmount = 0; // Reset used amount for clearing
-            const refund = requestAmount - usedAmount; // Calculate refund
+            const taxAmount = Number(item.taxAmount) || 0;
+            const netAmount = Number(item.netAmount) || 0;
+            const refund = netAmount; // Initialize refund as net amount
             
             return {
               ...item,
               requestAmount,
-              usedAmount,
+              taxAmount,
+              netAmount,
               taxRate: Number(item.taxRate) || 0,
-              tax: 0,
-              vat: 0,
               refund
             };
           }));
@@ -273,31 +274,31 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   const calculateTotalRefund = () => {
     const expenseItems = watchedExpenseItems || [];
     return expenseItems.reduce((sum, item) => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
-        : Number(item.requestAmount) || 0;
-      const usedAmount = typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
-        : Number(item.usedAmount) || 0;
-      return sum + (requestAmount - usedAmount); // Allow negative values
+      const refund = typeof item.refund === 'string' 
+        ? parseFloat(item.refund) || 0 
+        : Number(item.refund) || 0;
+      return sum + refund; // Sum all refund amounts
     }, 0);
   };
 
-  // Update individual refund values and total amount when items change
+  // Calculate tax, net amounts and refunds when expense items change
   useEffect(() => {
     const expenseItems = watchedExpenseItems || [];
     
-    // Update individual refund values for each item
     expenseItems.forEach((item, index) => {
       const requestAmount = typeof item.requestAmount === 'string' 
         ? parseFloat(item.requestAmount) || 0 
         : Number(item.requestAmount) || 0;
-      const usedAmount = typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
-        : Number(item.usedAmount) || 0;
-      const refund = requestAmount - usedAmount;
+      const taxRate = typeof item.taxRate === 'string' 
+        ? parseFloat(item.taxRate) || 0 
+        : Number(item.taxRate) || 0;
       
-      // Update the refund field for this item
+      const taxAmount = (requestAmount * taxRate) / 100;
+      const netAmount = requestAmount - taxAmount;
+      const refund = netAmount; // For clearing, refund starts as net amount
+      
+      setValue(`expenseClearingItems.${index}.taxAmount`, taxAmount, { shouldValidate: false });
+      setValue(`expenseClearingItems.${index}.netAmount`, netAmount, { shouldValidate: false });
       setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
     });
     
@@ -394,30 +395,25 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     
     data.amount = calculatedRefund;
     
-    // แปลงข้อมูลใน expense items ให้เป็น number ทั้งหมด และคำนวณ refund ใหม่
+    // แปลงข้อมูลใน expense items ให้เป็น number ทั้งหมด
     data.expenseClearingItems = expenseItems.map(item => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
-        : Number(item.requestAmount) || 0;
-      const usedAmount = typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
-        : Number(item.usedAmount) || 0;
-      const refund = requestAmount - usedAmount; // คำนวณ refund ใหม่ (อนุญาตให้เป็นลบได้)
-      
       return {
         ...item,
-        requestAmount,
-        usedAmount,
+        requestAmount: typeof item.requestAmount === 'string' 
+          ? parseFloat(item.requestAmount) || 0 
+          : Number(item.requestAmount) || 0,
         taxRate: typeof item.taxRate === 'string' 
           ? parseFloat(item.taxRate) || 0 
           : Number(item.taxRate) || 0,
-        tax: typeof item.tax === 'string' 
-          ? parseFloat(item.tax) || 0 
-          : Number(item.tax) || 0,
-        vat: typeof item.vat === 'string' 
-          ? parseFloat(item.vat) || 0 
-          : Number(item.vat) || 0,
-        refund // ใช้ค่า refund ที่คำนวณใหม่
+        taxAmount: typeof item.taxAmount === 'string' 
+          ? parseFloat(item.taxAmount) || 0 
+          : Number(item.taxAmount) || 0,
+        netAmount: typeof item.netAmount === 'string' 
+          ? parseFloat(item.netAmount) || 0 
+          : Number(item.netAmount) || 0,
+        refund: typeof item.refund === 'string' 
+          ? parseFloat(item.refund) || 0 
+          : Number(item.refund) || 0
       };
     });
 
@@ -426,15 +422,15 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     console.log('🚀 Form amount field (updated):', data.amount);
     console.log('🚀 Expense clearing items:', data.expenseClearingItems);
 
-    // Validate that at least one expense item has both name and used amount
+    // Validate that at least one expense item has both name and net amount
     const validExpenseItems = data.expenseClearingItems?.filter(item =>
-      item.name && item.name.trim() !== '' && item.usedAmount > 0
+      item.name && item.name.trim() !== '' && item.netAmount > 0
     );
 
     if (!validExpenseItems || validExpenseItems.length === 0) {
       toast({
         title: 'กรุณาเพิ่มรายการค่าใช้จ่าย',
-        description: 'กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ พร้อมระบุชื่อรายการและจำนวนเงินที่ใช้',
+        description: 'กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ พร้อมระบุชื่อรายการและจำนวนเงิน',
         variant: 'destructive',
       });
       return;
@@ -678,11 +674,22 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="form-label">แผนก</label>
-                <Input
-                  placeholder="ระบุแผนก"
-                  className="form-input"
+                <Select
+                  onValueChange={(value) => setValue('advanceDepartment', value)}
+                  value={watch('advanceDepartment')}
+                >
+                  <SelectTrigger className="form-input">
+                    <SelectValue placeholder="เลือกแผนก" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={employeeData?.Team || 'แผนกของฉัน'}>{employeeData?.Team || 'แผนกของฉัน'}</SelectItem>
+                    <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
                   {...register('advanceDepartment', {
-                    required: 'กรุณาระบุแผนก'
+                    required: 'กรุณาเลือกแผนก'
                   })}
                 />
                 {errors.advanceDepartment && (
@@ -699,6 +706,23 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 />
               </div>
             </div>
+
+            {/* ฟิลด์ระบุแผนกอื่นๆ */}
+            {watch('advanceDepartment') === 'อื่นๆ' && (
+              <div className="space-y-2">
+                <label className="form-label">โปรดระบุแผนก</label>
+                <Input
+                  placeholder="ระบุแผนกอื่นๆ"
+                  className="form-input"
+                  {...register('advanceActivityOther', {
+                    required: watch('advanceDepartment') === 'อื่นๆ' ? 'กรุณาระบุแผนก' : false
+                  })}
+                />
+                {errors.advanceActivityOther && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceActivityOther.message}</p>
+                )}
+              </div>
+            )}
 
             {/* ประเภทกิจกรรม */}
             <div className="space-y-2">
@@ -744,39 +768,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               </div>
             )}
             
-            {/* ฟิลด์ระบุ"ดีลเลอร์" */}
-            {(['ดีลเลอร์'].includes(watch('advanceActivityType'))) && (
-              <div className="space-y-2">
-                <label className="form-label">โปรดระบุชื่อร้าน</label>
-                <Input
-                  placeholder="ระบุชื่อร้าน"
-                  className="form-input"
-                  {...register('advanceDealerName', {
-                    required: ['ดีลเลอร์'].includes(watch('advanceActivityType')) ? 'กรุณาระบุชื่อร้าน' : false
-                  })}
-                />
-                {errors.advanceDealerName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceDealerName.message}</p>
-                )}
-              </div>
-            )}
 
-            {/* ฟิลด์ระบุ"ซับดีลเลอร์" */}
-            {(['ซับดีลเลอร์'].includes(watch('advanceActivityType'))) && (
-              <div className="space-y-2">
-                <label className="form-label">โปรดระบุชื่อร้าน</label>
-                <Input
-                  placeholder="ระบุชื่อร้าน"
-                  className="form-input"
-                  {...register('advanceSubdealerName', {
-                    required: ['ซับดีลเลอร์'].includes(watch('advanceActivityType')) ? 'กรุณาระบุชื่อร้าน' : false
-                  })}
-                />
-                {errors.advanceSubdealerName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceSubdealerName.message}</p>
-                )}
-              </div>
-            )}
 
             {/* วันที่และจำนวนผู้เข้าร่วม */}
             <div className="grid grid-cols-2 gap-4">
@@ -812,33 +804,110 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               </div>
             </div>
 
+            {/* Dealer/Subdealer Checkboxes */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isDealerActivity"
+                    className="rounded border-gray-300"
+                    {...register('isDealerActivity')}
+                  />
+                  <label htmlFor="isDealerActivity" className="text-sm font-medium text-gray-700">
+                    ดีลเลอร์
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isSubdealerActivity"
+                    className="rounded border-gray-300"
+                    {...register('isSubdealerActivity')}
+                  />
+                  <label htmlFor="isSubdealerActivity" className="text-sm font-medium text-gray-700">
+                    ซับดีลเลอร์
+                  </label>
+                </div>
+              </div>
+
+              {/* ฟิลด์ระบุชื่อร้านสำหรับดีลเลอร์ */}
+              {watch('isDealerActivity') && (
+                <div className="space-y-2">
+                  <label className="form-label">ระบุชื่อร้าน (ดีลเลอร์)</label>
+                  <Input
+                    placeholder="ระบุชื่อร้าน"
+                    className="form-input"
+                    {...register('advanceDealerName', {
+                      required: watch('isDealerActivity') ? 'กรุณาระบุชื่อร้าน' : false
+                    })}
+                  />
+                  {errors.advanceDealerName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.advanceDealerName.message}</p>
+                  )}
+                </div>
+              )}
+
+              {/* ฟิลด์ระบุชื่อร้านสำหรับซับดีลเลอร์ */}
+              {watch('isSubdealerActivity') && (
+                <div className="space-y-2">
+                  <label className="form-label">ระบุชื่อร้าน (ซับดีลเลอร์)</label>
+                  <Input
+                    placeholder="ระบุชื่อร้าน"
+                    className="form-input"
+                    {...register('advanceSubdealerName', {
+                      required: watch('isSubdealerActivity') ? 'กรุณาระบุชื่อร้าน' : false
+                    })}
+                  />
+                  {errors.advanceSubdealerName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.advanceSubdealerName.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* สถานที่ อำเภอ และจังหวัด */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="form-label">ชื่อร้าน/บริษัท</label>
+                <label className="form-label">ชื่อร้าน/บริษัท <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุสถานที่"
                   className="form-input"
-                  {...register('venue')}
+                  {...register('venue', {
+                    required: 'กรุณาระบุชื่อร้าน/บริษัท'
+                  })}
                 />
+                {errors.venue && (
+                  <p className="text-red-500 text-sm mt-1">{errors.venue.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">อำเภอ</label>
+                <label className="form-label">อำเภอ <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุอำเภอ"
                   className="form-input"
-                  {...register('advanceAmphur')}
+                  {...register('advanceAmphur', {
+                    required: 'กรุณาระบุอำเภอ'
+                  })}
                 />
+                {errors.advanceAmphur && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">จังหวัด</label>
+                <label className="form-label">จังหวัด <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุจังหวัด"
                   className="form-input"
-                  {...register('advanceProvince')}
+                  {...register('advanceProvince', {
+                    required: 'กรุณาระบุจังหวัด'
+                  })}
                 />
+                {errors.advanceProvince && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -849,7 +918,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่ายจริง</h3>
               <Button
                 type="button"
-                onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, tax: 0, vat: 0, refund: 0 })}
+                onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, taxAmount: 0, netAmount: 0, refund: 0 })}
                 variant="outline"
                 size="sm"
               >
@@ -864,11 +933,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินใช้จริง</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีมูลค่าเพิ่ม</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">อัตรา % ภาษี</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนภาษีหักณที่จ่าย</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดเงินสุทธิ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืน</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
                   </tr>
@@ -878,7 +946,13 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                     <tr key={field.id}>
                       <td className="border border-gray-300 p-1">
                         <Select
-                          onValueChange={(value) => setValue(`expenseClearingItems.${index}.name`, value)}
+                          onValueChange={(value) => {
+                            const selectedCategory = EXPENSE_CLEARING_CATEGORIES.find(cat => cat.name === value);
+                            setValue(`expenseClearingItems.${index}.name`, value);
+                            if (selectedCategory) {
+                              setValue(`expenseClearingItems.${index}.taxRate`, selectedCategory.taxRate);
+                            }
+                          }}
                           value={watch(`expenseClearingItems.${index}.name`) || ''}
                         >
                           <SelectTrigger className="w-full min-w-[200px]">
@@ -886,28 +960,13 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           </SelectTrigger>
                           <SelectContent>
                             {EXPENSE_CLEARING_CATEGORIES.map((category) => (
-                              <SelectItem key={category} value={category}>{category}</SelectItem>
+                              <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <input
                           type="hidden"
                           {...register(`expenseClearingItems.${index}.name` as const)}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          className="w-20"
-                          placeholder="0"
-                          {...register(`expenseClearingItems.${index}.taxRate` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            max: { value: 100, message: 'ต้องไม่เกิน 100' },
-                            valueAsNumber: true
-                          })}
                         />
                       </td>
                       <td className="border border-gray-300 p-1">
@@ -928,61 +987,54 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           type="number"
                           step="0.01"
                           min="0"
-                          className="w-28 bg-yellow-50"
-                          placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.usedAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
+                          max="100"
+                          className="w-20 bg-gray-100"
+                          placeholder="0"
+                          value={watch(`expenseClearingItems.${index}.taxRate`) || 0}
+                          readOnly
                         />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-24"
-                          placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.tax` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-24"
-                          placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.vat` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        {(() => {
-                          const requestAmount = Number(watch(`expenseClearingItems.${index}.requestAmount`)) || 0;
-                          const usedAmount = Number(watch(`expenseClearingItems.${index}.usedAmount`)) || 0;
-                          const refund = requestAmount - usedAmount;
-                          const isNegative = refund < 0;
-                          
-                          return (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              className={`w-24 ${isNegative ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}
-                              placeholder="0.00"
-                              value={refund.toFixed(2)}
-                              readOnly
-                            />
-                          );
-                        })()}
                         <input
                           type="hidden"
-                          {...register(`expenseClearingItems.${index}.refund` as const)}
+                          {...register(`expenseClearingItems.${index}.taxRate` as const)}
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-28 bg-gray-100"
+                          placeholder="0.00"
+                          value={(watch(`expenseClearingItems.${index}.taxAmount`) || 0).toFixed(2)}
+                          readOnly
+                        />
+                        <input
+                          type="hidden"
+                          {...register(`expenseClearingItems.${index}.taxAmount` as const)}
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-28 bg-blue-50 font-semibold"
+                          placeholder="0.00"
+                          value={(watch(`expenseClearingItems.${index}.netAmount`) || 0).toFixed(2)}
+                          readOnly
+                        />
+                        <input
+                          type="hidden"
+                          {...register(`expenseClearingItems.${index}.netAmount` as const)}
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-28 bg-yellow-50"
+                          placeholder="0.00"
+                          {...register(`expenseClearingItems.${index}.refund` as const, {
+                            valueAsNumber: true
+                          })}
                         />
                       </td>
                       <td className="border border-gray-300 p-1 text-center">
@@ -1003,7 +1055,6 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   {/* Row รวม */}
                   <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
@@ -1016,20 +1067,31 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}
                     </td>
+                    <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const usedAmount = typeof item.usedAmount === 'string' 
-                            ? parseFloat(item.usedAmount) || 0 
-                            : Number(item.usedAmount) || 0;
-                          return sum + usedAmount;
+                          const taxAmount = typeof item.taxAmount === 'string' 
+                            ? parseFloat(item.taxAmount) || 0 
+                            : Number(item.taxAmount) || 0;
+                          return sum + taxAmount;
                         }, 0);
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
+                    <td className="border border-gray-300 px-2 py-2 text-center">
+                      {(() => {
+                        const expenseItems = watchedExpenseItems || [];
+                        const total = expenseItems.reduce((sum, item) => {
+                          const netAmount = typeof item.netAmount === 'string' 
+                            ? parseFloat(item.netAmount) || 0 
+                            : Number(item.netAmount) || 0;
+                          return sum + netAmount;
+                        }, 0);
+                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                      })()}
+                    </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const total = calculateTotalRefund(); // Calculate in real-time

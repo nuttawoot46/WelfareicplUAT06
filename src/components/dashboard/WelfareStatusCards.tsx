@@ -8,12 +8,14 @@ export function WelfareStatusCards() {
 
   // Requests are already filtered for welfare types only (excludes advance and expense-clearing)
 
-  // Count requests by status (welfare flow: manager -> HR -> completed)
+  // Count requests by status (welfare flow: manager -> HR -> accounting -> completed)
   const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
   const pendingHRCount = requests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
+  const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
   const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
   const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
   const rejectedHRCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
+  const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
@@ -30,6 +32,12 @@ export function WelfareStatusCards() {
         icon={<Clipboard className="h-5 w-5 text-amber-700" />}
       />
       <StatusCard
+        title="รออนุมัติโดยบัญชี"
+        count={pendingAccountingCount}
+        status="pending_accounting"
+        icon={<Clipboard className="h-5 w-5" />}
+      />  
+      <StatusCard
         title="เสร็จสมบูรณ์"
         count={completedCount}
         status="completed"
@@ -45,6 +53,12 @@ export function WelfareStatusCards() {
         title="ปฏิเสธโดย HR"
         count={rejectedHRCount}
         status="rejected_hr"
+        icon={<XCircle className="h-5 w-5 text-purple-700" />}
+      />
+      <StatusCard
+        title="ปฏิเสธโดย บัญชี"
+        count={rejectedAccountingCount}
+        status="rejected_accounting"
         icon={<XCircle className="h-5 w-5 text-purple-700" />}
       />
     </div>

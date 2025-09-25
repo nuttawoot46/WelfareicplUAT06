@@ -142,7 +142,7 @@ export const canAccessRoute = (userRole: UserRole, route: string): boolean => {
     return ['manager', 'accountingandmanager', 'admin', 'superadmin'].includes(userRole);
   }
 
-  if (route.startsWith('/accounting-review')) {
+  if (route.startsWith('/accounting-review') || route.startsWith('/welfare-accounting-review') || route.startsWith('/general-accounting-review')) {
     return ['accounting', 'accountingandmanager', 'admin', 'superadmin'].includes(userRole);
   }
 

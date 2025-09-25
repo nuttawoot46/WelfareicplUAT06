@@ -176,17 +176,59 @@ export function Sidebar() {
             )}
           </div>
 
-          {/* Accounting Review Menu (for accounting role only) */}
+          {/* Accounting Review Menu with Dropdown (for accounting role only) */}
           {(userRole === 'accounting' || userRole === 'accountingandmanager') && (
-            <Link to="/accounting-review" className={cn(
-              "nav-link group",
-              isActive('/accounting-review') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <FileText className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">รายการรอตรวจสอบ (บัญชี)</span>
+            <div className="relative">
+              <div
+                className={cn(
+                  "nav-link group cursor-pointer",
+                  isSubmenuActive(['/accounting-review', '/welfare-accounting-review', '/general-accounting-review']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                )}
+                onClick={() => isOpen && toggleSubmenu('accounting')}
+                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, accounting: true }))}
+                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, accounting: false }))}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                {isOpen && (
+                  <>
+                    <span className="transition-all duration-300 text-white font-medium">รายการรอตรวจสอบ (บัญชี)</span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      openSubmenus.accounting && "rotate-180"
+                    )} />
+                  </>
+                )}
+              </div>
+
+              {/* Accounting Review Submenu */}
+              {(openSubmenus.accounting || !isOpen) && (
+                <div className={cn(
+                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                )}>
+                  <Link to="/accounting-review" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    <span>เมนูหลัก</span>
+                  </Link>
+                  <Link to="/welfare-accounting-review" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    <span>ตรวจสอบสวัสดิการ</span>
+                  </Link>
+                  <Link to="/general-accounting-review" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    <span>ตรวจสอบบัญชีทั่วไป</span>
+                  </Link>
+                </div>
               )}
-            </Link>
+            </div>
           )}
 
           {/* Forms Menu with Dropdown */}

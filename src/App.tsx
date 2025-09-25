@@ -26,6 +26,8 @@ import Settings from "./pages/Settings";
 import { ApprovalPage } from "./pages/ApprovalPage";
 import { HRApprovalPage } from "./pages/HRApprovalPage";
 import { AccountingReviewPage } from "./pages/AccountingReviewPage";
+import { WelfareAccountingReviewPage } from "./pages/WelfareAccountingReviewPage";
+import { GeneralAccountingReviewPage } from "./pages/GeneralAccountingReviewPage";
 import ManagerPDFApprovalPage from "./pages/ManagerPDFApprovalPage";
 import HRPDFApprovalPage from "./pages/HRPDFApprovalPage";
 import WorkflowTimelinePage from "./pages/WorkflowTimelinePage";
@@ -172,6 +174,16 @@ const App = () => (
                   <Route path="/accounting-review" element={
                     <ProtectedRoute>
                       <AccountingReviewPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/welfare-accounting-review" element={
+                    <ProtectedRoute>
+                      <WelfareAccountingReviewPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/general-accounting-review" element={
+                    <ProtectedRoute>
+                      <GeneralAccountingReviewPage />
                     </ProtectedRoute>
                   } />
 
