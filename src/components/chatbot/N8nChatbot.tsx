@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface N8nChatbotProps {
     webhookUrl?: string;
@@ -7,15 +7,26 @@ interface N8nChatbotProps {
 const N8nChatbot: React.FC<N8nChatbotProps> = ({
     webhookUrl = 'https://n8n.icpladda.com/webhook/f3fe133a-dc33-42df-8135-11962a4a2f31/chat'
 }) => {
+    const chatInitialized = useRef(false);
+
     useEffect(() => {
+        // Prevent multiple initializations
+        if (chatInitialized.current) return;
+
         // Load CSS
         const link = document.createElement('link');
         link.href = 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css';
         link.rel = 'stylesheet';
-        document.head.appendChild(link);
+        
+        // Check if CSS is already loaded
+        const existingLink = document.querySelector(`link[href="${link.href}"]`);
+        if (!existingLink) {
+            document.head.appendChild(link);
+        }
 
         // Add custom CSS variables
         const customStyle = document.createElement('style');
+        customStyle.id = 'n8n-chat-custom-styles';
         customStyle.textContent = `
             :root {
                 --chat--color-primary: #e74266;
@@ -64,11 +75,17 @@ const N8nChatbot: React.FC<N8nChatbotProps> = ({
                 --chat--toggle--size: 64px;
             }
         `;
-        document.head.appendChild(customStyle);
+        
+        // Check if custom styles are already added
+        const existingCustomStyle = document.getElementById('n8n-chat-custom-styles');
+        if (!existingCustomStyle) {
+            document.head.appendChild(customStyle);
+        }
 
         // Load and initialize chat
         const loadChat = async () => {
             try {
+                // @ts-ignore - Dynamic import from CDN
                 const { createChat } = await import('https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js');
                 createChat({
                     webhookUrl: webhookUrl,
@@ -99,24 +116,18 @@ const N8nChatbot: React.FC<N8nChatbotProps> = ({
                     },
                     enableStreaming: false,
                 });
+                chatInitialized.current = true;
             } catch (error) {
                 console.error('Failed to load n8n chat:', error);
             }
         };
 
-        loadChat();
+        // Add a small delay to ensure DOM is ready
+        const timer = setTimeout(loadChat, 100);
 
         // Cleanup function
         return () => {
-            // Remove the CSS link when component unmounts
-            const existingLink = document.querySelector(`link[href="${link.href}"]`);
-            if (existingLink) {
-                document.head.removeChild(existingLink);
-            }
-            // Remove custom styles
-            if (customStyle.parentNode) {
-                document.head.removeChild(customStyle);
-            }
+            clearTimeout(timer);
         };
     }, [webhookUrl]);
 

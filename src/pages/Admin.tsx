@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { UserManagement } from './admin/UserManagement';
 import { SupportManagement } from './admin/SupportManagement';
+import { AnnouncementManagement } from './admin/AnnouncementManagement';
 import React, { Suspense } from 'react';
 
 const AdminReport = React.lazy(() => import('./AdminReport'));
@@ -16,6 +17,7 @@ const Admin = () => {
             <Route path="/" element={<Navigate to="/admin/users" replace />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="support" element={<SupportManagement />} />
+            <Route path="announcements" element={<AnnouncementManagement />} />
             <Route
               path="report"
               element={

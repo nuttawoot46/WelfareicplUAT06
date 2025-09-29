@@ -70,7 +70,8 @@ export const addSignatureToAdvancePDF = async (
   approverName: string
 ): Promise<boolean> => {
   try {
-    console.log(`🔄 Adding ${signatureType} signature to Advance Payment PDF, request:`, requestId);
+    console.log(`🔄 Adding ${signatureType} signature to Advance Payment PDF, request:`, requestId, 'approverName:', approverName);
+    console.log('📝 Signature length:', signature?.length, 'characters');
 
     // Get current request data
     const { data: requestData, error: fetchError } = await supabase
@@ -123,7 +124,7 @@ export const addSignatureToAdvancePDF = async (
     }
 
     // Get employee data and user data for PDF generation
-    const employeeData = await getEmployeeData(updatedRequestData.employee_id?.toString() || updatedRequestData.userId);
+    const employeeData = await getEmployeeData(updatedRequestData.employee_id?.toString() || (updatedRequestData as any).userId);
     const actualEmployeeName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
     
     if (employeeData && actualEmployeeName && actualEmployeeName !== employeeData.Name) {
@@ -131,12 +132,12 @@ export const addSignatureToAdvancePDF = async (
     }
 
     const userForPDF: User = {
-      id: updatedRequestData.employee_id?.toString() || updatedRequestData.userId || '',
+      id: updatedRequestData.employee_id?.toString() || (updatedRequestData as any).userId || '',
       email: employeeData?.Name || '',
       name: actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || '',
       position: employeeData?.Position || '',
       role: 'employee' as const,
-      department: employeeData?.Team || updatedRequestData.department_user || updatedRequestData.department_request || '',
+      department: employeeData?.Team || (updatedRequestData as any).department_user || updatedRequestData.department_request || '',
       budget_fitness: 0,
       training_budget: (employeeData as any)?.Budget_Training,
       original_training_budget: (employeeData as any)?.Original_Budget_Training
@@ -145,17 +146,17 @@ export const addSignatureToAdvancePDF = async (
     // Convert database fields to WelfareRequest format
     const advanceRequestForPDF: WelfareRequest = {
       id: updatedRequestData.id,
-      userId: updatedRequestData.employee_id?.toString() || updatedRequestData.userId || '',
+      userId: updatedRequestData.employee_id?.toString() || (updatedRequestData as any).userId || '',
       userName: actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || '',
-      userDepartment: employeeData?.Team || updatedRequestData.department_user || updatedRequestData.department_request || '',
-      type: updatedRequestData.request_type,
-      status: updatedRequestData.status,
+      userDepartment: employeeData?.Team || (updatedRequestData as any).department_user || updatedRequestData.department_request || '',
+      type: updatedRequestData.request_type as any,
+      status: updatedRequestData.status as any,
       amount: updatedRequestData.amount || 0,
       date: updatedRequestData.created_at,
       details: updatedRequestData.details || '',
-      attachments: updatedRequestData.attachment_url ? JSON.parse(updatedRequestData.attachment_url) : [],
+      attachments: updatedRequestData.attachment_url ? (typeof updatedRequestData.attachment_url === 'string' ? JSON.parse(updatedRequestData.attachment_url) : updatedRequestData.attachment_url) : [],
       createdAt: updatedRequestData.created_at,
-      updatedAt: updatedRequestData.updated_at,
+      updatedAt: (updatedRequestData as any).updated_at || updatedRequestData.created_at,
       title: updatedRequestData.title,
       userSignature: updatedRequestData.user_signature,
       managerSignature: updatedRequestData.manager_signature,
@@ -164,29 +165,38 @@ export const addSignatureToAdvancePDF = async (
       managerApprovedAt: updatedRequestData.manager_approved_at,
       hrApproverName: updatedRequestData.hr_approver_name,
       hrApprovedAt: updatedRequestData.hr_approved_at,
-      // Advance payment specific fields
-      advanceDepartment: updatedRequestData.advance_department,
-      advanceDistrict: updatedRequestData.advance_district,
-      advanceActivityType: updatedRequestData.advance_activity_type,
-      advanceActivityOther: updatedRequestData.advance_activity_other,
-      advanceShopCompany: updatedRequestData.advance_shop_company,
-      advanceAmphur: updatedRequestData.advance_amphur,
-      advanceProvince: updatedRequestData.advance_province,
-      advanceTravelDays: updatedRequestData.advance_travel_days,
-      advanceWorkDays: updatedRequestData.advance_work_days,
-      advanceTotalDays: updatedRequestData.advance_total_days,
-      advanceDailyRate: updatedRequestData.advance_daily_rate,
-      advanceAccommodationCost: updatedRequestData.advance_accommodation_cost,
-      advanceTransportationCost: updatedRequestData.advance_transportation_cost,
-      advanceMealAllowance: updatedRequestData.advance_meal_allowance,
-      advanceOtherExpenses: updatedRequestData.advance_other_expenses,
-      advanceProjectName: updatedRequestData.advance_project_name,
-      advanceProjectLocation: updatedRequestData.advance_project_location,
-      advanceExpectedReturnDate: updatedRequestData.advance_expected_return_date,
-      advanceUrgencyLevel: updatedRequestData.advance_urgency_level,
-      advanceApprovalDeadline: updatedRequestData.advance_approval_deadline,
-      department_user: updatedRequestData.department_user,
+      // Advance payment specific fields - use safe access
+      advanceDepartment: (updatedRequestData as any).advance_department,
+      advanceDepartmentOther: (updatedRequestData as any).advance_department_other,
+      advanceDistrict: (updatedRequestData as any).advance_district,
+      advanceActivityType: (updatedRequestData as any).advance_activity_type,
+      advanceActivityOther: (updatedRequestData as any).advance_activity_other,
+      advanceShopCompany: (updatedRequestData as any).advance_shop_company,
+      advanceAmphur: (updatedRequestData as any).advance_amphur,
+      advanceProvince: (updatedRequestData as any).advance_province,
+      advanceTravelDays: (updatedRequestData as any).advance_travel_days,
+      advanceWorkDays: (updatedRequestData as any).advance_work_days,
+      advanceTotalDays: (updatedRequestData as any).advance_total_days,
+      advanceDailyRate: (updatedRequestData as any).advance_daily_rate,
+      advanceAccommodationCost: (updatedRequestData as any).advance_accommodation_cost,
+      advanceTransportationCost: (updatedRequestData as any).advance_transportation_cost,
+      advanceMealAllowance: (updatedRequestData as any).advance_meal_allowance,
+      advanceOtherExpenses: (updatedRequestData as any).advance_other_expenses,
+      advanceProjectName: (updatedRequestData as any).advance_project_name,
+      advanceProjectLocation: (updatedRequestData as any).advance_project_location,
+      advanceExpectedReturnDate: (updatedRequestData as any).advance_expected_return_date,
+      advanceUrgencyLevel: (updatedRequestData as any).advance_urgency_level,
+      advanceApprovalDeadline: (updatedRequestData as any).advance_approval_deadline,
+      advanceDealerName: (updatedRequestData as any).advance_dealer_name,
+      advanceSubdealerName: (updatedRequestData as any).advance_subdealer_name,
+      advanceLocation: (updatedRequestData as any).advance_location,
+      advanceParticipants: (updatedRequestData as any).advance_participants,
+      advanceEventDate: (updatedRequestData as any).advance_event_date,
+      advanceExpenseItems: (updatedRequestData as any).advance_expense_items,
+      department_user: (updatedRequestData as any).department_user,
       department_request: updatedRequestData.department_request,
+      start_date: (updatedRequestData as any).start_date,
+      end_date: (updatedRequestData as any).end_date,
     };
 
     // Generate new PDF with signatures
@@ -196,10 +206,12 @@ export const addSignatureToAdvancePDF = async (
       employeeData,
       updatedRequestData.user_signature,
       updatedRequestData.manager_signature,
-      updatedRequestData.hr_signature
+      updatedRequestData.accounting_signature || updatedRequestData.hr_signature
     );
 
     if (newPdfBase64) {
+      console.log('✅ PDF generated successfully, base64 length:', newPdfBase64.length);
+      
       // Convert base64 to blob for upload
       const byteCharacters = atob(newPdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -208,6 +220,7 @@ export const addSignatureToAdvancePDF = async (
       }
       const byteArray = new Uint8Array(byteNumbers);
       const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+      console.log('📄 PDF blob size:', pdfBlob.size, 'bytes');
 
       const updateData: any = {};
 
@@ -296,6 +309,9 @@ export const addSignatureToAdvancePDF = async (
 
       console.log(`🎉 Advance Payment ${signatureType} signature added successfully`);
       return true;
+    } else {
+      console.error('❌ Failed to generate PDF with signatures');
+      return false;
     }
 
     return false;
@@ -314,7 +330,7 @@ const generateAdvancePDFAsBase64 = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  hrSignature?: string
+  accountingSignature?: string
 ): Promise<string | null> => {
   try {
     const pdfBlob = await generateAdvancePDF(
@@ -323,7 +339,7 @@ const generateAdvancePDFAsBase64 = async (
       employeeData,
       userSignature,
       managerSignature,
-      hrSignature
+      accountingSignature
     );
 
     // Convert Blob to base64
@@ -365,7 +381,7 @@ const getActualEmployeeName = async (employeeId?: string): Promise<string | null
     const { data, error } = await supabase
       .from('Employee')
       .select('Name')
-      .eq('"email_user"', employeeId)
+      .eq('email_user', employeeId)
       .single();
 
     if (error || !data) return null;
@@ -385,7 +401,7 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
     if (!isNaN(numericId)) {
       const { data: employeeById, error: errorById } = await supabase
         .from('Employee')
-        .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
+        .select('Name, Position, Team, Budget_Training, Original_Budget_Training')
         .eq('id', numericId)
         .single();
 
@@ -394,7 +410,6 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
           Name: employeeById.Name,
           Position: employeeById.Position,
           Team: employeeById.Team,
-          start_date: employeeById.start_date,
           Budget_Training: (employeeById as any)?.Budget_Training,
           Original_Budget_Training: (employeeById as any)?.Original_Budget_Training
         } as any;
@@ -403,8 +418,8 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
 
     const { data, error } = await supabase
       .from('Employee')
-      .select('Name, Position, Team, start_date, Budget_Training, Original_Budget_Training')
-      .eq('"email_user"', userId)
+      .select('Name, Position, Team, Budget_Training, Original_Budget_Training')
+      .eq('email_user', userId)
       .single();
 
     if (error || !data) return undefined;
@@ -413,7 +428,6 @@ const getEmployeeData = async (userId: string): Promise<{ Name: string; Position
       Name: data.Name,
       Position: data.Position,
       Team: data.Team,
-      start_date: data.start_date,
       Budget_Training: (data as any)?.Budget_Training,
       Original_Budget_Training: (data as any)?.Original_Budget_Training
     } as any;

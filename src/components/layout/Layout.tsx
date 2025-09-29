@@ -1,8 +1,9 @@
 import React from "react";
-import { Sidebar } from "./Sidebar";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationBadge } from "../notifications/NotificationBadge";
 import { cn } from "@/lib/utils";
+import N8nChatbot from "@/components/chatbot/N8nChatbot";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -33,6 +34,8 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+      
+      <N8nChatbot />
     </div>
   );
 }

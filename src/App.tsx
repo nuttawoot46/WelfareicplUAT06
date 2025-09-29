@@ -9,6 +9,7 @@ import { InternalTrainingProvider } from "@/context/InternalTrainingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { Toaster as HotToast } from 'react-hot-toast';
+import MainLayout from "@/components/layout/MainLayout";
 
 // Import Pages
 import IndexPage from "./pages/Index"; // หน้า Login ของคุณ
@@ -24,13 +25,12 @@ import SuperAdmin from "./pages/SuperAdmin";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import { ApprovalPage } from "./pages/ApprovalPage";
+import { AccountingApprovalPage } from "./pages/AccountingApprovalPage";
 import { HRApprovalPage } from "./pages/HRApprovalPage";
 import { AccountingReviewPage } from "./pages/AccountingReviewPage";
 import { WelfareAccountingReviewPage } from "./pages/WelfareAccountingReviewPage";
 import { GeneralAccountingReviewPage } from "./pages/GeneralAccountingReviewPage";
-import ManagerPDFApprovalPage from "./pages/ManagerPDFApprovalPage";
-import HRPDFApprovalPage from "./pages/HRPDFApprovalPage";
-import WorkflowTimelinePage from "./pages/WorkflowTimelinePage";
+
 import { SupportPage } from "./pages/SupportPage";
 
 
@@ -99,97 +99,137 @@ const App = () => (
                   {/* --- Protected Routes --- */}
                   <Route path="/dashboard" element={
                     <ProtectedRoute>
-                      <DashboardPage />
+                      <MainLayout>
+                        <DashboardPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/welfare-dashboard" element={
                     <ProtectedRoute>
-                      <WelfareDashboard />
+                      <MainLayout>
+                        <WelfareDashboard />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/accounting-dashboard" element={
                     <ProtectedRoute>
-                      <AccountingDashboard />
+                      <MainLayout>
+                        <AccountingDashboard />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/forms" element={
                     <ProtectedRoute>
-                      <Forms />
+                      <MainLayout>
+                        <Forms />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/welfare-forms" element={
                     <ProtectedRoute>
-                      <WelfareFormsPage />
+                      <MainLayout>
+                        <WelfareFormsPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/accounting-forms" element={
                     <ProtectedRoute>
-                      <AccountingFormsPage />
+                      <MainLayout>
+                        <AccountingFormsPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   
                   <Route path="/notifications" element={
                     <ProtectedRoute>
-                      <Notifications />
+                      <MainLayout>
+                        <Notifications />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   
                   <Route path="/settings" element={
                     <ProtectedRoute>
-                      <Settings />
+                      <MainLayout>
+                        <Settings />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   
                   <Route path="/approve" element={
                     <ProtectedRoute>
-                      <ApprovalPage />
+                      <MainLayout>
+                        <ApprovalPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounting-approve" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <AccountingApprovalPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/hr-approve" element={
                     <ProtectedRoute>
-                      <HRApprovalPage />
+                      <MainLayout>
+                        <HRApprovalPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/admin/*" element={
                     <ProtectedRoute>
-                      <Admin />
+                      <MainLayout>
+                        <Admin />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/superadmin/*" element={
                     <ProtectedRoute>
                       <RoleProtectedRoute allowedRoles={['superadmin']}>
-                        <SuperAdmin />
+                        <MainLayout>
+                          <SuperAdmin />
+                        </MainLayout>
                       </RoleProtectedRoute>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/accounting-review" element={
                     <ProtectedRoute>
-                      <AccountingReviewPage />
+                      <MainLayout>
+                        <AccountingReviewPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   <Route path="/welfare-accounting-review" element={
                     <ProtectedRoute>
-                      <WelfareAccountingReviewPage />
+                      <MainLayout>
+                        <WelfareAccountingReviewPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   <Route path="/general-accounting-review" element={
                     <ProtectedRoute>
-                      <GeneralAccountingReviewPage />
+                      <MainLayout>
+                        <GeneralAccountingReviewPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/support" element={
                     <ProtectedRoute>
-                      <SupportPage />
+                      <MainLayout>
+                        <SupportPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   

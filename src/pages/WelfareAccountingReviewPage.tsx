@@ -145,6 +145,7 @@ const WelfareAccountingReviewPage: React.FC = () => {
       ? ['completed', 'rejected_accounting'] 
       : ['pending_accounting'];
 
+    // Only fetch from welfare_requests table for welfare types
     const { data, error } = await supabase
       .from('welfare_requests')
       .select('*, department_request')
@@ -193,6 +194,7 @@ const WelfareAccountingReviewPage: React.FC = () => {
       endDate = endOfYear(new Date(selectedYear + '-01-01'));
     }
 
+    // Only fetch from welfare_requests table for welfare types
     const { data, error } = await supabase
       .from('welfare_requests')
       .select('*, department_request')

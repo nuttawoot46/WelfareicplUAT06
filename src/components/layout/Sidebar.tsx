@@ -123,12 +123,23 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {/* Home Page */}
+          <Link to="/dashboard" className={cn(
+            "nav-link group",
+            isActive('/dashboard') ? "nav-link-active" : "text-white/90 hover:text-white"
+          )}>
+            <HomeIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="transition-all duration-300 text-white font-medium">หน้าหลัก</span>
+            )}
+          </Link>
+
           {/* Dashboard Menu with Dropdown */}
           <div className="relative">
             <div
               className={cn(
                 "nav-link group cursor-pointer",
-                isSubmenuActive(['/dashboard', '/welfare-dashboard', '/accounting-dashboard']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                isSubmenuActive(['/welfare-dashboard', '/accounting-dashboard']) ? "nav-link-active" : "text-white/90 hover:text-white"
               )}
               onClick={() => isOpen && toggleSubmenu('dashboard')}
               onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, dashboard: true }))}
@@ -151,13 +162,6 @@ export function Sidebar() {
               <div className={cn(
                 isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
               )}>
-                <Link to="/dashboard" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <ChartBar className="h-4 w-4" />
-                  <span>หน้าหลัก</span>
-                </Link>
                 <Link to="/welfare-dashboard" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
                   isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
@@ -264,14 +268,14 @@ export function Sidebar() {
                   isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
                   <File className="h-4 w-4" />
-                  <span>ฟอร์มสวัสดิการ</span>
+                  <span>ฟอร์ม HR</span>
                 </Link>
                 <Link to="/accounting-forms" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
                   isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
                   <FileText className="h-4 w-4" />
-                  <span>ฟอร์มสำหรับบัญชี</span>
+                  <span>ฟอร์ม บัญชี</span>
                 </Link>
               </div>
             )}
@@ -441,6 +445,13 @@ export function Sidebar() {
                   )}>
                     <HelpCircle className="h-4 w-4" />
                     <span>จัดการ Support</span>
+                  </Link>
+                  <Link to="/admin/announcements" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Bell className="h-4 w-4" />
+                    <span>จัดการประกาศ</span>
                   </Link>
                   <Link to="/admin/report" className={cn(
                     "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",

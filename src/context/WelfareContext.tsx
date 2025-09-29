@@ -142,6 +142,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               is_vat_included: row.is_vat_included,
               // Advance payment specific fields
               advanceDepartment: row.advance_department,
+              advanceDepartmentOther: row.advance_department_other,
               advanceDistrict: row.advance_district,
               advanceActivityType: row.advance_activity_type,
               advanceActivityOther: row.advance_activity_other,
@@ -365,6 +366,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         // Advance payment specific fields
         advance_department: (requestData as any).advanceDepartment,
+        advance_department_other: (requestData as any).advanceDepartmentOther,
         advance_district: (requestData as any).advanceDistrict,
         advance_activity_type: (requestData as any).advanceActivityType,
         advance_activity_other: (requestData as any).advanceActivityOther,

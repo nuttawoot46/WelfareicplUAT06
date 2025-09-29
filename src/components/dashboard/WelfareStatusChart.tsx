@@ -486,7 +486,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           ) : (
             <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
                     <TableHead className="w-[120px]">วันที่ยื่น</TableHead>
                     <TableHead>ประเภท</TableHead>

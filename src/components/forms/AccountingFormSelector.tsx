@@ -74,7 +74,7 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
               selected === option.id 
                 ? "ring-2 ring-primary ring-offset-2" 
                 : "",
-              "border-l-welfare-cyan"
+              "border-l-welfare-blue"
             )}
             onClick={() => handleSelect(option.id)}
           >

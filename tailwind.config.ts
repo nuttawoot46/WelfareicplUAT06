@@ -76,6 +76,7 @@ export default {
 					yellow: '#FFCA3A',
 					red: '#D90429',
 					indigo: '#6366F1',
+					white: '#FFFFFF',
 				},
 				dark: {
 					'100': '#1E1E2E', // Base dark background

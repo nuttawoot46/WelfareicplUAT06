@@ -65,13 +65,21 @@ const createAdvanceFormHTML = (
     expenseItems = [];
   }
 
-  // Calculate total from expense items
-  const calculatedTotal = expenseItems.reduce((sum, item) => {
+  // Calculate total request amount from expense items
+  const calculatedRequestTotal = expenseItems.reduce((sum, item) => {
     return sum + (Number(item.requestAmount) || 0);
   }, 0);
 
+  // Calculate total net amount from expense items
+  const calculatedNetTotal = expenseItems.reduce((sum, item) => {
+    return sum + (Number(item.netAmount) || 0);
+  }, 0);
+
   // Use the actual amount from the request, or calculated total as fallback
-  const totalAmount = advanceData.amount || calculatedTotal;
+  const totalAmount = advanceData.amount || calculatedRequestTotal;
+
+  // Use net amount for display in employee info section
+  const displayAmount = calculatedNetTotal || totalAmount;
 
   return `
     <div style="
@@ -119,7 +127,7 @@ const createAdvanceFormHTML = (
         
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeTeam}</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${advanceData.advanceDepartmentOther || ''}</span>
           <span style="margin-left: 20px; font-weight: bold;">เขต:</span>
           <span style="border-bottom: 1px dotted black; width: 150px; margin-left: 10px; padding-bottom: 2px;">${advanceData.advanceDistrict || ''}</span>
         </div>
@@ -129,7 +137,7 @@ const createAdvanceFormHTML = (
           <span style="border-bottom: 1px dotted black; width: 120px; padding-bottom: 2px;">${formatThaiDate(advanceData.createdAt || '')}</span>
           <span style="margin-left: 20px; font-weight: bold;">จำนวนเงิน:</span>
           <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px; text-align: right; font-weight: bold; color: #0066cc;">
-            ${formatCurrency(totalAmount)} บาท
+            ${formatCurrency(displayAmount)} บาท
           </span>
         </div>
       </div>
@@ -146,19 +154,19 @@ const createAdvanceFormHTML = (
               width: 16px; 
               height: 16px; 
               margin-right: 8px;
-              background: ${advanceData.advanceActivityType === 'project' ? 'black' : 'white'};
+              background: white;
               position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             ">
               ${advanceData.advanceActivityType === 'project' ? `
                 <div style="
-                  position: absolute;
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%);
-                  color: white;
-                  font-size: 12px;
+                  font-size: 14px;
                   font-weight: bold;
-                ">✓</div>
+                  color: black;
+                  line-height: 1;
+                ">✗</div>
               ` : ''}
             </div>
             <span>จัดประชุม</span>
@@ -170,19 +178,19 @@ const createAdvanceFormHTML = (
               width: 16px; 
               height: 16px; 
               margin-right: 8px;
-              background: ${advanceData.advanceActivityType === 'meeting' ? 'black' : 'white'};
+              background: white;
               position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             ">
               ${advanceData.advanceActivityType === 'meeting' ? `
                 <div style="
-                  position: absolute;
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%);
-                  color: white;
-                  font-size: 12px;
+                  font-size: 14px;
                   font-weight: bold;
-                ">✓</div>
+                  color: black;
+                  line-height: 1;
+                ">✗</div>
               ` : ''}
             </div>
             <span>ออกบูธ</span>
@@ -194,19 +202,19 @@ const createAdvanceFormHTML = (
               width: 16px; 
               height: 16px; 
               margin-right: 8px;
-              background: ${advanceData.advanceActivityType === 'training' ? 'black' : 'white'};
+              background: white;
               position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             ">
               ${advanceData.advanceActivityType === 'training' ? `
                 <div style="
-                  position: absolute;
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%);
-                  color: white;
-                  font-size: 12px;
+                  font-size: 14px;
                   font-weight: bold;
-                ">✓</div>
+                  color: black;
+                  line-height: 1;
+                ">✗</div>
               ` : ''}
             </div>
             <span>อื่น ๆ ระบุ</span>
@@ -223,19 +231,19 @@ const createAdvanceFormHTML = (
       width: 16px; 
       height: 16px; 
       margin-right: 8px;
-      background: ${advanceData.advanceActivityType === 'dealer' ? 'black' : 'white'};
+      background: white;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     ">
       ${advanceData.advanceActivityType === 'dealer' ? `
         <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: bold;
-        ">✓</div>
+          color: black;
+          line-height: 1;
+        ">✗</div>
       ` : ''}
     </div>
     <span>ดีลเลอร์</span>
@@ -251,19 +259,19 @@ const createAdvanceFormHTML = (
       width: 16px; 
       height: 16px; 
       margin-right: 8px;
-      background: ${advanceData.advanceActivityType === 'subdealer' ? 'black' : 'white'};
+      background: white;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     ">
       ${advanceData.advanceActivityType === 'subdealer' ? `
         <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: bold;
-        ">✓</div>
+          color: black;
+          line-height: 1;
+        ">✗</div>
       ` : ''}
     </div>
     <span>ซับดีลเลอร์</span>
@@ -280,7 +288,14 @@ const createAdvanceFormHTML = (
           <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
             ${advanceData.start_date ? formatThaiDate(advanceData.start_date) : formatThaiDate(advanceData.createdAt || '')}
           </span>
-          <span style="margin-left: 20px;">จำนวนผู้เข้าร่วม</span>
+          <span style="margin-left: 20px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+            ${advanceData.end_date ? formatThaiDate(advanceData.end_date) : ''}
+          </span>
+        </div>
+        
+        <div style="display: flex; margin-bottom: 10px;">
+          <span>จำนวนผู้เข้าร่วม</span>
           <span style="border-bottom: 1px dotted black; width: 60px; margin-left: 10px; padding-bottom: 2px; text-align: center;">
             ${advanceData.advanceParticipants || ''}
           </span>
@@ -307,33 +322,59 @@ const createAdvanceFormHTML = (
       <div style="margin-bottom: 20px;">
         <div style="font-weight: bold; margin-bottom: 10px;">สรุปค่าใช้จ่าย</div>
         
-        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
           <thead>
             <tr style="background: #f0f0f0;">
-              <th style="border: 1px solid black; padding: 8px; text-align: left;">รายการ</th>
-              <th style="border: 1px solid black; padding: 8px; text-align: center;">ภาษี %</th>
-              <th style="border: 1px solid black; padding: 8px; text-align: right;">จำนวนเงิน (บาท)</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: left; width: 30%;">ชื่อรายการ</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: right; width: 18%;">จำนวนเงินเบิก</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 12%;">อัตรา % ภาษี</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: right; width: 18%;">จำนวนภาษีหัก ณที่จ่าย</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: right; width: 22%;">ยอดเงินสุทธิ</th>
             </tr>
           </thead>
           <tbody>
-            ${expenseItems.map(item => `
-              <tr>
-                <td style="border: 1px solid black; padding: 6px;">${item.name || 'รายการไม่ระบุ'}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">${item.taxRate || 0}%</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold;">
-                  ${formatCurrency(Number(item.requestAmount) || 0)}
-                </td>
-              </tr>
-            `).join('')}
+            ${expenseItems.map(item => {
+    const requestAmount = Number(item.requestAmount) || 0;
+    const taxRate = Number(item.taxRate) || 0;
+    const taxAmount = Number(item.taxAmount) || 0; // Use existing taxAmount from data
+    const netAmount = Number(item.netAmount) || (requestAmount - taxAmount); // Use existing netAmount or calculate
+
+    return `
+                <tr>
+                  <td style="border: 1px solid black; padding: 5px;">${item.name || 'รายการไม่ระบุ'}</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: right;">
+                    ${formatCurrency(requestAmount)}
+                  </td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: center;">${taxRate}%</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: right;">
+                    ${formatCurrency(taxAmount)}
+                  </td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: right; font-weight: bold;">
+                    ${formatCurrency(netAmount)}
+                  </td>
+                </tr>
+              `;
+  }).join('')}
             ${expenseItems.length === 0 ? `
               <tr>
-                <td style="border: 1px solid black; padding: 6px;" colspan="3">ไม่มีรายการค่าใช้จ่าย</td>
+                <td style="border: 1px solid black; padding: 6px;" colspan="5">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
             <tr style="background: #e6f3ff; font-weight: bold;">
-              <td style="border: 1px solid black; padding: 8px; text-align: center;" colspan="2">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 8px; text-align: right; color: blue; font-size: 14px;">
+              <td style="border: 1px solid black; padding: 8px; text-align: center;">รวมทั้งสิ้น</td>
+              <td style="border: 1px solid black; padding: 8px; text-align: right; color: blue;">
                 ${formatCurrency(totalAmount)}
+              </td>
+              <td style="border: 1px solid black; padding: 8px; text-align: center;">-</td>
+              <td style="border: 1px solid black; padding: 8px; text-align: right; color: blue;">
+                ${formatCurrency(expenseItems.reduce((sum, item) => {
+    return sum + (Number(item.taxAmount) || 0); // Use existing taxAmount from data
+  }, 0))}
+              </td>
+              <td style="border: 1px solid black; padding: 8px; text-align: right; color: blue; font-size: 12px;">
+                ${formatCurrency(expenseItems.reduce((sum, item) => {
+    return sum + (Number(item.netAmount) || 0); // Use existing netAmount from data
+  }, 0))}
               </td>
             </tr>
           </tbody>

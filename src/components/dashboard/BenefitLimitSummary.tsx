@@ -126,7 +126,7 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl font-bold text-welfare-blue">
+        <CardTitle className="flex items-center gap-2 text-xl font-bold text-welfare-gray">
           <span>สรุปวงเงินสวัสดิการ</span>
           
         </CardTitle>
@@ -136,13 +136,13 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
         {viewMode === 'table' ? (
           <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white dark:bg-gray-900">
             <Table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
-              <TableHeader className="bg-welfare-blue/10">
+              <TableHeader className="bg-welfare-blue/100">
                 <TableRow>
-                  <TableHead className="font-semibold text-welfare-blue">ประเภทสวัสดิการ</TableHead>
-                  <TableHead className="font-semibold text-welfare-blue">วงเงินทั้งหมด</TableHead>
-                  <TableHead className="font-semibold text-welfare-blue">ใช้ไปแล้ว</TableHead>
-                  <TableHead className="font-semibold text-welfare-blue">คงเหลือ</TableHead>
-                  <TableHead className="w-[180px] font-semibold text-welfare-blue">สัดส่วนคงเหลือ</TableHead>
+                  <TableHead className="font-semibold text-welfare-white">ประเภทสวัสดิการ</TableHead>
+                  <TableHead className="font-semibold text-welfare-white">วงเงินทั้งหมด</TableHead>
+                  <TableHead className="font-semibold text-welfare-white">ใช้ไปแล้ว</TableHead>
+                  <TableHead className="font-semibold text-welfare-white">คงเหลือ</TableHead>
+                  <TableHead className="w-[180px] font-semibold text-welfare-white">สัดส่วนคงเหลือ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

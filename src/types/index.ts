@@ -47,7 +47,21 @@ export type WelfareType =
   | 'wedding'
   | 'training'
   | 'childbirth'
-  | 'funeral' 
+  | 'funeral'
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: 'high' | 'medium' | 'low';
+  type: 'system' | 'welfare' | 'training' | 'general';
+  is_active: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+} 
   | 'glasses'
   | 'dental'
   | 'fitness'
@@ -137,6 +151,7 @@ export interface WelfareRequest {
   isVatIncluded?: boolean;
   // Advance (เบิกเงินทดลอง) specific fields
   advanceDepartment?: string;
+  advanceDepartmentOther?: string; // ระบุแผนกอื่นๆ (แยกจาก advanceActivityOther)
   advanceDistrict?: string;
   advanceActivityType?: string;
   advanceActivityOther?: string;

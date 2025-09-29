@@ -312,14 +312,14 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                   ? "ring-2 ring-primary ring-offset-2" 
                   : !isDisabled && "hover:-translate-y-1",
                 `border-l-welfare-${option.id === 'wedding' ? 'blue' : 
-                  option.id === 'training' ? 'teal' :
-                  option.id === 'childbirth' ? 'pink' :
-                  option.id === 'funeral' ? 'purple' :
+                  option.id === 'training' ? 'blue' :
+                  option.id === 'childbirth' ? 'blue' :
+                  option.id === 'funeral' ? 'blue' :
                   option.id === 'glasses' ? 'blue' :
-                  option.id === 'dental' ? 'orange' :
-                  option.id === 'fitness' ? 'green' :
-                  option.id === 'medical' ? 'red' :
-                  option.id === 'internal_training' ? 'indigo' : 'blue'}`
+                  option.id === 'dental' ? 'blue' :
+                  option.id === 'fitness' ? 'blue' :
+                  option.id === 'medical' ? 'blue' :
+                  option.id === 'internal_training' ? 'blue' : 'blue'}`
               )}
               onClick={() => !isDisabled && handleSelect(option.id)}
             >

@@ -147,12 +147,12 @@ const GeneralAccountingReviewPage: React.FC = () => {
 
   const fetchRequests = async () => {
     setIsLoading(true);
-    const statusFilter = activeTab === 'history' 
-      ? ['completed', 'rejected_accounting'] 
+    const statusFilter = activeTab === 'history'
+      ? ['completed', 'rejected_accounting']
       : ['pending_accounting'];
 
-    // Fetch from multiple tables for different request types
-    const tables = ['advance_requests', 'expense_clearing_requests', 'internal_training_requests'];
+    // Fetch only from advance and expense clearing tables
+    const tables = ['advance_requests', 'expense_clearing_requests'];
     let allRequests: GeneralRequestItem[] = [];
 
     for (const table of tables) {
@@ -183,15 +183,13 @@ const GeneralAccountingReviewPage: React.FC = () => {
             console.warn('Error processing attachments for request:', req.id, error);
             attachments = [];
           }
-          
+
           // Add table identifier to distinguish request types
-          return { 
-            ...req, 
+          return {
+            ...req,
             attachments,
             table_source: table,
-            request_type: table === 'advance_requests' ? 'advance' : 
-                         table === 'expense_clearing_requests' ? 'expense_clearing' : 
-                         'internal_training'
+            request_type: table === 'advance_requests' ? 'advance' : 'expense_clearing'
           };
         });
         allRequests = [...allRequests, ...mapped];
@@ -216,7 +214,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
       endDate = endOfYear(new Date(selectedYear + '-01-01'));
     }
 
-    const tables = ['advance_requests', 'expense_clearing_requests', 'internal_training_requests'];
+    // Fetch only from advance and expense clearing tables
+    const tables = ['advance_requests', 'expense_clearing_requests'];
     let allReportData: GeneralRequestItem[] = [];
 
     for (const table of tables) {
@@ -250,14 +249,12 @@ const GeneralAccountingReviewPage: React.FC = () => {
             console.warn('Error processing attachments for report request:', req.id, error);
             attachments = [];
           }
-          
-          return { 
-            ...req, 
+
+          return {
+            ...req,
             attachments,
             table_source: table,
-            request_type: table === 'advance_requests' ? 'advance' : 
-                         table === 'expense_clearing_requests' ? 'expense_clearing' : 
-                         'internal_training'
+            request_type: table === 'advance_requests' ? 'advance' : 'expense_clearing'
           };
         });
         allReportData = [...allReportData, ...mapped];
@@ -266,8 +263,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
 
     setReportData(allReportData as GeneralRequestItem[]);
     setIsLoading(false);
-  };  
-const filterRequests = () => {
+  };
+  const filterRequests = () => {
     setIsFiltering(true);
     setTimeout(() => {
       let filtered = [...requests];
@@ -371,11 +368,9 @@ const filterRequests = () => {
   const getRequestTypeLabel = (type: string) => {
     switch (type) {
       case 'advance':
-        return 'เบิกล่วงหน้า';
+        return 'เบิกเงินล่วงหน้า';
       case 'expense_clearing':
         return 'เคลียร์ค่าใช้จ่าย';
-      case 'internal_training':
-        return 'อบรมภายใน';
       default:
         return type;
     }
@@ -413,7 +408,7 @@ const filterRequests = () => {
 
     try {
       const currentDateTime = new Date().toISOString();
-      
+
       // Group by table source for bulk operations
       const requestsByTable: { [key: string]: number[] } = {};
       filteredRequests.forEach(req => {
@@ -452,7 +447,7 @@ const filterRequests = () => {
 
     try {
       const currentDateTime = new Date().toISOString();
-      
+
       // Group by table source for bulk operations
       const requestsByTable: { [key: string]: number[] } = {};
       filteredRequests.forEach(req => {
@@ -581,7 +576,7 @@ const filterRequests = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `รายงานการเบิกทั่วไป_${reportPeriod === 'month' ? selectedMonth : selectedYear}.csv`);
+    link.setAttribute('download', `รายงานการเบิกเงินล่วงหน้าและเคลียร์ค่าใช้จ่าย_${reportPeriod === 'month' ? selectedMonth : selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -608,27 +603,27 @@ const filterRequests = () => {
             className={`px-4 py-2 rounded-t ${activeTab === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('pending')}
           >
-            รายการรอตรวจสอบ (บัญชี)
+            รายการรอตรวจสอบ (เบิกเงิน/เคลียร์)
           </button>
           <button
             className={`px-4 py-2 rounded-t ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('history')}
           >
-            ประวัติการขอ (บัญชี)
+            ประวัติการขอ (เบิกเงิน/เคลียร์)
           </button>
           <button
             className={`px-4 py-2 rounded-t ${activeTab === 'report' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('report')}
           >
             <BarChart3 className="h-4 w-4 mr-1 inline" />
-            รายงานการเบิก (บัญชี)
+            รายงานการเบิก (เบิกเงิน/เคลียร์)
           </button>
         </div>
 
         <h1 className="text-2xl font-bold mb-4">
-          {activeTab === 'report' ? 'รายงานการเบิกทั่วไป (บัญชี)' : 
-           activeTab === 'history' ? 'ประวัติการขอทั่วไป (บัญชี)' : 
-           'รายการรอตรวจสอบทั่วไป (บัญชี)'}
+          {activeTab === 'report' ? 'รายงานการเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย' :
+            activeTab === 'history' ? 'ประวัติการขอเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย' :
+              'รายการรอตรวจสอบเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย (บัญชี)'}
         </h1>
 
         {activeTab === 'report' ? (
@@ -756,7 +751,7 @@ const filterRequests = () => {
             {/* Detailed Report Table */}
             <div className="bg-white rounded-lg border overflow-hidden">
               <div className="px-4 py-3 bg-gray-50 border-b">
-                <h3 className="text-lg font-semibold">รายละเอียดการเบิกทั่วไป</h3>
+                <h3 className="text-lg font-semibold">รายละเอียดการเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย</h3>
               </div>
               {filteredReportData.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -867,9 +862,8 @@ const filterRequests = () => {
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="">ทุกประเภท</option>
-                    <option value="advance">เบิกล่วงหน้า</option>
+                    <option value="advance">เบิกเงินล่วงหน้า</option>
                     <option value="expense_clearing">เคลียร์ค่าใช้จ่าย</option>
-                    <option value="internal_training">อบรมภายใน</option>
                   </select>
                 </div>
               </div>
@@ -926,8 +920,8 @@ const filterRequests = () => {
                 </select>
                 <span className="text-sm text-gray-600">รายการต่อหน้า</span>
               </div>
-            </div>    
-        {/* Request List Table */}
+            </div>
+            {/* Request List Table */}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -982,10 +976,10 @@ const filterRequests = () => {
                     <TableRow key={r.id}>
                       <TableCell>
                         {activeTab === 'pending' && (
-                          <input 
-                            type="checkbox" 
-                            checked={selectedIds.includes(r.id)} 
-                            onChange={() => handleSelect(r.id)} 
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(r.id)}
+                            onChange={() => handleSelect(r.id)}
                           />
                         )}
                       </TableCell>
@@ -1018,15 +1012,14 @@ const filterRequests = () => {
                       </TableCell>
                       {activeTab === 'history' && (
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            r.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : r.status === 'rejected_accounting'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {r.status === 'completed' ? 'อนุมัติแล้ว' : 
-                             r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' : r.status}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : r.status === 'rejected_accounting'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {r.status === 'completed' ? 'อนุมัติแล้ว' :
+                              r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' : r.status}
                           </span>
                           {r.accounting_approved_at && (
                             <div className="text-xs text-gray-500 mt-1">
@@ -1035,7 +1028,7 @@ const filterRequests = () => {
                           )}
                           {r.accounting_notes && (
                             <div className="text-xs text-gray-600 mt-1" title={r.accounting_notes}>
-                              หมายเหตุ: {r.accounting_notes.length > 20 ? 
+                              หมายเหตุ: {r.accounting_notes.length > 20 ?
                                 r.accounting_notes.substring(0, 20) + '...' : r.accounting_notes}
                             </div>
                           )}
@@ -1177,8 +1170,8 @@ const filterRequests = () => {
               </div>
             )}
           </>
-        )}        
-{/* Details Modal */}
+        )}
+        {/* Details Modal */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
@@ -1200,7 +1193,7 @@ const filterRequests = () => {
                   <div><b>วันที่ HR อนุมัติ:</b> {format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')}</div>
                 )}
                 <div><b>รายละเอียด:</b> {selectedRequest.details || '-'}</div>
-                
+
                 {/* Additional fields for specific request types */}
                 {selectedRequest.request_type === 'advance' && (
                   <>
@@ -1209,7 +1202,7 @@ const filterRequests = () => {
                     <div><b>วันที่เดินทาง:</b> {selectedRequest.advance_date ? format(new Date(selectedRequest.advance_date), 'dd/MM/yyyy') : '-'}</div>
                   </>
                 )}
-                
+
                 {selectedRequest.request_type === 'expense_clearing' && (
                   <>
                     <div><b>จำนวนเงินเคลียร์:</b> {selectedRequest.clearing_amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) || '-'}</div>
@@ -1293,7 +1286,7 @@ const filterRequests = () => {
                   </div>
                 </div>
                 <div><b>หมายเหตุจากผู้จัดการ:</b> {selectedRequest.manager_notes || '-'}</div>
-                
+
                 {/* Audit Trail */}
                 <div className="bg-gray-100 rounded p-2 mt-2">
                   <div><b>ประวัติการอนุมัติ</b></div>
@@ -1305,30 +1298,30 @@ const filterRequests = () => {
                     <div>- HR อนุมัติ: {selectedRequest.hr_approver_name || 'อนุมัติแล้ว'} ({format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')})</div>
                   )}
                 </div>
-                
+
                 {activeTab === 'pending' && selectedRequest.status === 'pending_accounting' && (
                   <div className="flex flex-col gap-2 mt-2">
                     <div className="flex gap-2">
-                      <Button 
-                        variant="default" 
-                        className="bg-green-600 hover:bg-green-700 text-white flex-1" 
+                      <Button
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700 text-white flex-1"
                         onClick={() => handleApprove(selectedRequest.id, (selectedRequest as any).table_source)}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />อนุมัติ
                       </Button>
-                      <Button 
-                        variant="destructive" 
-                        className="flex-1" 
-                        disabled={!rejectReason} 
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={!rejectReason}
                         onClick={() => handleReject(selectedRequest.id, (selectedRequest as any).table_source)}
                       >
                         <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
                       </Button>
                     </div>
-                    <Input 
-                      placeholder="เหตุผลการไม่อนุมัติ (จำเป็นสำหรับการไม่อนุมัติ)" 
-                      value={rejectReason} 
-                      onChange={e => setRejectReason(e.target.value)} 
+                    <Input
+                      placeholder="เหตุผลการไม่อนุมัติ (จำเป็นสำหรับการไม่อนุมัติ)"
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
                     />
                   </div>
                 )}

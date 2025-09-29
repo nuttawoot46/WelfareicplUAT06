@@ -155,7 +155,7 @@ const createManagerAdvanceFormHTML = (
         
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeTeam}</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${advanceData.advanceDepartmentOther || ''}</span>
           <span style="margin-left: 20px; font-weight: bold;">เขต:</span>
           <span style="border-bottom: 1px dotted black; width: 150px; margin-left: 10px; padding-bottom: 2px;">${advanceData.advanceDistrict || ''}</span>
         </div>
@@ -261,10 +261,15 @@ const createManagerAdvanceFormHTML = (
         </div>
         
         <div style="display: flex; margin-bottom: 10px;">
-          <span style="font-weight: bold;">วันที่เริ่มกิจกรรม:</span>
+          <span>วันที่เริ่มกิจกรรม/ประชุม</span>
           <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
             ${advanceData.start_date ? formatThaiDate(advanceData.start_date) : formatThaiDate(advanceData.createdAt || '')}
           </span>
+          <span style="margin-left: 20px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+            ${advanceData.end_date ? formatThaiDate(advanceData.end_date) : ''}
+          </span>
+        </div>
           <span style="margin-left: 20px; font-weight: bold;">จำนวนผู้เข้าร่วม:</span>
           <span style="border-bottom: 1px dotted black; width: 60px; margin-left: 10px; padding-bottom: 2px; text-align: center;">
             ${advanceData.totalParticipants || '-'}

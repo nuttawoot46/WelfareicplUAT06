@@ -47,7 +47,7 @@ export const HRApprovalPage = () => {
   const [isBulkApprovalMode, setIsBulkApprovalMode] = useState(false);
   const [bulkApprovalQueue, setBulkApprovalQueue] = useState<WelfareRequest[]>([]);
   const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('pending-welfare');
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -87,10 +87,17 @@ export const HRApprovalPage = () => {
   const filteredRequests = useMemo(() => {
     return combinedRequests
       .filter((req: WelfareRequest) => {
-        // Filter by tab
-        if (activeTab === 'pending') {
-          // Show only requests pending HR approval
+        // Filter by tab type first
+        if (activeTab === 'pending-welfare') {
+          // Show only welfare requests pending HR approval
           if (req.status !== 'pending_hr') return false;
+          // Filter out accounting types (advance and expense-clearing)
+          if (req.type === 'advance' || req.type === 'expense-clearing') return false;
+        } else if (activeTab === 'pending-accounting') {
+          // Show only accounting requests pending HR approval
+          if (req.status !== 'pending_hr') return false;
+          // Only show accounting types (advance and expense-clearing)
+          if (req.type !== 'advance' && req.type !== 'expense-clearing') return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by HR (approved or rejected)
           const processedStatuses = ['pending_accounting', 'approved', 'rejected_hr', 'rejected_accounting'];
@@ -155,9 +162,9 @@ export const HRApprovalPage = () => {
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
-      // Only select requests that are pending_hr (can be approved) and only in pending tab
+      // Only select requests that are pending_hr (can be approved) and only in pending tabs
       const selectableRequests = filteredRequests.filter(req => 
-        req.status === 'pending_hr' && activeTab === 'pending'
+        req.status === 'pending_hr' && (activeTab === 'pending-welfare' || activeTab === 'pending-accounting')
       );
       setSelectedRequests(selectableRequests.map(req => req.id));
     } else {
@@ -562,10 +569,14 @@ export const HRApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pending" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="pending-welfare" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Pending Approval
+                สวัสดิการ
+              </TabsTrigger>
+              <TabsTrigger value="pending-accounting" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                บัญชี
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
@@ -573,7 +584,11 @@ export const HRApprovalPage = () => {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="pending" className="space-y-4">
+            <TabsContent value="pending-welfare" className="space-y-4">
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="font-semibold text-blue-800 mb-2">คำร้องสวัสดิการ HR</h3>
+                <p className="text-sm text-blue-600">รายการคำร้องสวัสดิการที่รอการอนุมัติจาก HR</p>
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="relative">
@@ -634,6 +649,283 @@ export const HRApprovalPage = () => {
                   </Button>
                 </div>
               </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            filteredRequests.filter(req => req.status === 'pending_hr').length > 0 &&
+                            selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_hr').length
+                          }
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Welfare Type</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Submission Date</TableHead>
+                      <TableHead>Approved by Manager</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                          ไม่มีคำร้องสวัสดิการที่รอการอนุมัติจาก HR
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((req: WelfareRequest, index: number) => (
+                        <TableRow key={`${req.id}-${req.type}-${index}`}>
+                          <TableCell>
+                            <Checkbox
+                              onCheckedChange={() => handleSelectRequest(req.id)}
+                              checked={selectedRequests.includes(req.id)}
+                              aria-label={`Select request ${req.id}`}
+                              disabled={req.status !== 'pending_hr'}
+                            />
+                          </TableCell>
+                          <TableCell>{req.userName}</TableCell>
+                          <TableCell>{req.userDepartment || '-'}</TableCell>
+                          <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
+                          <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{req.managerApproverName}</div>
+                              {req.managerApprovedAt && (
+                                <div className="text-xs text-gray-500">
+                                  {format(new Date(req.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Pending HR
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {req.attachments && req.attachments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {req.attachments.map((file, idx) => (
+                                  <Button asChild variant="ghost" size="icon" key={idx}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
+                              {req.status === 'pending_hr' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(req.id)}
+                                  disabled={isLoading}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Approve
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="pending-accounting" className="space-y-4">
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold text-green-800 mb-2">คำร้องบัญชี HR</h3>
+                <p className="text-sm text-green-600">รายการคำร้องเบิกเงินล่วงหน้าและเคลียร์ค่าใช้จ่ายที่รอการอนุมัติจาก HR</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by employee..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                        <Filter className="mr-2 h-4 w-4" />
+                        <span>Filter by date</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <div className="p-4">
+                        <h4 className="font-medium mb-2">Filters</h4>
+                        <div className="mt-4">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant={'outline'} className="w-full justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={dateFilter}
+                                onSelect={setDateFilter}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-x-2">
+                  <Button
+                    onClick={handleBulkApprove}
+                    disabled={selectedRequests.length === 0}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Approve ({selectedRequests.length})
+                  </Button>
+                  <Button
+                    onClick={handleBulkReject}
+                    disabled={selectedRequests.length === 0}
+                    variant="destructive"
+                  >
+                    Reject ({selectedRequests.length})
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            filteredRequests.filter(req => req.status === 'pending_hr').length > 0 &&
+                            selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_hr').length
+                          }
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Submission Date</TableHead>
+                      <TableHead>Approved by Manager</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                          ไม่มีคำร้องบัญชีที่รอการอนุมัติจาก HR
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((req: WelfareRequest, index: number) => (
+                        <TableRow key={`${req.id}-${req.type}-${index}`}>
+                          <TableCell>
+                            <Checkbox
+                              onCheckedChange={() => handleSelectRequest(req.id)}
+                              checked={selectedRequests.includes(req.id)}
+                              aria-label={`Select request ${req.id}`}
+                              disabled={req.status !== 'pending_hr'}
+                            />
+                          </TableCell>
+                          <TableCell>{req.userName}</TableCell>
+                          <TableCell>{req.userDepartment || '-'}</TableCell>
+                          <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
+                          <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{req.managerApproverName}</div>
+                              {req.managerApprovedAt && (
+                                <div className="text-xs text-gray-500">
+                                  {format(new Date(req.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Pending HR
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {req.attachments && req.attachments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {req.attachments.map((file, idx) => (
+                                  <Button asChild variant="ghost" size="icon" key={idx}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
+                              {req.status === 'pending_hr' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(req.id)}
+                                  disabled={isLoading}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Approve
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </TabsContent>
             
             <TabsContent value="history" className="space-y-4">
@@ -691,161 +983,144 @@ export const HRApprovalPage = () => {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Welfare Type</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Submission Date</TableHead>
+                      <TableHead>Approved by Manager</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>HR Processed Date</TableHead>
+                      <TableHead className="w-[200px]">หมายเหตุ</TableHead>
+                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                          ไม่มีประวัติการอนุมัติ
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRequests.map((req: WelfareRequest, index: number) => (
+                        <TableRow key={`${req.id}-${req.type}-${index}`}>
+                          <TableCell>{req.userName}</TableCell>
+                          <TableCell>{req.userDepartment || '-'}</TableCell>
+                          <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
+                          <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{req.managerApproverName}</div>
+                              {req.managerApprovedAt && (
+                                <div className="text-xs text-gray-500">
+                                  {format(new Date(req.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {req.status === 'pending_accounting' ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                Pending Accounting
+                              </Badge>
+                            ) : req.status === 'approved' ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                Approved
+                              </Badge>
+                            ) : req.status === 'rejected_hr' ? (
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                Rejected by HR
+                              </Badge>
+                            ) : req.status === 'rejected_accounting' ? (
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                Rejected by Accounting
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                {req.status}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {req.hrApprovedAt ? format(new Date(req.hrApprovedAt), 'PP') : 
+                             req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
+                          </TableCell>
+                          <TableCell className="max-w-[200px]">
+                            <div className="text-sm space-y-1">
+                              {req.managerNotes && (
+                                <div>
+                                  <span className="font-medium">Manager:</span> {req.managerNotes}
+                                </div>
+                              )}
+                              {req.hrNotes && (
+                                <div>
+                                  <span className="font-medium">HR:</span> {req.hrNotes}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {req.attachments && req.attachments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {req.attachments.map((file, idx) => (
+                                  <Button asChild variant="ghost" size="icon" key={idx}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {(req.managerSignature || req.hrSignature) ? (
+                              <div className="flex gap-1 justify-center">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={async () => {
+                                    const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
+                                    await downloadPDFFromDatabase(req.id);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  PDF
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">ยังไม่อนุมัติ</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </TabsContent>
           </Tabs>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {activeTab === 'pending' && (
-                  <TableHead>
-                    <Checkbox
-                      onCheckedChange={handleSelectAll}
-                      checked={
-                        filteredRequests.length > 0 && selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_hr').length
-                          ? true
-                          : selectedRequests.length > 0
-                            ? 'indeterminate'
-                            : false
-                      }
-                      aria-label="Select all"
-                    />
-                  </TableHead>
-                )}
-                <TableHead>Employee</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Welfare Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Submission Date</TableHead>
-                <TableHead>Approved by Manager</TableHead>
-                <TableHead>Status</TableHead>
-                {activeTab === 'history' && <TableHead>HR Processed Date</TableHead>}
-                {activeTab === 'history' && <TableHead className="w-[200px]">หมายเหตุ</TableHead>}
-                <TableHead className="text-center">Attachment</TableHead>
-                {activeTab === 'history' && <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>}
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.map((req: WelfareRequest, index: number) => (
-                <TableRow key={`${req.id}-${req.type}-${index}`}>
-                  {activeTab === 'pending' && (
-                    <TableCell>
-                      <Checkbox
-                        onCheckedChange={() => handleSelectRequest(req.id)}
-                        checked={selectedRequests.includes(req.id)}
-                        aria-label={`Select request ${req.id}`}
-                        disabled={req.status !== 'pending_hr'}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell>{req.userName}</TableCell>
-                  <TableCell>{req.userDepartment || '-'}</TableCell>
-                  <TableCell>{getWelfareTypeLabel(req.type)}</TableCell>
-                  <TableCell>{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>{format(new Date(req.date), 'PP')}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{req.managerApproverName}</div>
-                      {req.managerApprovedAt && (
-                        <div className="text-xs text-gray-500">
-                          {format(new Date(req.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {req.status === 'pending_hr' ? (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                        Pending HR
-                      </Badge>
-                    ) : req.status === 'pending_accounting' ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        Pending Accounting
-                      </Badge>
-                    ) : req.status === 'approved' ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Approved
-                      </Badge>
-                    ) : req.status === 'rejected_hr' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected by HR
-                      </Badge>
-                    ) : req.status === 'rejected_accounting' ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Rejected by Accounting
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">
-                        {req.status}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  {activeTab === 'history' && (
-                    <TableCell>
-                      {req.hrApprovedAt ? format(new Date(req.hrApprovedAt), 'PP') : 
-                       req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
-                    </TableCell>
-                  )}
-                  <TableCell className="text-center">
-                    {req.attachments && req.attachments.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {req.attachments.map((file, idx) => (
-                          <Button asChild variant="ghost" size="icon" key={idx}>
-                            <a
-                              href={file}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`View attachment ${idx + 1}`}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  {activeTab === 'history' && (
-                    <TableCell className="text-center">
-                      {(req.managerSignature || req.hrSignature) ? (
-                        <div className="flex gap-1 justify-center">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={async () => {
-                              const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
-                              await downloadPDFFromDatabase(req.id);
-                            }}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            PDF
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">ยังไม่อนุมัติ</span>
-                      )}
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredRequests.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {activeTab === 'pending' 
-                ? 'No requests pending HR approval at this time.'
-                : 'No processed requests found.'
-              }
-            </div>
-          )}
         </CardContent>
       </Card>
 
