@@ -671,13 +671,14 @@ export const HRApprovalPage = () => {
                       <TableHead>Approved by Manager</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead className="text-center">PDF</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องสวัสดิการที่รอการอนุมัติจาก HR
                         </TableCell>
                       </TableRow>
@@ -843,13 +844,14 @@ export const HRApprovalPage = () => {
                       <TableHead>Approved by Manager</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead className="text-center">PDF</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องบัญชีที่รอการอนุมัติจาก HR
                         </TableCell>
                       </TableRow>
@@ -1005,7 +1007,7 @@ export const HRApprovalPage = () => {
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                           ไม่มีประวัติการอนุมัติ
                         </TableCell>
                       </TableRow>

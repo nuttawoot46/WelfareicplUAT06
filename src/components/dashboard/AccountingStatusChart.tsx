@@ -23,6 +23,8 @@ interface AccountingRequestItem {
   attachment_url?: string;
   attachments?: string[];
   pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
+  pdf_request_manager?: string; // PDF ที่ Manager approve แล้ว
+  pdf_url?: string; // PDF URL จาก database
 }
 
 const formatDate = (dateString: string | Date) => {
@@ -475,6 +477,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                     <TableHead className="text-right">จำนวนเงิน</TableHead>
                     <TableHead className="text-center">สถานะ</TableHead>
                     <TableHead className="text-center">เอกสารแนบ</TableHead>
+                    <TableHead className="text-center">PDF</TableHead>
                     <TableHead className="w-[200px]">หมายเหตุ</TableHead>
                     <TableHead className="w-[100px] text-center">รายละเอียด</TableHead>
                   </TableRow>
@@ -525,92 +528,50 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                             </>
                           )}
 
-                          {/* PDF ที่ HR approve แล้ว - แสดงเฉพาะเมื่อสถานะเป็น pending_accounting หรือ completed */}
-                          {request.pdf_request_hr &&
-                            (request.status === 'pending_accounting' || request.status === 'completed') && (
-                              <div className="flex flex-col items-center">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  key="hr-approved-pdf"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    // ดาวน์โหลด PDF จาก URL
-                                    try {
-                                      if (!request.pdf_request_hr) {
-                                        alert('ไม่พบไฟล์ PDF');
-                                        return;
-                                      }
+                          {/* แสดง - เมื่อไม่มีเอกสารแนบ */}
+                          {(!request.attachments || request.attachments.length === 0) && (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-wrap gap-1 justify-center items-center">
+                          {/* PDF ลิงก์จาก database - เลือกตามสถานะ */}
+                          {(() => {
+                            // เลือก PDF URL ตามสถานะ
+                            let pdfUrl = null;
+                            let pdfTitle = "ดู PDF เอกสาร";
+                            
+                            if (request.status === 'pending_manager' && request.pdf_url) {
+                              pdfUrl = request.pdf_url;
+                              pdfTitle = "ดู PDF เอกสาร";
+                            } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
+                              pdfUrl = request.pdf_request_manager;
+                              pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                            } else if ((request.status === 'pending_accounting' || request.status === 'completed') && request.pdf_request_hr) {
+                              pdfUrl = request.pdf_request_hr;
+                              pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
+                            } else if (request.pdf_url) {
+                              pdfUrl = request.pdf_url;
+                            }
 
-                                      // แสดง loading state
-                                      const button = e.currentTarget;
-                                      const originalContent = button.innerHTML;
-                                      button.innerHTML = '<div class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>';
-                                      button.disabled = true;
-
-                                      // ตรวจสอบว่าเป็น URL หรือ base64
-                                      if (request.pdf_request_hr.startsWith('http')) {
-                                        // เป็น URL - ดาวน์โหลดโดยตรง
-                                        const link = document.createElement('a');
-                                        link.href = request.pdf_request_hr;
-                                        link.download = `accounting_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
-                                        link.target = '_blank';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-
-                                        // คืนค่า button กลับเป็นปกติ
-                                        button.innerHTML = originalContent;
-                                        button.disabled = false;
-                                      } else {
-                                        // เป็น base64 - แปลงเป็น blob
-                                        setTimeout(() => {
-                                          try {
-                                            const byteCharacters = atob(request.pdf_request_hr!);
-                                            const byteNumbers = new Array(byteCharacters.length);
-                                            for (let i = 0; i < byteCharacters.length; i++) {
-                                              byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                            }
-                                            const byteArray = new Uint8Array(byteNumbers);
-                                            const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                            const url = URL.createObjectURL(blob);
-                                            const link = document.createElement('a');
-                                            link.href = url;
-                                            link.download = `accounting_approved_${request.id}_${formatDate(request.created_at).replace(/\s/g, '_')}.pdf`;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                            URL.revokeObjectURL(url);
-                                          } catch (error) {
-                                            console.error('Error downloading PDF:', error);
-                                            alert('ไม่สามารถดาวน์โหลด PDF ได้ กรุณาลองใหม่อีกครั้ง');
-                                          } finally {
-                                            // คืนค่า button กลับเป็นปกติ
-                                            button.innerHTML = originalContent;
-                                            button.disabled = false;
-                                          }
-                                        }, 100);
-                                      }
-                                    } catch (error) {
-                                      console.error('Error downloading PDF:', error);
-                                      alert('ไม่สามารถดาวน์โหลด PDF ได้');
-                                    }
-                                  }}
-                                  className="text-green-600 hover:text-green-800"
-                                  title="ดาวน์โหลด PDF ที่ HR อนุมัติแล้ว (สำหรับปริ้น)"
+                            return pdfUrl ? (
+                              <Button asChild variant="ghost" size="icon">
+                                <a
+                                  href={pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-red-600 hover:text-red-800"
+                                  title={pdfTitle}
+                                  onClick={e => e.stopPropagation()}
                                 >
-                                  <Download className="h-4 w-4" />
-                                  <span className="sr-only">ดาวน์โหลด PDF อนุมัติ</span>
-                                </Button>
-                                <span className="text-xs text-green-600">อนุมัติแล้ว</span>
-                              </div>
-                            )}
-
-                          {/* แสดง - เมื่อไม่มีเอกสารใด ๆ */}
-                          {(!request.attachments || request.attachments.length === 0) &&
-                            !request.pdf_request_hr && (
+                                  <FileText className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
                               <span className="text-muted-foreground">-</span>
-                            )}
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[200px]">

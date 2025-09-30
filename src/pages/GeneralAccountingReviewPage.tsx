@@ -26,6 +26,8 @@ interface GeneralRequestItem {
   attachment_url?: string;
   attachments?: string[];
   pdf_request_hr?: string;
+  pdf_request_manager?: string;
+  pdf_url?: string;
   department_user?: string;
   department_request?: string;
   hr_approver_id?: string;
@@ -968,6 +970,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     <TableHead>HR อนุมัติ</TableHead>
                     {activeTab === 'history' && <TableHead>สถานะ</TableHead>}
                     <TableHead>ไฟล์แนบ</TableHead>
+                    <TableHead>PDF</TableHead>
                     <TableHead>การดำเนินการ</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1051,42 +1054,45 @@ const GeneralAccountingReviewPage: React.FC = () => {
                             </Button>
                           ))}
 
-                          {r.pdf_request_hr && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (r.pdf_request_hr!.startsWith('http')) {
-                                  window.open(r.pdf_request_hr, '_blank');
-                                } else {
-                                  try {
-                                    const byteCharacters = atob(r.pdf_request_hr!);
-                                    const byteNumbers = new Array(byteCharacters.length);
-                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }
-                                    const byteArray = new Uint8Array(byteNumbers);
-                                    const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                    const url = URL.createObjectURL(blob);
-                                    window.open(url, '_blank');
-                                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                                  } catch (error) {
-                                    console.error('Error opening PDF:', error);
-                                    alert('ไม่สามารถเปิด PDF ได้');
-                                  }
-                                }
-                              }}
-                              className="text-green-600 hover:text-green-800"
-                              title="ดู PDF ที่ HR อนุมัติแล้ว"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          )}
-
-                          {(!r.attachments || r.attachments.length === 0) && !r.pdf_request_hr && (
+                          {(!r.attachments || r.attachments.length === 0) && (
                             <span className="text-muted-foreground">-</span>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-wrap gap-1 justify-center items-center">
+                          {(() => {
+                            // เลือก PDF URL ตามสถานะ
+                            let pdfUrl = null;
+                            let pdfTitle = "ดู PDF เอกสาร";
+                            
+                            if (r.status === 'pending_manager' && r.pdf_url) {
+                              pdfUrl = r.pdf_url;
+                              pdfTitle = "ดู PDF เอกสาร";
+                            } else if (r.status === 'pending_hr' && r.pdf_request_manager) {
+                              pdfUrl = r.pdf_request_manager;
+                              pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                            } else if ((r.status === 'pending_accounting' || r.status === 'completed') && r.pdf_request_hr) {
+                              pdfUrl = r.pdf_request_hr;
+                              pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
+                            }
+
+                            return pdfUrl ? (
+                              <Button asChild variant="ghost" size="icon">
+                                <a
+                                  href={pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-red-600 hover:text-red-800"
+                                  title={pdfTitle}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>
