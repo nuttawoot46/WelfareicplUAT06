@@ -121,7 +121,7 @@ export function AccountingBenefitSummary({ limit = 4 }: AccountingBenefitSummary
         {viewMode === 'table' ? (
           <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm bg-white dark:bg-gray-900">
             <Table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
-              <TableHeader className="bg-welfare-cyan/10">
+              <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                 <TableRow>
                   <TableHead className="font-semibold text-welfare-cyan">ประเภท</TableHead>
                   <TableHead className="font-semibold text-welfare-cyan">จำนวนคำร้อง</TableHead>

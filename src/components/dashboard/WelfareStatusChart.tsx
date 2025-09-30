@@ -378,7 +378,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
             <div>
               <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกสวัสดิการ</CardTitle>
               <CardDescription className="mt-1">
-                ข้อมูลการเบิกสวัสดิการของคุณ • เอกสารสีเขียวคือ PDF ที่ HR อนุมัติแล้ว สามารถดาวน์โหลดเพื่อปริ้นได้
+                เมื่อสถานะ รอตรวจสอบโดยบัญชี กรุณาปริ้นเอกสาร PDF ส่งให้ทางฝ่ายบัญชี
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -577,7 +577,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
                                   href={pdfUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-red-600 hover:text-red-800"
+                                  className="text-green-600 hover:text-green-800"
                                   title={pdfTitle}
                                   onClick={e => e.stopPropagation()}
                                 >

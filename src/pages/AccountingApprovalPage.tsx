@@ -426,7 +426,7 @@ export const AccountingApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -597,7 +597,7 @@ export const AccountingApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Department</TableHead>

@@ -778,7 +778,7 @@ export const ApprovalPage = () => {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-4">Manager Approval Dashboard</h1>
+     
       
       <Card>
         <CardHeader>
@@ -875,7 +875,7 @@ export const ApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -1069,7 +1069,7 @@ export const ApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -1255,7 +1255,7 @@ export const ApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Department</TableHead>
@@ -1543,7 +1543,7 @@ export const ApprovalPage = () => {
                 <CardContent>
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                         <TableRow>
                           <TableHead>Employee</TableHead>
                           <TableHead>Department</TableHead>

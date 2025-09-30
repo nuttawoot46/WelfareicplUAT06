@@ -512,7 +512,7 @@ const createWelfareFormHTML = (
                   height: 20px;
                 "></span>
               `}
-              <span style="font-size: 12px;">ผู้บังคับบัญชา</span>
+              <span style="font-size: 12px;">ผู้จัดการ</span>
             </div>
             <div style="font-size: 12px;">วันที่ ${welfareData.managerApprovedAt ?
       new Date(welfareData.managerApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' +
@@ -604,7 +604,7 @@ const createWelfareFormHTML = (
                   height: 20px;
                 "></span>
               `}
-              <span style="font-size: 12px;">ผู้จัดการฝ่ายบุคคล</span>
+              <span style="font-size: 12px;">ฝ่ายบุคคล</span>
             </div>
             <div style="font-size: 12px;">วันที่ ${welfareData.hrApprovedAt ?
       new Date(welfareData.hrApprovedAt).toLocaleDateString('th-TH') + ' เวลา ' +

@@ -150,7 +150,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     }
     
     // ประเภทที่ต้องตรวจสอบอายุงาน 180 วัน
-    const workDurationRestrictedTypes: WelfareType[] = ['glasses', 'dental', 'fitness'];
+    const workDurationRestrictedTypes: WelfareType[] = ['glasses', 'dental', 'fitness', 'wedding', 'childbirth'];
     
     if (workDurationRestrictedTypes.includes(type)) {
       const workDays = getWorkDuration();
@@ -191,68 +191,97 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     return limit ? limit.remaining : 0;
   };
 
+  // ฟังก์ชันดึงข้อมูลยอดเงินที่ใช้ไปแล้วสำหรับแสดงผล
+  const getUsedAmount = (type: WelfareType): number => {
+    // Exclude accounting types
+    if (type === 'advance' || type === 'expense-clearing') {
+      return 0;
+    }
+    
+    // สำหรับ glasses และ dental ใช้ budget_dentalglasses ร่วมกัน
+    if (type === 'glasses' || type === 'dental') {
+      const limit = benefitLimits.find(limit => limit.type === 'dental');
+      return limit ? limit.used : 0;
+    }
+    
+    const limit = benefitLimits.find(limit => limit.type === type);
+    return limit ? limit.used : 0;
+  };
+
+  // ฟังก์ชันสร้างข้อความแสดงยอดเงิน
+  const getBudgetDescription = (type: WelfareType): string => {
+    if (type === 'internal_training') {
+      return 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร';
+    }
+    
+    const remaining = getRemainingAmount(type);
+    const used = getUsedAmount(type);
+    
+    return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท`;
+  };
+
   // Only include welfare types, exclude accounting types (advance, expense-clearing)
   const welfareOptions: WelfareOption[] = [
     {
       id: 'training',
       title: 'ค่าอบรม',
-      description: `คงเหลือ: ${getRemainingAmount('training').toLocaleString()} บาท`,
+      description: getBudgetDescription('training'),
       icon: <TrainingIcon />,
       color: 'text-welfare-teal',
     },
     {
       id: 'glasses',
       title: 'ค่าตัดแว่น',
-      description: `คงเหลือ: ${getRemainingAmount('glasses').toLocaleString()} บาท`,
+      description: getBudgetDescription('glasses'),
       icon: <GlassesIcon />,
       color: 'text-welfare-blue',
     },
     {
       id: 'dental',
       title: 'ค่าทำฟัน',
-      description: `คงเหลือ: ${getRemainingAmount('dental').toLocaleString()} บาท`,
+      description: getBudgetDescription('dental'),
       icon: <DentalIcon />,
       color: 'text-welfare-orange',
     },
     {
       id: 'fitness',
       title: 'ค่าออกกำลังกาย',
-      description: `คงเหลือ: ${getRemainingAmount('fitness').toLocaleString()} บาท`,
+      description: getBudgetDescription('fitness'),
       icon: <FitnessIcon />,
       color: 'text-welfare-green',
     },
     {
       id: 'medical',
       title: 'ของเยี่ยมกรณีเจ็บป่วย',
-      description: `คงเหลือ: ${getRemainingAmount('medical').toLocaleString()} บาท`,
+      description: getBudgetDescription('medical'),
       icon: <img src="/Icon/medical_icon.png" alt="Medical Icon" style={{ width: 24, height: 24 }} />,
       color: 'text-welfare-red',
     },
     {
       id: 'wedding',
       title: 'สวัสดิการงานสมรส',
-      description: `คงเหลือ: ${getRemainingAmount('wedding').toLocaleString()} บาท`,
+      description: getBudgetDescription('wedding'),
       icon: <WeddingIcon />,
       color: 'text-welfare-blue',
     },
     {
       id: 'childbirth',
       title: 'ค่าคลอดบุตร',
-      description: `คงเหลือ: ${getRemainingAmount('childbirth').toLocaleString()} บาท`,
+      description: getBudgetDescription('childbirth'),
       icon: <ChildbirthIcon />,
       color: 'text-welfare-pink',
     },
     {
       id: 'funeral',
       title: 'ค่าช่วยเหลืองานศพ',
-      description: `คงเหลือ: ${getRemainingAmount('funeral').toLocaleString()} บาท`,
+      description: getBudgetDescription('funeral'),
       icon: <FuneralIcon />,
       color: 'text-welfare-purple',
     },
     {
       id: 'internal_training',
       title: 'อบรมภายใน',
-      description: 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร',
+      description: getBudgetDescription('internal_training'),
       icon: <InternalTrainingIcon />,
       color: 'text-welfare-indigo',
     },

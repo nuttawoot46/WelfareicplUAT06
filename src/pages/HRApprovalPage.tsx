@@ -66,12 +66,12 @@ export const HRApprovalPage = () => {
   // Combine welfare and internal training requests with deduplication
   const combinedRequests = useMemo(() => {
     const requestMap = new Map();
-    
+
     // Add welfare requests
     allRequests.forEach(req => {
       requestMap.set(`${req.id}-${req.type}`, req);
     });
-    
+
     // Add internal training requests (avoid duplicates)
     internalTrainingRequests.forEach(req => {
       const key = `${req.id}-${req.type}`;
@@ -79,7 +79,7 @@ export const HRApprovalPage = () => {
         requestMap.set(key, req);
       }
     });
-    
+
     return Array.from(requestMap.values());
   }, [allRequests, internalTrainingRequests]);
 
@@ -163,7 +163,7 @@ export const HRApprovalPage = () => {
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
       // Only select requests that are pending_hr (can be approved) and only in pending tabs
-      const selectableRequests = filteredRequests.filter(req => 
+      const selectableRequests = filteredRequests.filter(req =>
         req.status === 'pending_hr' && (activeTab === 'pending-welfare' || activeTab === 'pending-accounting')
       );
       setSelectedRequests(selectableRequests.map(req => req.id));
@@ -337,19 +337,19 @@ export const HRApprovalPage = () => {
         try {
           const employeeId = pendingApprovalRequest.employee_id || pendingApprovalRequest.userId;
           const numericId = parseInt(employeeId, 10);
-          
+
           if (!isNaN(numericId)) {
             const { data: empData, error: empError } = await supabase
               .from('Employee')
               .select('Name, Position, Team, start_date')
               .eq('id', numericId)
               .single();
-            
+
             if (!empError && empData) {
               employeeData = empData;
             }
           }
-          
+
           // Fallback to email lookup if numeric ID didn't work
           if (!employeeData && employeeId) {
             const { data: empData, error: empError } = await supabase
@@ -357,7 +357,7 @@ export const HRApprovalPage = () => {
               .select('Name, Position, Team, start_date')
               .eq('"email_user"', employeeId)
               .single();
-            
+
             if (!empError && empData) {
               employeeData = empData;
             }
@@ -420,7 +420,7 @@ export const HRApprovalPage = () => {
         console.log('=== HR Internal Training PDF Generation Debug ===');
         console.log('internalTrainingRequest:', internalTrainingRequest);
         console.log('employeeData:', employeeData);
-        
+
         // Use the original PDF generator with proper signature support
         const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
         const pdfBlob = await generateInternalTrainingPDF(
@@ -431,9 +431,9 @@ export const HRApprovalPage = () => {
           signature,
           pendingApprovalRequest.userSignature || pendingApprovalRequest.user_signature
         );
-        
+
         console.log('Generated PDF blob size:', pdfBlob.size);
-        
+
         // Store updated PDF in database
         const { storePDFInDatabase } = await import('@/utils/pdfManager');
         await storePDFInDatabase(pendingApprovalRequest.id, pdfBlob, signature, 'hr', profile?.display_name || user.email);
@@ -559,7 +559,7 @@ export const HRApprovalPage = () => {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-4">HR Approval Dashboard</h1>
+      
 
       <Card>
         <CardHeader>
@@ -583,7 +583,7 @@ export const HRApprovalPage = () => {
                 History
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="pending-welfare" className="space-y-4">
               <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 className="font-semibold text-blue-800 mb-2">คำร้องสวัสดิการ HR</h3>
@@ -652,7 +652,7 @@ export const HRApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -756,7 +756,7 @@ export const HRApprovalPage = () => {
                 </Table>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="pending-accounting" className="space-y-4">
               <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h3 className="font-semibold text-green-800 mb-2">คำร้องบัญชี HR</h3>
@@ -825,7 +825,7 @@ export const HRApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -929,7 +929,7 @@ export const HRApprovalPage = () => {
                 </Table>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="history" className="space-y-4">
               <div className="flex items-center space-x-2">
                 <div className="relative">
@@ -988,7 +988,7 @@ export const HRApprovalPage = () => {
 
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Department</TableHead>
@@ -1053,8 +1053,8 @@ export const HRApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {req.hrApprovedAt ? format(new Date(req.hrApprovedAt), 'PP') : 
-                             req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
+                            {req.hrApprovedAt ? format(new Date(req.hrApprovedAt), 'PP') :
+                              req.updatedAt ? format(new Date(req.updatedAt), 'PP') : '-'}
                           </TableCell>
                           <TableCell className="max-w-[200px]">
                             <div className="text-sm space-y-1">
@@ -1094,8 +1094,8 @@ export const HRApprovalPage = () => {
                           <TableCell className="text-center">
                             {(req.managerSignature || req.hrSignature) ? (
                               <div className="flex gap-1 justify-center">
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={async () => {
                                     const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');

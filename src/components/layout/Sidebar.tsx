@@ -209,13 +209,7 @@ export function Sidebar() {
                 <div className={cn(
                   isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
                 )}>
-                  <Link to="/accounting-review" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <FileText className="h-4 w-4" />
-                    <span>เมนูหลัก</span>
-                  </Link>
+                  
                   <Link to="/welfare-accounting-review" className={cn(
                     "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
                     isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"

@@ -470,7 +470,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
           ) : (
             <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader className="bg-gray-50">
+                <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
                     <TableHead className="w-[120px]">วันที่ยื่น</TableHead>
                     <TableHead>ประเภท</TableHead>
@@ -541,7 +541,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                             // เลือก PDF URL ตามสถานะ
                             let pdfUrl = null;
                             let pdfTitle = "ดู PDF เอกสาร";
-                            
+
                             if (request.status === 'pending_manager' && request.pdf_url) {
                               pdfUrl = request.pdf_url;
                               pdfTitle = "ดู PDF เอกสาร";
@@ -561,7 +561,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                                   href={pdfUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-red-600 hover:text-red-800"
+                                  className="text-green-600 hover:text-green-800"
                                   title={pdfTitle}
                                   onClick={e => e.stopPropagation()}
                                 >

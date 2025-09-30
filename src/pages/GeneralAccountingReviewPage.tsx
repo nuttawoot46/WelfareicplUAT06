@@ -717,7 +717,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 <h3 className="text-lg font-semibold mb-3">สรุปตามประเภทคำขอ</h3>
                 <div className="bg-white rounded-lg border overflow-hidden">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                       <TableRow>
                         <TableHead>ประเภทคำขอ</TableHead>
                         <TableHead className="text-center">จำนวนรายการ</TableHead>
@@ -758,7 +758,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
               {filteredReportData.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                       <TableRow>
                         <TableHead>วันที่อนุมัติ</TableHead>
                         <TableHead>ชื่อพนักงาน</TableHead>
@@ -926,7 +926,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
             {/* Request List Table */}
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
                     <TableHead>
                       {activeTab === 'pending' && (
