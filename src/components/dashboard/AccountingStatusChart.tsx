@@ -93,7 +93,9 @@ const getRequestTypeText = (requestType: string) => {
   if (!requestType) return 'ไม่ระบุ';
   switch (requestType.toLowerCase()) {
     case 'advance':
-      return 'เบิกเงินล่วงหน้า';
+      return 'เบิกเงินล่วงหน้า (ฝ่ายขาย)';
+    case 'general-advance':
+      return 'เบิกเงินล่วงหน้า (ทั่วไป)';
     case 'expense-clearing':
       return 'เคลียร์ค่าใช้จ่าย';
     default:
@@ -188,12 +190,12 @@ const AccountingStatusChart: React.FC = React.memo(() => {
       }
       setError(null);
 
-      // Filter only accounting-related requests (advance and expense-clearing types)
+      // Filter only accounting-related requests (advance, general-advance and expense-clearing types)
       const { data, error: fetchError } = await supabase
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .in('request_type', ['advance', 'expense-clearing']) // Only accounting requests
+        .in('request_type', ['advance', 'general-advance', 'expense-clearing']) // Only accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

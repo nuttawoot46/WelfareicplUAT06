@@ -38,7 +38,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchRequests = useCallback(async (forceRefresh = false) => {
     // Check if we need to fetch (cache is expired or force refresh)
     const now = Date.now();
-    if (!forceRefresh && now - lastFetchTime < CACHE_DURATION && welfareRequests.length > 0) {
+    if (!forceRefresh && now - lastFetchTime < CACHE_DURATION) {
       console.log('Using cached data, skipping fetch');
       return;
     }
@@ -165,6 +165,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               // Expense clearing specific fields
               originalAdvanceRequestId: row.original_advance_request_id,
               expenseClearingItems: row.expense_clearing_items,
+              // Run number
+              runNumber: row.run_number,
             };
           })
         );
@@ -176,11 +178,12 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setIsLoading(false);
     }
-  }, [toast, lastFetchTime, welfareRequests.length, CACHE_DURATION]);
+  }, [toast]);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchBenefitLimits = async () => {
-      if (!user) return;
       try {
         const limits = await getBenefitLimits();
         setBenefitLimits(limits);
@@ -194,7 +197,6 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     const fetchTrainingBudget = async () => {
-      if (!user) return;
       try {
         const { data, error } = await supabase
           .from('Employee')
@@ -215,12 +217,13 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
+    // Initial fetch
     fetchRequests();
     fetchBenefitLimits();
     fetchTrainingBudget();
 
     // Create debounced version of fetchRequests with longer delay
-    const debouncedFetchRequests = debounce(fetchRequests, 3000);
+    const debouncedFetchRequests = debounce(() => fetchRequests(true), 3000);
 
     // Set up real-time subscription for welfare_requests with debouncing
     const subscription = supabase
@@ -259,7 +262,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       subscription.unsubscribe();
     };
-  }, [user, toast]);
+  }, [user, fetchRequests, toast]);
 
   const getRequestsByUser = (userId: string) => {
     return welfareRequests.filter(request => request.userId === userId);
@@ -360,10 +363,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         employee_payment: requestData.employee_payment,
         course_name: requestData.course_name,
         organizer: requestData.organizer,
-        is_vat_included: requestData.is_vat_included,
+        is_vat_included: requestData.isVatIncluded,
         department_request: requestData.department_request,
         user_signature: requestData.userSignature, // บันทึกลายเซ็น
-        
+
         // Advance payment specific fields
         advance_department: (requestData as any).advanceDepartment,
         advance_department_other: (requestData as any).advanceDepartmentOther,
@@ -382,20 +385,22 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         advance_other_expenses: (requestData as any).advanceOtherExpenses,
         advance_project_name: (requestData as any).advanceProjectName,
         advance_project_location: (requestData as any).advanceProjectLocation,
-        advance_expense_items: (requestData as any).advanceExpenseItems 
-          ? JSON.stringify((requestData as any).advanceExpenseItems) 
+        advance_expense_items: (requestData as any).advanceExpenseItems
+          ? JSON.stringify((requestData as any).advanceExpenseItems)
           : null,
         advance_location: (requestData as any).advanceLocation,
         total_participants: (requestData as any).advanceParticipants,
         advance_dealer_name: (requestData as any).advanceDealerName,
         advance_subdealer_name: (requestData as any).advanceSubdealerName,
-        
+        // Add run number for advance and general-advance types
+        run_number: (requestData.type === 'advance' || requestData.type === 'general-advance') ? (requestData as any).runNumber : null,
+
         // Expense clearing specific fields
         original_advance_request_id: (requestData as any).originalAdvanceRequestId,
         expense_clearing_items: (() => {
           const items = (requestData as any).expenseClearingItems;
           if (!items) return null;
-          
+
           // Ensure it's an array before stringifying
           const itemsArray = Array.isArray(items) ? items : [items];
           console.log('🔍 Expense clearing items to save:', itemsArray);
@@ -405,12 +410,12 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // requestDataObj ไม่มี id อยู่แล้ว
 
       console.log('🔍 WelfareContext - Inserting data to Supabase:', requestDataObj);
-      
+
       const { data, error } = await supabase
         .from('welfare_requests')
         .insert(requestDataObj)
         .select();
-        
+
       if (error) {
         console.error('❌ Supabase insert error:', error);
         console.error('❌ Error details:', error.details);

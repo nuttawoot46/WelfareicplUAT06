@@ -15,13 +15,13 @@ import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 
-interface AdvanceFormProps {
+interface GeneralAdvanceFormProps {
   onBack: () => void;
   editId?: number | null;
 }
 
-// Advance form specific interface
-interface AdvanceFormValues {
+// General advance form specific interface
+interface GeneralAdvanceFormValues {
   startDate: string;
   endDate?: string;
   amount: number;
@@ -29,15 +29,11 @@ interface AdvanceFormValues {
   title?: string;
   attachments?: FileList;
 
-  // Advance (เบิกเงินล่วงหน้า) fields
+  // General Advance (เบิกเงินล่วงหน้าทั่วไป) fields
   advanceDepartment: string; // แผนก
-  advanceDepartmentOther?: string; // ระบุแผนกอื่นๆ (แยกจาก advanceActivityOther)
-  advanceDistrict?: string; // เขต
+  advanceDepartmentOther?: string; // ระบุแผนกอื่นๆ
   advanceActivityType: string; // ประเภทกิจกรรม
   advanceActivityOther?: string; // ระบุกิจกรรมอื่นๆ
-  advanceShopCompany?: string; // ชื่อร้าน/บริษัท
-  advanceAmphur?: string; // อำเภอ
-  advanceProvince?: string; // จังหวัด
   advanceEventDate?: string; // วันที่จัด
   advanceParticipants: number; // จำนวนผู้เข้าร่วม
   advanceDailyRate?: number;
@@ -47,11 +43,8 @@ interface AdvanceFormValues {
   advanceOtherExpenses?: number;
   advanceProjectName?: string;
   advanceProjectLocation?: string;
-  venue?: string; // สถานที่
-  advanceDealerName?: string; // ระบุชื่อร้าน
-  advanceSubdealerName?: string; //ระบุชื่อร้าน
 
-  // Advance expense items
+  // General advance expense items
   advanceExpenseItems: {
     name: string;
     taxRate: number;
@@ -61,9 +54,7 @@ interface AdvanceFormValues {
     otherDescription?: string; // For "อุปกรณ์และอื่นๆ" specification
   }[];
 
-  // Dealer/Subdealer checkboxes
-  isDealerActivity?: boolean;
-  isSubdealerActivity?: boolean;
+
 
   // Document selections for advance types
   attachmentSelections?: {
@@ -75,17 +66,17 @@ interface AdvanceFormValues {
   };
 }
 
-// Generate run number for advance requests
-const generateAdvanceRunNumber = () => {
+// Generate run number for general advance requests
+const generateGeneralAdvanceRunNumber = () => {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp for uniqueness
-  return `ADV${year}${month}${timestamp}`;
+  return `GADV${year}${month}${timestamp}`;
 };
 
-// รายการค่าใช้จ่ายเบิกเงินล่วงหน้า
-const ADVANCE_EXPENSE_CATEGORIES = [
+// รายการค่าใช้จ่ายเบิกเงินล่วงหน้าทั่วไป
+const GENERAL_ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'ค่าอาหารและเครื่องดื่ม', taxRate: 0 },
   { name: 'ค่าเช่าสถานที่', taxRate: 5 },
   { name: 'ค่าบริการ/ค่าสนับสนุนร้านค้า/ค่าจ้างทำป้าย/ค่าจ้างอื่นๆ/ค่าบริการสถานที่', taxRate: 3 },
@@ -96,7 +87,7 @@ const ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 }
 ];
 
-export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
+export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) {
   // รองรับ editId จาก prop (modal edit) หรือจาก query string (หน้า /Forms)
   const location = useLocation();
   const navigate = useNavigate();
@@ -127,7 +118,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     setValue,
     control,
     formState: { errors }
-  } = useForm<AdvanceFormValues>({
+  } = useForm<GeneralAdvanceFormValues>({
     defaultValues: {
       advanceExpenseItems: [{ name: '', taxRate: 0, requestAmount: 0, taxAmount: 0, netAmount: 0, otherDescription: '' }]
     }
@@ -179,17 +170,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             title: dbData.title || '',
             startDate: dbData.start_date || '',
             endDate: dbData.end_date || '',
-            // Advance fields
+            // General advance fields
             advanceDepartment: dbData.advance_department || '',
             advanceDepartmentOther: dbData.advance_department_other || '',
-            advanceDistrict: dbData.advance_district || '',
             advanceActivityType: dbData.advance_activity_type || '',
             advanceActivityOther: dbData.advance_activity_other || '',
-            advanceDealerName: dbData.advance_dealer_name || '',
-            advanceSubdealerName: dbData.advance_subdealer_name || '',
-            advanceShopCompany: dbData.advance_shop_company || '',
-            advanceAmphur: dbData.advance_amphur || '',
-            advanceProvince: dbData.advance_province || '',
             advanceEventDate: dbData.advance_event_date || '',
             advanceParticipants: dbData.advance_participants || 0,
             advanceDailyRate: dbData.advance_daily_rate || 0,
@@ -199,7 +184,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             advanceOtherExpenses: dbData.advance_other_expenses || 0,
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
-            venue: dbData.advance_location || '', // เพิ่มการโหลดข้อมูลสถานที่
             advanceExpenseItems: dbData.advance_expense_items ? 
               JSON.parse(dbData.advance_expense_items).map((item: any) => ({
                 ...item,
@@ -243,7 +227,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     watch(`advanceExpenseItems.${index}.requestAmount`)
   ) || [];
 
-  // Calculate advance total amount in real-time
+  // Calculate general advance total amount in real-time
   const calculateTotalAmount = useCallback(() => {
     const expenseItems = watchedExpenseItems || [];
     return expenseItems.reduce((sum, item) => {
@@ -389,7 +373,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     }
   };
 
-  const onSubmit = async (data: AdvanceFormValues) => {
+  const onSubmit = async (data: GeneralAdvanceFormValues) => {
     // คำนวณยอดรวมใหม่ก่อนส่งข้อมูล และแปลงข้อมูลให้เป็น number
     const expenseItems = data.advanceExpenseItems || [];
     const calculatedAmount = expenseItems.reduce((sum, item) => {
@@ -419,7 +403,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       otherDescription: item.otherDescription || ''
     }));
     
-    console.log('🚀 Form submitted with data:', data);
+    console.log('🚀 General advance form submitted with data:', data);
     console.log('🚀 Employee data:', employeeData);
     console.log('🚀 Form errors:', errors);
     console.log('🚀 Calculated total amount:', calculatedAmount);
@@ -479,7 +463,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   };
 
   // Process form submission with PDF
-  const processFormSubmission = async (data: AdvanceFormValues, employeeData: any, signature?: string) => {
+  const processFormSubmission = async (data: GeneralAdvanceFormValues, employeeData: any, signature?: string) => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
@@ -516,15 +500,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           start_date: data.startDate,
           end_date: data.endDate,
           department_request: employeeData?.Team,
-          // Advance fields
+          // General advance fields
           advance_department: data.advanceDepartment,
           advance_department_other: data.advanceDepartmentOther,
-          advance_district: data.advanceDistrict,
           advance_activity_type: data.advanceActivityType,
           advance_activity_other: data.advanceActivityOther,
-          advance_shop_company: data.advanceShopCompany,
-          advance_amphur: data.advanceAmphur,
-          advance_province: data.advanceProvince,
           advance_event_date: data.advanceEventDate,
           advance_participants: data.advanceParticipants,
           advance_daily_rate: data.advanceDailyRate,
@@ -534,7 +514,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           advance_other_expenses: data.advanceOtherExpenses,
           advance_project_name: data.advanceProjectName,
           advance_project_location: data.advanceProjectLocation,
-          advance_location: data.venue, // เพิ่มการส่งข้อมูลสถานที่
           advance_expense_items: data.advanceExpenseItems ? JSON.stringify(data.advanceExpenseItems) : null,
           // Document selections
           attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
@@ -561,14 +540,14 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       }
 
       // CREATE NEW REQUEST
-      // Generate run number only for advance type
-      const runNumber = generateAdvanceRunNumber();
+      // Generate run number only for general advance type
+      const runNumber = generateGeneralAdvanceRunNumber();
       const requestData = {
         userId: profile.employee_id.toString(),
         userName: employeeData?.Name || user?.email || 'Unknown User',
         userDepartment: employeeData?.Team || 'Unknown Department',
         department_request: employeeData?.Team || 'Unknown Department',
-        type: 'advance' as const,
+        type: 'general-advance' as const,
         status: 'pending_manager' as const,
         amount: Number(data.amount || 0),
         date: data.startDate || new Date().toISOString(),
@@ -584,17 +563,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         runNumber: runNumber, // Add run number
         // Document selections
         attachmentSelections: data.attachmentSelections,
-        // Advance fields for requestData
+        // General advance fields for requestData
         advanceDepartment: data.advanceDepartment,
         advanceDepartmentOther: data.advanceDepartmentOther,
-        advanceDistrict: data.advanceDistrict,
         advanceActivityType: data.advanceActivityType,
         advanceActivityOther: data.advanceActivityOther,
-        advanceDealerName: data.advanceDealerName,
-        advanceSubdealerName: data.advanceSubdealerName,
-        advanceShopCompany: data.advanceShopCompany,
-        advanceAmphur: data.advanceAmphur,
-        advanceProvince: data.advanceProvince,
         advanceEventDate: data.advanceEventDate,
         advanceParticipants: data.advanceParticipants,
         advanceDailyRate: data.advanceDailyRate,
@@ -604,7 +577,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         advanceOtherExpenses: data.advanceOtherExpenses,
         advanceProjectName: data.advanceProjectName,
         advanceProjectLocation: data.advanceProjectLocation,
-        advanceLocation: data.venue, // เพิ่มการส่งข้อมูลสถานที่
         advanceExpenseItems: data.advanceExpenseItems,
       };
 
@@ -636,7 +608,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย
         const employeeId = employeeData?.employee_id || user?.id?.slice(-8) || 'user';
         const timestamp = Date.now();
-        const filename = `advance_emp${employeeId}_${timestamp}.pdf`;
+        const filename = `general_advance_emp${employeeId}_${timestamp}.pdf`;
         const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
 
         // Update the request with the PDF URL
@@ -683,17 +655,17 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         กลับ
       </Button>
 
-      <div id="advance-form-content" className="form-container">
+      <div id="general-advance-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบขออนุมัติเบิกเงินล่วงหน้า</h1>
+          <h1 className="text-2xl font-bold">แบบขออนุมัติเบิกเงินล่วงหน้า (ทั่วไป)</h1>
         </div>
 
-        {/* Special info for advance payment */}
+        {/* Special info for general advance payment */}
         <div className="mb-6">
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 mr-2 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              <strong>เบิกเงินทดลอง:</strong> สามารถขออนุมัติได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องวงเงินหรืองบประมาณ ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
+          <Alert className="border-purple-200 bg-purple-50">
+            <AlertCircle className="h-4 w-4 mr-2 text-purple-600" />
+            <AlertDescription className="text-purple-800">
+              <strong>เบิกเงินทดลองทั่วไป:</strong> สำหรับการขออนุมัติเบิกเงินล่วงหน้าสำหรับกิจกรรมทั่วไป ไม่จำกัดเฉพาะฝ่ายขาย ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
             </AlertDescription>
           </Alert>
         </div>
@@ -710,41 +682,30 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
 
-            {/* แผนกและเขต */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="form-label">แผนก</label>
-                <Select
-                  onValueChange={(value) => setValue('advanceDepartment', value)}
-                  value={watch('advanceDepartment')}
-                >
-                  <SelectTrigger className="form-input">
-                    <SelectValue placeholder="เลือกแผนก" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={employeeData?.Team || 'แผนกของฉัน'}>{employeeData?.Team || 'แผนกของฉัน'}</SelectItem>
-                    <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
-                  </SelectContent>
-                </Select>
-                <input
-                  type="hidden"
-                  {...register('advanceDepartment', {
-                    required: 'กรุณาเลือกแผนก'
-                  })}
-                />
-                {errors.advanceDepartment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="form-label">เขต</label>
-                <Input
-                  placeholder="ระบุเขต"
-                  className="form-input"
-                  {...register('advanceDistrict')}
-                />
-              </div>
+            {/* แผนก */}
+            <div className="space-y-2">
+              <label className="form-label">แผนก</label>
+              <Select
+                onValueChange={(value) => setValue('advanceDepartment', value)}
+                value={watch('advanceDepartment')}
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="เลือกแผนก" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={employeeData?.Team || 'แผนกของฉัน'}>{employeeData?.Team || 'แผนกของฉัน'}</SelectItem>
+                  <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
+                </SelectContent>
+              </Select>
+              <input
+                type="hidden"
+                {...register('advanceDepartment', {
+                  required: 'กรุณาเลือกแผนก'
+                })}
+              />
+              {errors.advanceDepartment && (
+                <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
+              )}
             </div>
 
             {/* ฟิลด์ระบุแผนกอื่นๆ */}
@@ -778,8 +739,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
               )}
             </div>
-
-
 
             {/* วันที่และจำนวนผู้เข้าร่วม */}
             <div className="grid grid-cols-3 gap-4">
@@ -826,81 +785,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 )}
               </div>
             </div>
-
-            {/* Dealer/Subdealer Checkboxes */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isDealerActivity"
-                    className="rounded border-gray-300"
-                    {...register('isDealerActivity')}
-                  />
-                  <label htmlFor="isDealerActivity" className="text-sm font-medium text-gray-700">
-                    ดีลเลอร์
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isSubdealerActivity"
-                    className="rounded border-gray-300"
-                    {...register('isSubdealerActivity')}
-                  />
-                  <label htmlFor="isSubdealerActivity" className="text-sm font-medium text-gray-700">
-                    ซับดีลเลอร์
-                  </label>
-                </div>
-              </div>
-
-
-            </div>
-
-            {/* สถานที่ อำเภอ และจังหวัด */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="form-label">ชื่อร้าน/บริษัท <span className="text-red-500">*</span></label>
-                <Input
-                  placeholder="ระบุสถานที่"
-                  className="form-input"
-                  {...register('venue', {
-                    required: 'กรุณาระบุชื่อร้าน/บริษัท'
-                  })}
-                />
-                {errors.venue && (
-                  <p className="text-red-500 text-sm mt-1">{errors.venue.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="form-label">อำเภอ <span className="text-red-500">*</span></label>
-                <Input
-                  placeholder="ระบุอำเภอ"
-                  className="form-input"
-                  {...register('advanceAmphur', {
-                    required: 'กรุณาระบุอำเภอ'
-                  })}
-                />
-                {errors.advanceAmphur && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="form-label">จังหวัด <span className="text-red-500">*</span></label>
-                <Input
-                  placeholder="ระบุจังหวัด"
-                  className="form-input"
-                  {...register('advanceProvince', {
-                    required: 'กรุณาระบุจังหวัด'
-                  })}
-                />
-                {errors.advanceProvince && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ส่วนที่ 2: รายละเอียดค่าใช้จ่าย */}
@@ -938,7 +822,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         <div className="space-y-2">
                           <Select
                             onValueChange={(value) => {
-                              const selectedCategory = ADVANCE_EXPENSE_CATEGORIES.find(cat => cat.name === value);
+                              const selectedCategory = GENERAL_ADVANCE_EXPENSE_CATEGORIES.find(cat => cat.name === value);
                               setValue(`advanceExpenseItems.${index}.name`, value);
                               if (selectedCategory) {
                                 setValue(`advanceExpenseItems.${index}.taxRate`, selectedCategory.taxRate);
@@ -954,7 +838,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                               <SelectValue placeholder="เลือกรายการ" />
                             </SelectTrigger>
                             <SelectContent>
-                              {ADVANCE_EXPENSE_CATEGORIES.map((category) => (
+                              {GENERAL_ADVANCE_EXPENSE_CATEGORIES.map((category) => (
                                 <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1048,7 +932,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-blue-50 font-semibold">
+                  <tr className="bg-purple-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
@@ -1101,9 +985,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
           {/* Total Amount Display */}
             <div className="flex justify-end">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-[200px]">
-                <div className="text-sm text-blue-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
-                <div className="text-2xl font-bold text-blue-800">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 min-w-[200px]">
+                <div className="text-sm text-purple-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
+                <div className="text-2xl font-bold text-purple-800">
                   {calculateTotalAmount().toLocaleString('th-TH', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
@@ -1190,7 +1074,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-welfare-blue hover:bg-welfare-blue/90"
+              className="bg-purple-600 hover:bg-purple-700"
               onClick={() => {
                 console.log('🔘 Submit button clicked');
                 console.log('🔘 Current form values:', watch());

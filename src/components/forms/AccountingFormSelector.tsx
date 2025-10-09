@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type AccountingFormType = 'advance' | 'expense-clearing';
+type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing';
 
 interface AccountingOption {
   id: AccountingFormType;
@@ -17,13 +17,22 @@ interface AccountingFormSelectorProps {
   onSelect: (type: AccountingFormType) => void;
 }
 
-// Icon for advance payment
+// Icon for advance payment (sales)
 const AdvanceIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
     <circle cx="12" cy="12" r="3"/>
     <path d="M12 9v6"/>
     <path d="M9 12h6"/>
+  </svg>
+);
+
+// Icon for general advance payment
+const GeneralAdvanceIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+    <path d="M2 17l10 5 10-5"/>
+    <path d="M2 12l10 5 10-5"/>
   </svg>
 );
 
@@ -42,10 +51,17 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
   const accountingOptions: AccountingOption[] = [
     {
       id: 'advance',
-      title: 'เบิกเงินล่วงหน้า',
-      description: 'สำหรับการขออนุมัติเบิกเงินล่วงหน้าสำหรับภารกิจต่างๆ',
+      title: 'เบิกเงินล่วงหน้า (ฝ่ายขาย)',
+      description: 'สำหรับการขออนุมัติเบิกเงินล่วงหน้าสำหรับภารกิจฝ่ายขาย',
       icon: <AdvanceIcon />,
       color: 'text-welfare-cyan',
+    },
+    {
+      id: 'general-advance',
+      title: 'เบิกเงินล่วงหน้า (ทั่วไป)',
+      description: 'สำหรับการขออนุมัติเบิกเงินล่วงหน้าสำหรับกิจกรรมทั่วไป',
+      icon: <GeneralAdvanceIcon />,
+      color: 'text-purple-600',
     },
     {
       id: 'expense-clearing',

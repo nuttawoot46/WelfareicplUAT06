@@ -57,7 +57,7 @@ export const AccountingApprovalPage = () => {
     }
   }, [user, profile, isAuthLoading, navigate, addNotification]);
 
-  // Filter requests for accounting approval (only advance and expense-clearing types)
+  // Filter requests for accounting approval (only advance, general-advance and expense-clearing types)
   const filteredRequests = useMemo(() => {
     if (activeTab === 'reports') {
       return [];
@@ -66,7 +66,7 @@ export const AccountingApprovalPage = () => {
     return allRequests
       .filter((req: WelfareRequest) => {
         // Only show accounting-related requests
-        if (req.type !== 'advance' && req.type !== 'expense-clearing') return false;
+        if (req.type !== 'advance' && req.type !== 'general-advance' && req.type !== 'expense-clearing') return false;
         
         // Filter by tab
         if (activeTab === 'pending') {

@@ -87,8 +87,8 @@ const EXPENSE_CLEARING_CATEGORIES = [
   { name: 'ค่าดนตรี/เครื่องเสียง/MC', taxRate: 3 },
   { name: 'ของรางวัลเพื่อการชิงโชค', taxRate: 5 },
   { name: 'ค่าโฆษณา (โฆษณาทางวิทยุ)', taxRate: 2 },
+  { name: 'ค่าตั๋วเครื่องบิน/ค่าที่พัก', taxRate: 0 },
   { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 },
-  { name: 'ของขวัญแจกช่วงเล่นเกม', taxRate: 0 }
 ];
 
 export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps) {
@@ -113,6 +113,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [availableAdvanceRequests, setAvailableAdvanceRequests] = useState<any[]>([]);
+  const [isAdvanceRequestSelected, setIsAdvanceRequestSelected] = useState(false);
 
   const {
     register,
@@ -187,7 +188,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       try {
         const { data, error } = await supabase
           .from('welfare_requests')
-          .select('id, amount, created_at, details, advance_activity_type, status')
+          .select('id, amount, created_at, details, advance_activity_type, status, run_number')
           .eq('employee_id', employeeData.id)
           .eq('request_type', 'advance')
           .order('created_at', { ascending: false });
@@ -207,7 +208,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
   // Handle selection of original advance request
   const handleAdvanceRequestSelection = async (requestId: string) => {
-    if (!requestId) return;
+    if (!requestId) {
+      setIsAdvanceRequestSelected(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -217,26 +221,28 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         .single();
 
       if (!error && data) {
+        setIsAdvanceRequestSelected(true);
+        
         // Populate form with data from original advance request
         setValue('originalAdvanceRequestId', data.id);
-        setValue('advanceDepartment', data.advance_department || '');
-        setValue('advanceDistrict', data.advance_district || '');
-        setValue('advanceActivityType', data.advance_activity_type || '');
-        setValue('advanceActivityOther', data.advance_activity_other || '');
-        setValue('advanceDealerName', data.advance_dealer_name || '');
-        setValue('advanceSubdealerName', data.advance_subdealer_name || '');
-        setValue('advanceShopCompany', data.advance_shop_company || '');
-        setValue('advanceAmphur', data.advance_amphur || '');
-        setValue('advanceProvince', data.advance_province || '');
-        setValue('advanceEventDate', data.advance_event_date || '');
-        setValue('advanceParticipants', data.advance_participants || 0);
-        setValue('venue', data.advance_location || '');
+        setValue('advanceDepartment', (data as any).advance_department || '');
+        setValue('advanceDistrict', (data as any).advance_district || '');
+        setValue('advanceActivityType', (data as any).advance_activity_type || '');
+        setValue('advanceActivityOther', (data as any).advance_activity_other || '');
+        setValue('advanceDealerName', (data as any).advance_dealer_name || '');
+        setValue('advanceSubdealerName', (data as any).advance_subdealer_name || '');
+        setValue('advanceShopCompany', (data as any).advance_shop_company || '');
+        setValue('advanceAmphur', (data as any).advance_amphur || '');
+        setValue('advanceProvince', (data as any).advance_province || '');
+        setValue('advanceEventDate', (data as any).advance_event_date || '');
+        setValue('advanceParticipants', (data as any).advance_participants || 0);
+        setValue('venue', (data as any).advance_location || '');
         setValue('startDate', data.start_date || '');
         setValue('endDate', data.end_date || '');
 
         // Load expense items from original request
-        if (data.advance_expense_items) {
-          const expenseItems = JSON.parse(data.advance_expense_items);
+        if ((data as any).advance_expense_items) {
+          const expenseItems = JSON.parse((data as any).advance_expense_items);
           setValue('expenseClearingItems', expenseItems.map((item: any) => {
             const requestAmount = Number(item.requestAmount) || 0;
             const usedAmount = 0; // Initialize used amount as 0 for user to fill
@@ -275,6 +281,11 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   // Watch expense items for real-time updates
   const watchedExpenseItems = watch('expenseClearingItems');
   
+  // Watch individual used amounts for immediate calculation
+  const watchedUsedAmounts = watchedExpenseItems?.map((_, index) => 
+    watch(`expenseClearingItems.${index}.usedAmount`)
+  ) || [];
+  
   // Calculate total refund amount (can be negative if overspent) in real-time
   const calculateTotalRefund = () => {
     const expenseItems = watchedExpenseItems || [];
@@ -286,9 +297,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     }, 0);
   };
 
-  // Calculate net amounts and refunds when expense items change
+  // Calculate net amounts, tax amounts, and refunds when expense items change
   useEffect(() => {
     const expenseItems = watchedExpenseItems || [];
+    let hasChanges = false;
     
     expenseItems.forEach((item, index) => {
       const requestAmount = typeof item.requestAmount === 'string' 
@@ -297,23 +309,54 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       const usedAmount = typeof item.usedAmount === 'string' 
         ? parseFloat(item.usedAmount) || 0 
         : Number(item.usedAmount) || 0;
-      const taxAmount = typeof item.taxAmount === 'string' 
-        ? parseFloat(item.taxAmount) || 0 
-        : Number(item.taxAmount) || 0;
+      const taxRate = typeof item.taxRate === 'string' 
+        ? parseFloat(item.taxRate) || 0 
+        : Number(item.taxRate) || 0;
       
-      const netAmount = usedAmount - taxAmount;
+      // Auto-calculate tax amount based on used amount and tax rate
+      const autoTaxAmount = (usedAmount * taxRate) / 100;
+      const netAmount = usedAmount - autoTaxAmount;
       const refund = requestAmount - usedAmount; // Refund = เบิก - ใช้
       
-      setValue(`expenseClearingItems.${index}.netAmount`, netAmount, { shouldValidate: false });
-      setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
+      // Check if values need to be updated
+      const currentTaxAmount = typeof item.taxAmount === 'string' 
+        ? parseFloat(item.taxAmount) || 0 
+        : Number(item.taxAmount) || 0;
+      const currentNetAmount = typeof item.netAmount === 'string' 
+        ? parseFloat(item.netAmount) || 0 
+        : Number(item.netAmount) || 0;
+      const currentRefund = typeof item.refund === 'string' 
+        ? parseFloat(item.refund) || 0 
+        : Number(item.refund) || 0;
+      
+      if (Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 || 
+          Math.abs(currentNetAmount - netAmount) > 0.01 ||
+          Math.abs(currentRefund - refund) > 0.01) {
+        setValue(`expenseClearingItems.${index}.taxAmount`, autoTaxAmount, { shouldValidate: false });
+        setValue(`expenseClearingItems.${index}.netAmount`, netAmount, { shouldValidate: false });
+        setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
+        hasChanges = true;
+      }
     });
     
-    // Update total amount
-    const refundAmount = calculateTotalRefund();
-    console.log('💰 Updating expense clearing amount field:', refundAmount);
-    console.log('💰 Expense clearing items:', watchedExpenseItems);
-    setValue('amount', refundAmount, { shouldValidate: true, shouldDirty: true });
-  }, [watchedExpenseItems, setValue]);
+    // Force update total amount if there were changes
+    if (hasChanges) {
+      const refundAmount = calculateTotalRefund();
+      setValue('amount', refundAmount, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [watchedExpenseItems, setValue, watchedUsedAmounts]);
+
+  // Update form amount field when expense items change - with debounce for better performance
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const refundAmount = calculateTotalRefund();
+      console.log('💰 Updating expense clearing amount field:', refundAmount);
+      console.log('💰 Expense clearing items:', watchedExpenseItems);
+      setValue('amount', refundAmount, { shouldValidate: true, shouldDirty: true });
+    }, 100); // Small debounce to prevent excessive updates
+
+    return () => clearTimeout(timeoutId);
+  }, [calculateTotalRefund, setValue, watchedExpenseItems, watchedUsedAmounts]);
 
   // File handling functions (same as AdvanceForm)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -661,7 +704,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   <SelectContent>
                     {availableAdvanceRequests.map((request) => (
                       <SelectItem key={request.id} value={request.id.toString()}>
-                        {`${request.advance_activity_type || 'ไม่ระบุ'} - ${request.amount?.toLocaleString()} บาท (${new Date(request.created_at).toLocaleDateString('th-TH')}) - สถานะ: ${getStatusText(request.status)}`}
+                        {`${request.run_number || 'ไม่มีเลขที่'} - ${request.advance_activity_type || 'ไม่ระบุ'} - ${request.amount?.toLocaleString()} บาท (${new Date(request.created_at).toLocaleDateString('th-TH')}) - สถานะ: ${getStatusText(request.status)}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -687,8 +730,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Select
                   onValueChange={(value) => setValue('advanceDepartment', value)}
                   value={watch('advanceDepartment')}
+                  disabled={isAdvanceRequestSelected}
                 >
-                  <SelectTrigger className="form-input">
+                  <SelectTrigger className={`form-input ${isAdvanceRequestSelected ? 'bg-gray-100 cursor-not-allowed' : ''}`}>
                     <SelectValue placeholder="เลือกแผนก" />
                   </SelectTrigger>
                   <SelectContent>
@@ -711,7 +755,8 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <label className="form-label">เขต</label>
                 <Input
                   placeholder="ระบุเขต"
-                  className="form-input"
+                  className={`form-input ${isAdvanceRequestSelected ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={isAdvanceRequestSelected}
                   {...register('advanceDistrict')}
                 />
               </div>
@@ -923,11 +968,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รายละเอียดเพิ่มเติม</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินใช้</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">อัตรา % ภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนภาษีหักณที่จ่าย</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">% ภาษี</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหักณที่จ่าย</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดเงินสุทธิ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืน</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
@@ -937,48 +981,44 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
                       <td className="border border-gray-300 p-1">
-                        <Select
-                          onValueChange={(value) => {
-                            const selectedCategory = EXPENSE_CLEARING_CATEGORIES.find(cat => cat.name === value);
-                            setValue(`expenseClearingItems.${index}.name`, value);
-                            if (selectedCategory) {
-                              setValue(`expenseClearingItems.${index}.taxRate`, selectedCategory.taxRate);
-                            }
-                            // Clear other description when changing category
-                            if (value !== 'อุปกรณ์และอื่นๆ') {
-                              setValue(`expenseClearingItems.${index}.otherDescription`, '');
-                            }
-                          }}
-                          value={watch(`expenseClearingItems.${index}.name`) || ''}
-                        >
-                          <SelectTrigger className="w-full min-w-[200px]">
-                            <SelectValue placeholder="เลือกรายการ" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {EXPENSE_CLEARING_CATEGORIES.map((category) => (
-                              <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <input
-                          type="hidden"
-                          {...register(`expenseClearingItems.${index}.name` as const)}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        {watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? (
-                          <Input
-                            placeholder="ระบุรายละเอียด"
-                            className="w-full min-w-[150px]"
-                            {...register(`expenseClearingItems.${index}.otherDescription` as const, {
-                              required: watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? 'กรุณาระบุรายละเอียด' : false
-                            })}
+                        <div className="space-y-2">
+                          <Select
+                            onValueChange={(value) => {
+                              const selectedCategory = EXPENSE_CLEARING_CATEGORIES.find(cat => cat.name === value);
+                              setValue(`expenseClearingItems.${index}.name`, value);
+                              if (selectedCategory) {
+                                setValue(`expenseClearingItems.${index}.taxRate`, selectedCategory.taxRate);
+                              }
+                              // Clear other description when changing category
+                              if (value !== 'อุปกรณ์และอื่นๆ') {
+                                setValue(`expenseClearingItems.${index}.otherDescription`, '');
+                              }
+                            }}
+                            value={watch(`expenseClearingItems.${index}.name`) || ''}
+                          >
+                            <SelectTrigger className="w-full min-w-[200px]">
+                              <SelectValue placeholder="เลือกรายการ" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CLEARING_CATEGORIES.map((category) => (
+                                <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <input
+                            type="hidden"
+                            {...register(`expenseClearingItems.${index}.name` as const)}
                           />
-                        ) : (
-                          <div className="w-full min-w-[150px] h-10 flex items-center justify-center text-gray-400 text-sm">
-                            -
-                          </div>
-                        )}
+                          {watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' && (
+                            <Input
+                              placeholder="ระบุรายละเอียด"
+                              className="w-full text-sm"
+                              {...register(`expenseClearingItems.${index}.otherDescription` as const, {
+                                required: watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? 'กรุณาระบุรายละเอียด' : false
+                              })}
+                            />
+                          )}
+                        </div>
                       </td>
                       <td className="border border-gray-300 p-1">
                         <Input
@@ -1027,12 +1067,14 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           type="number"
                           step="0.01"
                           min="0"
-                          className="w-28"
+                          className="w-28 bg-gray-100"
                           placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.taxAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
+                          value={(watch(`expenseClearingItems.${index}.taxAmount`) || 0).toFixed(2)}
+                          readOnly
+                        />
+                        <input
+                          type="hidden"
+                          {...register(`expenseClearingItems.${index}.taxAmount` as const)}
                         />
                       </td>
                       <td className="border border-gray-300 p-1">
@@ -1055,9 +1097,12 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           step="0.01"
                           className="w-28 bg-yellow-50"
                           placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.refund` as const, {
-                            valueAsNumber: true
-                          })}
+                          value={(watch(`expenseClearingItems.${index}.refund`) || 0).toFixed(2)}
+                          readOnly
+                        />
+                        <input
+                          type="hidden"
+                          {...register(`expenseClearingItems.${index}.refund` as const)}
                         />
                       </td>
                       <td className="border border-gray-300 p-1 text-center">
@@ -1078,7 +1123,6 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   {/* Row รวม */}
                   <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];

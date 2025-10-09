@@ -295,7 +295,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           .eq('id', editIdNum)
           .single();
         if (!error && data) {
-            // Map only fields that exist in the schema
+          // Map only fields that exist in the schema
           const dbData = data as any; // Type assertion for database fields
           reset({
             amount: dbData.amount,
@@ -379,7 +379,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const amount = watch('amount');
     const vatAmount = Number(watch('tax7Percent')) || 0;
     const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-    
+
     if (type === 'training') {
       // สมมติว่า remainingBudget ใช้ trainingBudget
       const remainingBudget = currentRemainingBudget ?? 0;
@@ -948,6 +948,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     // Handle Internal Training differently
     if (type === 'internal_training') {
+      const totalAmount = Number(data.totalAmount || data.amount || 0);
+      const requiresSpecialApproval = totalAmount > 10000;
+
       const internalTrainingData = {
         // Required WelfareRequest fields
         type: 'internal_training' as const,
@@ -956,12 +959,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         userDepartment: finalEmployeeData.Team || 'Unknown Department',
         date: data.startDate || new Date().toISOString(),
         status: 'pending_manager' as const,
-        amount: Number(data.totalAmount || data.amount || 0),
+        amount: totalAmount,
+        requiresSpecialApproval: requiresSpecialApproval,
         details: data.additionalNotes || data.details || '',
         attachments: files,
         notes: '',
         managerId: finalEmployeeData?.Position,
-        
+
         // Internal training specific fields
         employee_id: finalEmployeeData.id,
         employee_name: finalEmployeeData.Name || user.email || 'Unknown User',
@@ -1055,7 +1059,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       }
 
       await refreshInternalTrainingRequests();
-      
+
       toast({
         title: 'ส่งคำร้องสำเร็จ',
         description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
@@ -1272,7 +1276,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         </div>
 
         {/* Display welfare limits for non-training types */}
-        {maxAmount !== null && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
+        {maxAmount !== null && !['training', 'internal_training', 'advance'].includes(type) && (
           <div className="mb-6">
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
@@ -1290,22 +1294,17 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
-              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{remainingBudget.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
+              งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{(remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </p>
           </div>
         )}
         {type === 'training' && (
           <div className="space-y-4 mb-6">
+
             <Alert>
               <AlertCircle className="h-4 w-4 mr-2" />
               <AlertDescription>
-                วงเงินสูงสุด: {maxAmount?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
-              </AlertDescription>
-            </Alert>
-            <Alert>
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <AlertDescription>
-                งบประมาณคงเหลือ: {remainingBudget?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'} บาท
+                งบประมาณคงเหลือ: {(remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
               </AlertDescription>
             </Alert>
             {workDaysError && (
@@ -1463,10 +1462,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     min: {
                       value: 1,
                       message: 'จำนวนเงินต้องมากกว่า 0'
-                    },
-                    max: {
-                      value: maxAmount || 100000,
-                      message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
+
                     },
                     onChange: (e) => {
                       const amount = Number(e.target.value);
@@ -2081,6 +2077,16 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 {/* สรุปรวม */}
                 <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
                   <h4 className="font-bold text-blue-800 mb-4">สรุปรวมทั้งหมด</h4>
+
+                  {/* Alert สำหรับเงื่อนไขพิเศษ */}
+                  {watch('totalAmount') && Number(watch('totalAmount')) > 10000 && (
+                    <Alert className="mb-4 border-orange-200 bg-orange-50">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <strong>ข้อมูลสำคัญ:</strong> เนื่องจากจำนวนเงินเกิน 10,000 บาท คำร้องนี้จะต้องผ่านการอนุมัติพิเศษจาก kanin.s@icpladda.com หลังจากที่ HR อนุมัติแล้ว
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="grid grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวมหักภาษี ณ ที่จ่าย</label>
@@ -2190,8 +2196,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       message: 'จำนวนเงินต้องมากกว่า 0'
                     },
                     max: {
-                      value: maxAmount || 100000,
-                      message: `จำนวนเงินต้องไม่เกิน ${maxAmount} บาท`
+                      value: Math.min(maxAmount || 100000, remainingBudget || 0),
+                      message: `จำนวนเงินต้องไม่เกิน ${Math.min(maxAmount || 100000, remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`
                     },
                     validate: {
                       notMoreThanRemaining: value =>
@@ -2317,7 +2323,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       ใบเสร็จรับเงิน
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2329,7 +2335,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       สำเนาบัตรประชาชน
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2354,7 +2360,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       สำเนาสูติบัตรบุตร
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2366,7 +2372,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       สำเนาใบมรณะบัตร
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2391,7 +2397,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       ใบรับรองแพทย์
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2403,7 +2409,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       สำเนาทะเบียนสมรส
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -2416,7 +2422,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     </label>
                   </div>
                 </div>
-                
+
                 {/* Other text input - show when "อื่นๆ" is checked */}
                 {watch('attachmentSelections.other') && (
                   <div className="mt-4">

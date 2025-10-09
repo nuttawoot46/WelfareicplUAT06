@@ -6,15 +6,17 @@ import { useWelfareRequests } from '@/hooks/useWelfareRequests';
 export function WelfareStatusCards() {
   const { requests } = useWelfareRequests();
 
-  // Requests are already filtered for welfare types only (excludes advance and expense-clearing)
+  // Requests are already filtered for welfare types only (excludes advance, general-advance and expense-clearing)
 
   // Count requests by status (welfare flow: manager -> HR -> accounting -> completed)
   const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;
   const pendingHRCount = requests.filter(r => r.status?.toLowerCase() === 'pending_hr').length;
+  const pendingSpecialCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_special_approval').length;
   const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
   const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
   const rejectedManagerCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_manager').length;
   const rejectedHRCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_hr').length;
+  const rejectedSpecialCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_special_approval').length;
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
@@ -30,6 +32,12 @@ export function WelfareStatusCards() {
         count={pendingHRCount}
         status="pending_hr"
         icon={<Clipboard className="h-5 w-5 text-amber-700" />}
+      />
+      <StatusCard
+        title="รอตรวจสอบโดย ผู้บริหาร"
+        count={pendingSpecialCount}
+        status="pending_special_approval"
+        icon={<Clipboard className="h-5 w-5 text-amber-700" />}  
       />
       <StatusCard
         title="รออนุมัติโดยบัญชี"
@@ -53,6 +61,12 @@ export function WelfareStatusCards() {
         title="ปฏิเสธโดย HR"
         count={rejectedHRCount}
         status="rejected_hr"
+        icon={<XCircle className="h-5 w-5 text-purple-700" />}
+      />
+      <StatusCard
+        title="ปฏิเสธโดย ผู้บริหาร"
+        count={rejectedSpecialCount}
+        status="rejected_special_approval"
         icon={<XCircle className="h-5 w-5 text-purple-700" />}
       />
       <StatusCard

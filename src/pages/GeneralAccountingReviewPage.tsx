@@ -370,7 +370,9 @@ const GeneralAccountingReviewPage: React.FC = () => {
   const getRequestTypeLabel = (type: string) => {
     switch (type) {
       case 'advance':
-        return 'เบิกเงินล่วงหน้า';
+        return 'เบิกเงินล่วงหน้า (ฝ่ายขาย)';
+      case 'general-advance':
+        return 'เบิกเงินล่วงหน้า (ทั่วไป)';
       case 'expense_clearing':
         return 'เคลียร์ค่าใช้จ่าย';
       default:
@@ -864,7 +866,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="">ทุกประเภท</option>
-                    <option value="advance">เบิกเงินล่วงหน้า</option>
+                    <option value="advance">เบิกเงินล่วงหน้า (ฝ่ายขาย)</option>
+                    <option value="general-advance">เบิกเงินล่วงหน้า (ทั่วไป)</option>
                     <option value="expense_clearing">เคลียร์ค่าใช้จ่าย</option>
                   </select>
                 </div>

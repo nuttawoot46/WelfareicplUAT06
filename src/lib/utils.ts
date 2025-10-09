@@ -71,7 +71,8 @@ export const getWelfareTypeLabel = (type: string): string => {
     'fitness': 'ค่าออกกำลังกาย',
     'medical': 'ของเยี่ยมกรณีเจ็บป่วย',
     'internal_training': 'อบรมภายใน',
-    'advance': 'เบิกเงินล่วงหน้า',
+    'advance': 'เบิกเงินล่วงหน้า (ฝ่ายขาย)',
+    'general-advance': 'เบิกเงินล่วงหน้า (ทั่วไป)',
     'expense-clearing': 'เคลียร์ค่าใช้จ่าย'
   };
 

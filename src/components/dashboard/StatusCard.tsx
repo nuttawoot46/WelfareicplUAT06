@@ -28,6 +28,7 @@ export function StatusCard({ title, count, status, icon }: StatusCardProps) {
       case 'rejected_manager':
       case 'rejected_hr':
       case 'rejected_accounting':
+      case 'rejected_special_approval': 
         return {
           gradient: 'bg-gradient-to-br from-red-500 to-red-600',
           textLight: 'text-red-100',

@@ -116,7 +116,7 @@ const N8nChatbot: React.FC<N8nChatbotProps> = ({
       initialMessages: ['สวัสดี', 'ฉันชื่อ จินนี่ สามารถสอบถามข้อมูลสวัสดิการได้ 24 ชม.'],
       i18n: {
         th: {
-          title: 'สวัสดีชาว ICPLadda',
+          title: 'สวัสดีชาว ICP Ladda',
           subtitle: 'คุณสามารถคุยกับฉันได้ 24 ชม.',
           footer: '',
           getStarted: 'เริ่มการสนทนาใหม่',

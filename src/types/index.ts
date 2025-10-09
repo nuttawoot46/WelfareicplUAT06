@@ -38,16 +38,26 @@ export type StatusType =
   | 'pending_manager'
   | 'pending_hr'
   | 'pending_accounting'
+  | 'pending_special_approval' // สำหรับ Internal Training > 10,000 บาท
   | 'completed'
   | 'rejected_manager'
   | 'rejected_hr'
-  | 'rejected_accounting';
+  | 'rejected_accounting'
+  | 'rejected_special_approval';
 
 export type WelfareType = 
   | 'wedding'
   | 'training'
   | 'childbirth'
   | 'funeral'
+  | 'glasses'
+  | 'dental'
+  | 'fitness'
+  | 'medical'
+  | 'internal_training'
+  | 'advance'
+  | 'general-advance'
+  | 'expense-clearing';
 
 export interface Announcement {
   id: string;
@@ -61,14 +71,7 @@ export interface Announcement {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-} 
-  | 'glasses'
-  | 'dental'
-  | 'fitness'
-  | 'medical'
-  | 'internal_training'
-  | 'advance'
-  | 'expense-clearing';
+}
 
 export interface WelfareRequest {
   id: number;
@@ -95,6 +98,11 @@ export interface WelfareRequest {
   managerApproverId?: string; // ID of manager who approved
   managerApproverName?: string; // Name of manager who approved
   managerApprovedAt?: string; // Date and time when manager approved
+  // Special approval fields (for Internal Training > 10,000 บาท)
+  specialApproverId?: string; // ID of special approver (kanin.s@icpladda.com)
+  specialApproverName?: string; // Name of special approver
+  specialApprovedAt?: string; // Date and time when special approved
+  requiresSpecialApproval?: boolean; // Flag to indicate if special approval is required
   // ฟิลด์ใหม่สำหรับ training และอื่น ๆ
   start_date?: string;
   end_date?: string;
@@ -117,6 +125,7 @@ export interface WelfareRequest {
   userSignature?: string; // Base64 encoded signature image
   managerSignature?: string; // Manager's digital signature
   hrSignature?: string; // HR's digital signature
+  specialSignature?: string; // Special approver's digital signature (Deputy Managing Director)
   // PDF file storage
   pdfRequest?: string; // Base64 encoded PDF file that gets updated with signatures
   // Internal training specific fields
@@ -181,6 +190,9 @@ export interface WelfareRequest {
   // Expense clearing specific fields
   originalAdvanceRequestId?: number;
   expenseClearingItems?: any[] | string;
+
+  // Run number for tracking requests
+  runNumber?: string;
 
   // Attachment selections for PDF checkmarks
   attachmentSelections?: {

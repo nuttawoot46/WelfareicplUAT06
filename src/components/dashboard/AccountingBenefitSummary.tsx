@@ -46,8 +46,8 @@ export function AccountingBenefitSummary({ limit = 4 }: AccountingBenefitSummary
     return () => clearTimeout(timer);
   }, []);
 
-  // Filter only accounting-related requests (advance and expense-clearing types)
-  const accountingRequests = welfareRequests.filter(r => r.type === 'advance' || r.type === 'expense-clearing');
+  // Filter only accounting-related requests (advance, general-advance and expense-clearing types)
+  const accountingRequests = welfareRequests.filter(r => r.type === 'advance' || r.type === 'general-advance' || r.type === 'expense-clearing');
 
   // Calculate statistics
   const totalRequests = accountingRequests.length;

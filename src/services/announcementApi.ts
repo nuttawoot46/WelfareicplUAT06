@@ -9,6 +9,7 @@ export interface Announcement {
   is_active: boolean;
   start_date: string | null;
   end_date: string | null;
+  youtube_embed_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -22,6 +23,7 @@ export interface CreateAnnouncementData {
   is_active?: boolean;
   start_date?: string | null;
   end_date?: string | null;
+  youtube_embed_url?: string | null;
 }
 
 export interface UpdateAnnouncementData extends Partial<CreateAnnouncementData> {

@@ -327,7 +327,7 @@ const createAdvanceFormHTML = (
             <tr style="background: #f0f0f0;">
               <th style="border: 1px solid black; padding: 6px; text-align: left; width: 30%;">ชื่อรายการ</th>
               <th style="border: 1px solid black; padding: 6px; text-align: right; width: 18%;">จำนวนเงินเบิก</th>
-              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 12%;">อัตรา % ภาษี</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 12%;">% ภาษี</th>
               <th style="border: 1px solid black; padding: 6px; text-align: right; width: 18%;">จำนวนภาษีหัก ณที่จ่าย</th>
               <th style="border: 1px solid black; padding: 6px; text-align: right; width: 22%;">ยอดเงินสุทธิ</th>
             </tr>

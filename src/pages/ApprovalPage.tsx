@@ -354,7 +354,7 @@ export const ApprovalPage = () => {
           }
         }
         
-        const accountingCount = pendingBulkApproval.filter(req => req.type === 'advance' || req.type === 'expense-clearing').length;
+        const accountingCount = pendingBulkApproval.filter(req => req.type === 'advance' || req.type === 'general-advance' || req.type === 'expense-clearing').length;
         const hrCount = pendingBulkApproval.length - accountingCount;
         
         let message = `${pendingBulkApproval.length} requests approved successfully with signature.`;
@@ -438,7 +438,7 @@ export const ApprovalPage = () => {
       } else if (pendingApprovalRequest) {
         // Handle individual approval
         // Determine next status based on request type
-        const nextStatus = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'pending_accounting' : 'pending_hr';
+        const nextStatus = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'general-advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'pending_accounting' : 'pending_hr';
         
         const { error } = await supabase
           .from('welfare_requests')
@@ -457,7 +457,7 @@ export const ApprovalPage = () => {
           throw error;
         }
         
-        const destination = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'Accounting' : 'HR';
+        const destination = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'general-advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'Accounting' : 'HR';
         addNotification({ 
           userId: user.id, 
           title: 'Success', 

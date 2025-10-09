@@ -29,12 +29,12 @@ export function useAccountingRequests() {
       setIsLoading(true);
       setError(null);
       
-      // Filter only accounting-related requests (advance and expense-clearing types)
+      // Filter only accounting-related requests (advance, general-advance and expense-clearing types)
       const { data, error: fetchError } = await supabase
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .in('request_type', ['advance', 'expense-clearing']) // Only accounting requests
+        .in('request_type', ['advance', 'general-advance', 'expense-clearing']) // Only accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

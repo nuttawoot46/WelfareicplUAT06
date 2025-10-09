@@ -100,7 +100,7 @@ export const HRApprovalPage = () => {
           if (req.type !== 'advance' && req.type !== 'expense-clearing') return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by HR (approved or rejected)
-          const processedStatuses = ['pending_accounting', 'approved', 'rejected_hr', 'rejected_accounting'];
+          const processedStatuses = ['pending_accounting', 'pending_special_approval', 'approved', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval'];
           if (!processedStatuses.includes(req.status)) return false;
         }
 
@@ -282,15 +282,33 @@ export const HRApprovalPage = () => {
     try {
       const currentDateTime = new Date().toISOString();
 
+      // Check if this is a training request that requires special approval
+      const amount = Number(pendingApprovalRequest.amount);
+      const requestType = pendingApprovalRequest.type || pendingApprovalRequest.request_type;
+      const requiresSpecialApproval = (requestType === 'internal_training' || requestType === 'training') && amount > 10000;
+      
+      const nextStatus = requiresSpecialApproval ? 'pending_special_approval' : 'pending_accounting';
+
+      console.log('HR Approval Debug:', {
+        requestType: requestType,
+        originalAmount: pendingApprovalRequest.amount,
+        convertedAmount: amount,
+        amountType: typeof pendingApprovalRequest.amount,
+        isGreaterThan10000: amount > 10000,
+        requiresSpecialApproval,
+        nextStatus
+      });
+
       // Update with HR approval information and signature
       const { error } = await supabase
         .from('welfare_requests')
         .update({
-          status: 'pending_accounting',
+          status: nextStatus,
           hr_approver_id: user.id,
           hr_approver_name: profile?.display_name || user.email,
           hr_approved_at: currentDateTime,
           hr_signature: signature,
+          requires_special_approval: requiresSpecialApproval,
           updated_at: currentDateTime
         })
         .eq('id', pendingApprovalRequest.id);
@@ -311,10 +329,10 @@ export const HRApprovalPage = () => {
         console.error('Error fetching latest request data:', fetchError);
       }
 
-      // Generate PDF with both manager and HR signatures (pending accounting approval)
+      // Generate PDF with both manager and HR signatures
       const updatedRequest = {
         ...pendingApprovalRequest,
-        status: 'pending_accounting' as const,
+        status: nextStatus as const,
         hrApproverName: profile?.display_name || user.email,
         hrApprovedAt: currentDateTime,
         hrSignature: signature,
@@ -331,7 +349,7 @@ export const HRApprovalPage = () => {
       });
 
       // Handle PDF generation based on request type
-      if (pendingApprovalRequest.type === 'internal_training') {
+      if (requestType === 'internal_training') {
         // Get employee data for PDF generation
         let employeeData;
         try {
@@ -462,10 +480,18 @@ export const HRApprovalPage = () => {
           // Keep signature popup open for next request
         } else {
           // Bulk approval complete
+          const hasSpecialApproval = bulkApprovalQueue.some(req => {
+            const reqType = req.type || req.request_type;
+            return (reqType === 'internal_training' || reqType === 'training') && Number(req.amount) > 10000;
+          });
+          const message = hasSpecialApproval 
+            ? `All ${bulkApprovalQueue.length} requests approved successfully. Some requests sent to Special Approval, others to Accounting.`
+            : `All ${bulkApprovalQueue.length} requests approved successfully with signatures and sent to Accounting.`;
+          
           addNotification({
             userId: user.id,
             title: 'Success',
-            message: `All ${bulkApprovalQueue.length} requests approved successfully with signatures and sent to Accounting.`,
+            message,
             type: 'success'
           });
 
@@ -479,10 +505,14 @@ export const HRApprovalPage = () => {
         }
       } else {
         // Single approval
+        const message = requiresSpecialApproval 
+          ? 'Request approved successfully with signature and sent to Special Approval.'
+          : 'Request approved successfully with signature and sent to Accounting for final approval.';
+        
         addNotification({
           userId: user.id,
           title: 'Success',
-          message: 'Request approved successfully with signature and sent to Accounting for final approval.',
+          message,
           type: 'success'
         });
 
@@ -491,7 +521,9 @@ export const HRApprovalPage = () => {
         setIsSignaturePopupOpen(false);
       }
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error in handleSignatureComplete:', error);
+      
       addNotification({
         userId: user.id,
         title: 'Error',
@@ -958,9 +990,11 @@ export const HRApprovalPage = () => {
                         <SelectContent>
                           <SelectItem value="all">All Statuses</SelectItem>
                           <SelectItem value="pending_accounting">Pending Accounting</SelectItem>
+                          <SelectItem value="pending_special_approval">Pending Special Approval</SelectItem>
                           <SelectItem value="approved">Approved</SelectItem>
                           <SelectItem value="rejected_hr">Rejected by HR</SelectItem>
                           <SelectItem value="rejected_accounting">Rejected by Accounting</SelectItem>
+                          <SelectItem value="rejected_special_approval">Rejected by Special Approval</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="mt-4">
@@ -1034,6 +1068,10 @@ export const HRApprovalPage = () => {
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                 Pending Accounting
                               </Badge>
+                            ) : req.status === 'pending_special_approval' ? (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                Pending Special Approval
+                              </Badge>
                             ) : req.status === 'approved' ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 Approved
@@ -1045,6 +1083,10 @@ export const HRApprovalPage = () => {
                             ) : req.status === 'rejected_accounting' ? (
                               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                                 Rejected by Accounting
+                              </Badge>
+                            ) : req.status === 'rejected_special_approval' ? (
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                Rejected by Special Approval
                               </Badge>
                             ) : (
                               <Badge variant="outline">

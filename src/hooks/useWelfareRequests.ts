@@ -29,12 +29,12 @@ export function useWelfareRequests() {
       setIsLoading(true);
       setError(null);
       
-      // Filter only welfare-related requests (exclude advance and expense-clearing types)
+      // Filter only welfare-related requests (exclude advance, general-advance and expense-clearing types)
       const { data, error: fetchError } = await supabase
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .not('request_type', 'in', '(advance,expense-clearing)') // Exclude accounting requests
+        .not('request_type', 'in', '(advance,general-advance,expense-clearing)') // Exclude accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

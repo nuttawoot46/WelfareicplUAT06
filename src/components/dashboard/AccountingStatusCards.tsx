@@ -6,7 +6,7 @@ import { useAccountingRequests } from '@/hooks/useAccountingRequests';
 export function AccountingStatusCards() {
   const { requests } = useAccountingRequests();
 
-  // All requests are already filtered for accounting (advance type)
+  // All requests are already filtered for accounting (advance and general-advance types)
 
   // Count requests by status (accounting flow: manager -> accounting, no HR)
   const pendingManagerCount = requests.filter(r => !r.status || r.status.toLowerCase() === 'pending_manager').length;

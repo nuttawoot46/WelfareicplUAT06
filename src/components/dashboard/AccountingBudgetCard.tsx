@@ -17,8 +17,8 @@ export const AccountingBudgetCard: React.FC<AccountingBudgetCardProps> = ({
 }) => {
   const { getWelfareLimit, getRemainingBudget } = useWelfare();
   
-  // Filter only accounting-related requests (advance and expense-clearing types)
-  const accountingRequests = requests.filter(r => r.type === 'advance' || r.type === 'expense-clearing');
+  // Filter only accounting-related requests (advance, general-advance and expense-clearing types)
+  const accountingRequests = requests.filter(r => r.type === 'advance' || r.type === 'general-advance' || r.type === 'expense-clearing');
   
   // Calculate total used amount for advance requests
   const totalUsed = accountingRequests

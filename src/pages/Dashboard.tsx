@@ -1,9 +1,10 @@
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bell } from 'lucide-react';
+import { Bell, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getActiveAnnouncements, type Announcement } from '@/services/announcementApi';
+import { convertToYouTubeEmbed } from '@/utils/youtubeUtils';
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -70,12 +71,32 @@ const Dashboard = () => {
                 <Card key={announcement.id} className={`border-l-4 ${getPriorityColor(announcement.priority)}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        {announcement.title}
+                        {announcement.youtube_embed_url && (
+                          <Play className="h-4 w-4 text-red-600" />
+                        )}
+                      </h3>
                       <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
                         {new Date(announcement.created_at).toLocaleDateString('th-TH')}
                       </span>
                     </div>
-                    <p className="text-gray-700 text-sm">{announcement.content}</p>
+                    <p className="text-gray-700 text-sm mb-3">{announcement.content}</p>
+                    
+                    {announcement.youtube_embed_url && (
+                      <div className="mt-4">
+                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-lg"
+                            src={convertToYouTubeEmbed(announcement.youtube_embed_url) || announcement.youtube_embed_url}
+                            title={`YouTube video: ${announcement.title}`}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))

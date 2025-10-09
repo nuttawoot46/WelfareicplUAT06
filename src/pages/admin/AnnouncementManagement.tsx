@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Eye, EyeOff, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, Calendar, Youtube } from 'lucide-react';
+import { isValidYouTubeUrl, convertToYouTubeEmbed } from '@/utils/youtubeUtils';
 import { 
   getAllAnnouncements, 
   createAnnouncement, 
@@ -26,6 +27,7 @@ interface AnnouncementFormData {
   is_active: boolean;
   start_date: string;
   end_date: string;
+  youtube_embed_url: string;
 }
 
 const initialFormData: AnnouncementFormData = {
@@ -35,7 +37,8 @@ const initialFormData: AnnouncementFormData = {
   type: 'general',
   is_active: true,
   start_date: new Date().toISOString().split('T')[0],
-  end_date: ''
+  end_date: '',
+  youtube_embed_url: ''
 };
 
 export const AnnouncementManagement = () => {
@@ -74,7 +77,8 @@ export const AnnouncementManagement = () => {
         type: formData.type,
         is_active: formData.is_active,
         start_date: formData.start_date || null,
-        end_date: formData.end_date || null
+        end_date: formData.end_date || null,
+        youtube_embed_url: formData.youtube_embed_url || null
       };
 
       if (editingId) {
@@ -100,7 +104,8 @@ export const AnnouncementManagement = () => {
       type: announcement.type,
       is_active: announcement.is_active,
       start_date: announcement.start_date || '',
-      end_date: announcement.end_date || ''
+      end_date: announcement.end_date || '',
+      youtube_embed_url: announcement.youtube_embed_url || ''
     });
     setEditingId(announcement.id);
     setShowForm(true);
@@ -212,6 +217,26 @@ export const AnnouncementManagement = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="youtube_embed_url" className="flex items-center gap-2">
+                  <Youtube className="h-4 w-4 text-red-600" />
+                  YouTube URL (ไม่บังคับ)
+                </Label>
+                <Input
+                  id="youtube_embed_url"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=... หรือ https://youtu.be/..."
+                  value={formData.youtube_embed_url}
+                  onChange={(e) => setFormData({ ...formData, youtube_embed_url: e.target.value })}
+                />
+                {formData.youtube_embed_url && !isValidYouTubeUrl(formData.youtube_embed_url) && (
+                  <p className="text-sm text-red-600">กรุณาใส่ URL ของ YouTube ที่ถูกต้อง</p>
+                )}
+                {formData.youtube_embed_url && isValidYouTubeUrl(formData.youtube_embed_url) && (
+                  <p className="text-sm text-green-600">✓ URL ถูกต้อง</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="priority">ระดับความสำคัญ</Label>
@@ -292,6 +317,24 @@ export const AnnouncementManagement = () => {
                     )}
                   </div>
                   <p className="text-gray-700 mb-2">{announcement.content}</p>
+                  {announcement.youtube_embed_url && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
+                        <Youtube className="h-4 w-4" />
+                        มีวิดีโอ YouTube แนบ
+                      </div>
+                      <div className="relative w-full max-w-md" style={{ paddingBottom: '56.25%', maxWidth: '400px' }}>
+                        <iframe
+                          className="absolute top-0 left-0 w-full h-full rounded-lg"
+                          src={convertToYouTubeEmbed(announcement.youtube_embed_url) || announcement.youtube_embed_url}
+                          title={`YouTube video: ${announcement.title}`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     {announcement.start_date && (
                       <span className="flex items-center gap-1">

@@ -32,6 +32,7 @@ import { WelfareAccountingReviewPage } from "./pages/WelfareAccountingReviewPage
 import { GeneralAccountingReviewPage } from "./pages/GeneralAccountingReviewPage";
 
 import { SupportPage } from "./pages/SupportPage";
+import SpecialApprovalPage from "./pages/SpecialApprovalPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -181,6 +182,14 @@ const App = () => (
                     <ProtectedRoute>
                       <MainLayout>
                         <HRApprovalPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/special-approve" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <SpecialApprovalPage />
                       </MainLayout>
                     </ProtectedRoute>
                   } />

@@ -17,7 +17,7 @@ const TeamSelectionPage = () => {
                 className="w-full h-full object-contain"
               />
             </div>
-            <h1 className="text-3xl font-bold gradient-animated-text">ระบบสวัสดิการพนักงาน ICP Ladda</h1>
+            <h1 className="text-3xl font-bold gradient-animated-text">ระบบแบบฟอร์มออนไลน์ ICP Ladda</h1>
             <p className="mt-2 gradient-animated-text">กรุณาเข้าสู่ระบบด้วยบัญชี Microsoft</p>
           </div>
 
@@ -39,7 +39,7 @@ const TeamSelectionPage = () => {
             <span>Login with Microsoft</span>
           </button>
           {/* End Microsoft Login Button */}
-          
+
           {/* Cloud and Sun Animation */}
           <Loader />
         </div>

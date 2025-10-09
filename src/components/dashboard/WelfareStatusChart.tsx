@@ -65,6 +65,8 @@ const getStatusText = (status: string) => {
       return 'ปฏิเสธโดยบัญชี';
     case 'rejected_hr':
       return 'ปฏิเสธโดย HR';
+    case 'pending_special_approval':
+      return 'รออนุมัติโดย ผู้บริหาร';      
     default:
       return 'สถานะไม่ทราบ';
   }
@@ -87,6 +89,8 @@ const getStatusClass = (status: string) => {
       return 'bg-red-100 text-red-800';
     case 'rejected_hr':
       return 'bg-red-100 text-red-800';
+    case 'pending_special_approval':
+      return 'bg-amber-200 text-amber-900';  
     default:
       return 'bg-gray-100 text-gray-800';
   }
@@ -209,7 +213,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .not('request_type', 'in', '(advance,expense-clearing)') // Exclude accounting requests
+        .not('request_type', 'in', '(advance,general-advance,expense-clearing)') // Exclude accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

@@ -3,9 +3,10 @@ import { Layout } from '@/components/layout/Layout';
 import { AccountingFormSelector } from '@/components/forms/AccountingFormSelector';
 import { WelfareForm } from '@/components/forms/WelfareForm';
 import { AdvanceForm } from '@/components/forms/AdvanceForm';
+import { GeneralAdvanceForm } from '@/components/forms/GeneralAdvanceForm';
 import { ExpenseClearingForm } from '@/components/forms/ExpenseClearingForm';
 
-type AccountingFormType = 'advance' | 'expense-clearing';
+type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing';
 
 export function AccountingFormsPage() {
   const [selectedType, setSelectedType] = useState<AccountingFormType | null>(null);
@@ -28,6 +29,8 @@ export function AccountingFormsPage() {
       {selectedType ? (
         selectedType === 'advance' ? (
           <AdvanceForm onBack={handleBack} />
+        ) : selectedType === 'general-advance' ? (
+          <GeneralAdvanceForm onBack={handleBack} />
         ) : selectedType === 'expense-clearing' ? (
           <ExpenseClearingForm onBack={handleBack} />
         ) : (
