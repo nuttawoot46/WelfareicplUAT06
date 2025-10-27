@@ -5,8 +5,9 @@ import { WelfareForm } from '@/components/forms/WelfareForm';
 import { AdvanceForm } from '@/components/forms/AdvanceForm';
 import { GeneralAdvanceForm } from '@/components/forms/GeneralAdvanceForm';
 import { ExpenseClearingForm } from '@/components/forms/ExpenseClearingForm';
+import { GeneralExpenseClearingForm } from '@/components/forms/GeneralExpenseClearingForm';
 
-type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing';
+type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing' | 'general-expense-clearing';
 
 export function AccountingFormsPage() {
   const [selectedType, setSelectedType] = useState<AccountingFormType | null>(null);
@@ -33,6 +34,8 @@ export function AccountingFormsPage() {
           <GeneralAdvanceForm onBack={handleBack} />
         ) : selectedType === 'expense-clearing' ? (
           <ExpenseClearingForm onBack={handleBack} />
+        ) : selectedType === 'general-expense-clearing' ? (
+          <GeneralExpenseClearingForm onBack={handleBack} />
         ) : (
           <WelfareForm 
             type={selectedType as any}

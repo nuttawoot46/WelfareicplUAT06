@@ -925,9 +925,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   <tr className="bg-gray-50">
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">% ภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดเงินสุทธิ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
                   </tr>
                 </thead>
@@ -979,7 +977,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           type="number"
                           step="0.01"
                           min="0"
-                          className="w-28"
+                          className="w-32"
                           placeholder="0.00"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
                             min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
@@ -991,41 +989,18 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         <Input
                           type="number"
                           step="0.01"
-                          min="0"
-                          max="100"
-                          className="w-20 bg-gray-100"
-                          placeholder="0"
-                          value={watch(`advanceExpenseItems.${index}.taxRate`) || 0}
+                          className="w-32 bg-blue-50 font-semibold"
+                          placeholder="0.00"
+                          value={(watch(`advanceExpenseItems.${index}.netAmount`) || 0).toFixed(2)}
                           readOnly
                         />
                         <input
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.taxRate` as const)}
                         />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28 bg-gray-100"
-                          placeholder="0.00"
-                          value={(watch(`advanceExpenseItems.${index}.taxAmount`) || 0).toFixed(2)}
-                          readOnly
-                        />
                         <input
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.taxAmount` as const)}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-28 bg-blue-50 font-semibold"
-                          placeholder="0.00"
-                          value={(watch(`advanceExpenseItems.${index}.netAmount`) || 0).toFixed(2)}
-                          readOnly
                         />
                         <input
                           type="hidden"
@@ -1058,19 +1033,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             ? parseFloat(item.requestAmount) || 0 
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
-                        }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
-                      })()}
-                    </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
-                      {(() => {
-                        const expenseItems = watchedExpenseItems || [];
-                        const total = expenseItems.reduce((sum, item) => {
-                          const taxAmount = typeof item.taxAmount === 'string' 
-                            ? parseFloat(item.taxAmount) || 0 
-                            : Number(item.taxAmount) || 0;
-                          return sum + taxAmount;
                         }, 0);
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}

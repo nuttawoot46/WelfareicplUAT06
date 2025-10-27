@@ -25,6 +25,7 @@ interface AccountingRequestItem {
   pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
   pdf_request_manager?: string; // PDF ที่ Manager approve แล้ว
   pdf_url?: string; // PDF URL จาก database
+  run_number?: string; // เลขที่เอกสาร เช่น ADV2025
 }
 
 const formatDate = (dateString: string | Date) => {
@@ -109,6 +110,7 @@ const exportToCSV = (data: AccountingRequestItem[], filename = "accounting_repor
 
   // สร้าง header
   const header = [
+    'เลขที่เอกสาร',
     'วันที่ยื่น',
     'ชื่อผู้ยื่น',
     'ประเภท',
@@ -118,7 +120,8 @@ const exportToCSV = (data: AccountingRequestItem[], filename = "accounting_repor
     'หมายเหตุจากผู้จัดการ'
   ];
 
-  const rows = data.map(row => [
+  const rows = data.map((row) => [
+    row.run_number || '-',
     formatDate(row.created_at),
     row.employee_name || '',
     getRequestTypeText(row.request_type),
@@ -474,6 +477,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
               <Table>
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
+                    <TableHead className="w-[120px]">เลขที่เอกสาร</TableHead>
                     <TableHead className="w-[120px]">วันที่ยื่น</TableHead>
                     <TableHead>ประเภท</TableHead>
                     <TableHead className="text-right">จำนวนเงิน</TableHead>
@@ -491,6 +495,9 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                       className={`hover:bg-gray-50 ${request.status === 'pending_manager' ? 'cursor-pointer' : 'cursor-default'}`}
                       onDoubleClick={() => handleDoubleClick(request)}
                     >
+                      <TableCell className="font-medium">
+                        {request.run_number || '-'}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDate(request.created_at)}
                       </TableCell>

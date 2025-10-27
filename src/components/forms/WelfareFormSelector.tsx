@@ -97,6 +97,15 @@ const InternalTrainingIcon = () => (
   </svg>
 );
 
+const EmploymentIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
 
 
 export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
@@ -144,8 +153,8 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       return { available: false, reason: 'ใช้ฟอร์มบัญชีแทน' };
     }
     
-    // Training และ Internal Training สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
-    if (type === 'training' || type === 'internal_training') {
+    // Training, Internal Training และ Employment Approval สามารถเลือกได้ตลอด (ไม่มีข้อจำกัดอายุงานหรืองบประมาณ)
+    if (type === 'training' || type === 'internal_training' || type === 'employment-approval') {
       return { available: true };
     }
     
@@ -212,6 +221,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const getBudgetDescription = (type: WelfareType): string => {
     if (type === 'internal_training') {
       return 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร';
+    }
+    
+    if (type === 'employment-approval') {
+      return 'สำหรับการขออนุมัติจ้างพนักงานใหม่หรือทดแทนตำแหน่ง';
     }
     
     const remaining = getRemainingAmount(type);
@@ -284,6 +297,13 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       description: getBudgetDescription('internal_training'),
       icon: <InternalTrainingIcon />,
       color: 'text-welfare-indigo',
+    },
+    {
+      id: 'employment-approval',
+      title: 'ขออนุมัติการจ้างงาน',
+      description: 'สำหรับการขออนุมัติจ้างพนักงานใหม่หรือทดแทนตำแหน่ง',
+      icon: <EmploymentIcon />,
+      color: 'text-blue-600',
     },
   ];
 

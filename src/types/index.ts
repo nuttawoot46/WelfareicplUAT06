@@ -57,7 +57,9 @@ export type WelfareType =
   | 'internal_training'
   | 'advance'
   | 'general-advance'
-  | 'expense-clearing';
+  | 'expense-clearing'
+  | 'general-expense-clearing'
+  | 'employment-approval';
 
 export interface Announcement {
   id: string;
@@ -207,6 +209,43 @@ export interface WelfareRequest {
     other?: boolean; // อื่นๆ
     otherText?: string; // ระบุอื่นๆ
   };
+
+  // Employment approval specific fields
+  employmentType?: 'new-hire' | 'replacement' | 'temporary' | 'contract-extension';
+  positionTitle?: string;
+  departmentRequesting?: string;
+  reportingTo?: string;
+  employmentStartDate?: string;
+  employmentEndDate?: string;
+  workingHours?: string;
+  probationPeriod?: number; // in months
+  salaryOffered?: number;
+  allowances?: {
+    housing?: number;
+    transportation?: number;
+    meal?: number;
+    other?: number;
+    otherDescription?: string;
+  };
+  benefits?: string[];
+  jobDescription?: string;
+  qualifications?: {
+    education?: string;
+    experience?: string;
+    skills?: string[];
+    certifications?: string[];
+  };
+  reasonForHiring?: string;
+  budgetCode?: string;
+  costCenter?: string;
+  replacementFor?: string; // Name of person being replaced
+  contractType?: 'permanent' | 'temporary' | 'contract' | 'probation';
+  workLocation?: string;
+  numberOfPositions?: number;
+  urgencyLevel?: 'normal' | 'urgent' | 'critical';
+  recruitmentMethod?: 'internal' | 'external' | 'agency' | 'referral';
+  expectedInterviewDate?: string;
+  expectedOnboardingDate?: string;
 }
 
 export interface Notification {

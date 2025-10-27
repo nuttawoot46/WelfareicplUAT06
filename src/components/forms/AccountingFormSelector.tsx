@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing';
+type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing' | 'general-expense-clearing';
 
 interface AccountingOption {
   id: AccountingFormType;
@@ -45,6 +45,8 @@ const ExpenseClearingIcon = () => (
   </svg>
 );
 
+
+
 export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps) {
   const [selected, setSelected] = useState<AccountingFormType | null>(null);
 
@@ -65,10 +67,17 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
     },
     {
       id: 'expense-clearing',
-      title: 'เคลียร์ค่าใช้จ่าย',
-      description: 'สำหรับการเคลียร์ค่าใช้จ่ายจากการเบิกเงินล่วงหน้า',
+      title: 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)',
+      description: 'สำหรับการเคลียร์ค่าใช้จ่ายจากการเบิกเงินล่วงหน้าฝ่ายขาย',
       icon: <ExpenseClearingIcon />,
       color: 'text-green-600',
+    },
+    {
+      id: 'general-expense-clearing',
+      title: 'เคลียร์ค่าใช้จ่าย (ทั่วไป)',
+      description: 'สำหรับการเคลียร์ค่าใช้จ่ายจากการเบิกเงินล่วงหน้าทั่วไป',
+      icon: <ExpenseClearingIcon />,
+      color: 'text-purple-600',
     },
   ];
 
