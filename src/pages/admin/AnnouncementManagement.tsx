@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Eye, EyeOff, Calendar, Youtube } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, Calendar, Youtube, FileDown, Sparkles, ExternalLink } from 'lucide-react';
 import { isValidYouTubeUrl, convertToYouTubeEmbed } from '@/utils/youtubeUtils';
+import { generateAnnouncementHtmlWithAI, type OpenAIModel } from '@/services/openaiApi';
 import { 
   getAllAnnouncements, 
   createAnnouncement, 
@@ -48,6 +49,9 @@ export const AnnouncementManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<AnnouncementFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<OpenAIModel>('gpt-4o-mini');
 
   useEffect(() => {
     loadAnnouncements();
@@ -78,7 +82,8 @@ export const AnnouncementManagement = () => {
         is_active: formData.is_active,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
-        youtube_embed_url: formData.youtube_embed_url || null
+        youtube_embed_url: formData.youtube_embed_url || null,
+        generated_html_content: generatedHtml || null
       };
 
       if (editingId) {
@@ -89,6 +94,10 @@ export const AnnouncementManagement = () => {
 
       await loadAnnouncements();
       resetForm();
+      
+      if (generatedHtml) {
+        alert('บันทึกประกาศพร้อม HTML ที่ AI สร้างสำเร็จ!');
+      }
     } catch (error) {
       console.error('Error saving announcement:', error);
     } finally {
@@ -107,6 +116,7 @@ export const AnnouncementManagement = () => {
       end_date: announcement.end_date || '',
       youtube_embed_url: announcement.youtube_embed_url || ''
     });
+    setGeneratedHtml(announcement.generated_html_content || null);
     setEditingId(announcement.id);
     setShowForm(true);
   };
@@ -135,6 +145,109 @@ export const AnnouncementManagement = () => {
     setFormData(initialFormData);
     setEditingId(null);
     setShowForm(false);
+    setGeneratedHtml(null);
+  };
+
+  const handleGenerateHtmlWithAI = async () => {
+    if (!formData.title || !formData.content) {
+      alert('กรุณากรอกหัวข้อและเนื้อหาประกาศก่อน');
+      return;
+    }
+
+    setGenerating(true);
+    console.log('Starting HTML generation with model:', selectedModel);
+    
+    try {
+      const html = await generateAnnouncementHtmlWithAI({
+        title: formData.title,
+        content: formData.content,
+        priority: formData.priority,
+        type: formData.type,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        youtube_embed_url: formData.youtube_embed_url,
+        model: selectedModel
+      });
+      
+      console.log('HTML generated successfully, length:', html?.length);
+      
+      if (!html || html.length === 0) {
+        throw new Error('Generated HTML is empty');
+      }
+      
+      setGeneratedHtml(html);
+      alert('สร้าง HTML สำเร็จ! คุณสามารถดูตัวอย่างหรือดาวน์โหลดได้');
+    } catch (error: any) {
+      console.error('Error generating HTML:', error);
+      console.error('Error stack:', error.stack);
+      
+      // แสดง error message ที่ละเอียดขึ้น
+      const errorMessage = error.message || 'ไม่สามารถสร้าง HTML ได้';
+      alert(`เกิดข้อผิดพลาด (Model: ${selectedModel}):\n\n${errorMessage}\n\nกรุณาเปิด Console (F12) เพื่อดูรายละเอียดเพิ่มเติม`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownloadGeneratedHtml = () => {
+    if (!generatedHtml) return;
+    
+    const blob = new Blob([generatedHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `announcement-${formData.title.replace(/[^a-zA-Z0-9ก-๙]/g, '-')}-${Date.now()}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePreviewGeneratedHtml = () => {
+    if (!generatedHtml) return;
+    
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(generatedHtml);
+      newWindow.document.close();
+    }
+  };
+
+  const handleGenerateHtmlForAnnouncement = async (announcement: Announcement) => {
+    const confirmed = confirm('ต้องการสร้าง HTML ด้วย AI สำหรับประกาศนี้หรือไม่?');
+    if (!confirmed) return;
+
+    setGenerating(true);
+    try {
+      const html = await generateAnnouncementHtmlWithAI({
+        title: announcement.title,
+        content: announcement.content,
+        priority: announcement.priority,
+        type: announcement.type,
+        start_date: announcement.start_date || undefined,
+        end_date: announcement.end_date || undefined,
+        youtube_embed_url: announcement.youtube_embed_url || undefined,
+        model: selectedModel
+      });
+
+      // Auto download
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `announcement-${announcement.title.replace(/[^a-zA-Z0-9ก-๙]/g, '-')}-${Date.now()}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      alert('สร้างและดาวน์โหลด HTML สำเร็จ!');
+    } catch (error: any) {
+      console.error('Error generating HTML:', error);
+      alert(`เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถสร้าง HTML ได้'}`);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -280,10 +393,107 @@ export const AnnouncementManagement = () => {
                 <Label htmlFor="is_active">เปิดใช้งาน</Label>
               </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>
+              <div className="space-y-2">
+                <Label htmlFor="ai_model" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-600" />
+                  AI Model สำหรับ Generate HTML
+                </Label>
+                <Select value={selectedModel} onValueChange={(value: any) => setSelectedModel(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gpt-5">
+                      <div className="flex flex-col">
+                        <span className="font-medium">🌟 GPT-5</span>
+                        <span className="text-xs text-gray-500">ล่าสุด! คุณภาพสูงสุด, ฉลาดที่สุด</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-5-mini">
+                      <div className="flex flex-col">
+                        <span className="font-medium">⚡ GPT-5 Mini</span>
+                        <span className="text-xs text-gray-500">รุ่นใหม่ล่าสุด, เร็วและคุ้มค่า</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="o1">
+                      <div className="flex flex-col">
+                        <span className="font-medium">🧠 o1</span>
+                        <span className="text-xs text-gray-500">Reasoning model, คิดลึก วิเคราะห์ซับซ้อน</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="o1-mini">
+                      <div className="flex flex-col">
+                        <span className="font-medium">💡 o1-mini</span>
+                        <span className="text-xs text-gray-500">Reasoning เร็ว, เหมาะงานทั่วไป</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-4o">
+                      <div className="flex flex-col">
+                        <span className="font-medium">GPT-4o</span>
+                        <span className="text-xs text-gray-500">คุณภาพสูง ($2.50/1M tokens)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-4o-mini">
+                      <div className="flex flex-col">
+                        <span className="font-medium">GPT-4o Mini</span>
+                        <span className="text-xs text-gray-500">เร็ว, ราคาถูก ($0.15/1M tokens) - แนะนำ</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-4-turbo">
+                      <div className="flex flex-col">
+                        <span className="font-medium">GPT-4 Turbo</span>
+                        <span className="text-xs text-gray-500">สมดุล ($10/1M tokens)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-3.5-turbo">
+                      <div className="flex flex-col">
+                        <span className="font-medium">GPT-3.5 Turbo</span>
+                        <span className="text-xs text-gray-500">ถูกที่สุด ($0.50/1M tokens)</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Model ที่เลือก: <span className="font-medium">{selectedModel}</span>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={submitting || generating}>
                   {submitting ? 'กำลังบันทึก...' : editingId ? 'อัปเดต' : 'บันทึก'}
                 </Button>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={handleGenerateHtmlWithAI}
+                  disabled={!formData.title || !formData.content || generating}
+                  className="flex items-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {generating ? 'กำลังสร้าง...' : 'Generate HTML ด้วย AI'}
+                </Button>
+                {generatedHtml && (
+                  <>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handlePreviewGeneratedHtml}
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      ดูตัวอย่าง
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleDownloadGeneratedHtml}
+                      className="flex items-center gap-2"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      ดาวน์โหลด HTML
+                    </Button>
+                  </>
+                )}
                 <Button type="button" variant="outline" onClick={resetForm}>
                   ยกเลิก
                 </Button>
@@ -335,6 +545,52 @@ export const AnnouncementManagement = () => {
                       </div>
                     </div>
                   )}
+                  {announcement.generated_html_content && (
+                    <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-purple-700 mb-2">
+                        <Sparkles className="h-4 w-4" />
+                        <span className="font-medium">มี HTML ที่ AI สร้างไว้แล้ว</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const newWindow = window.open('', '_blank');
+                            if (newWindow && announcement.generated_html_content) {
+                              newWindow.document.write(announcement.generated_html_content);
+                              newWindow.document.close();
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          ดูตัวอย่าง HTML
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (announcement.generated_html_content) {
+                              const blob = new Blob([announcement.generated_html_content], { type: 'text/html;charset=utf-8' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `announcement-${announcement.title.replace(/[^a-zA-Z0-9ก-๙]/g, '-')}-${Date.now()}.html`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          <FileDown className="h-3 w-3 mr-1" />
+                          ดาวน์โหลด
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     {announcement.start_date && (
                       <span className="flex items-center gap-1">
@@ -348,6 +604,14 @@ export const AnnouncementManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleGenerateHtmlForAnnouncement(announcement)}
+                    title="Generate HTML ด้วย AI"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

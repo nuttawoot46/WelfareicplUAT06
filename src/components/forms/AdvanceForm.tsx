@@ -118,6 +118,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [userSignature, setUserSignature] = useState<string>('');
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
+  const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string }>>([]);
 
   const {
     register,
@@ -160,6 +161,60 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
     fetchEmployeeData();
   }, [user?.email]);
+
+  // Fetch dealer list when component mounts
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDealerList = async () => {
+      try {
+        console.log('🔍 Fetching dealer list...');
+        
+        // Try RPC function first
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any);
+        
+        if (!rpcError && rpcData && isMounted) {
+          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers');
+          setDealerList(rpcData as Array<{ No: string; Name: string }>);
+          return;
+        }
+        
+        if (rpcError) {
+          console.warn('⚠️ RPC function not available, trying direct query:', rpcError.message);
+        }
+        
+        // Fallback: Direct query with proper error handling
+        const { data, error } = await supabase
+          .from('data_dealer' as any)
+          .select('*')
+          .order('Name', { ascending: true });
+        
+        if (!error && data && isMounted) {
+          console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
+          setDealerList(data.map((d: any) => ({ 
+            No: d['No.'] || '', 
+            Name: d.Name || '' 
+          })));
+        } else if (error) {
+          console.warn('⚠️ Dealer table not available:', error.message);
+          if (isMounted) {
+            setDealerList([]);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching dealer list:', error);
+        if (isMounted) {
+          setDealerList([]);
+        }
+      }
+    };
+
+    fetchDealerList();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Load edit data if editId is provided
   useEffect(() => {
@@ -827,34 +882,40 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               </div>
             </div>
 
-            {/* Dealer/Subdealer Checkboxes */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isDealerActivity"
-                    className="rounded border-gray-300"
-                    {...register('isDealerActivity')}
-                  />
-                  <label htmlFor="isDealerActivity" className="text-sm font-medium text-gray-700">
-                    ดีลเลอร์
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isSubdealerActivity"
-                    className="rounded border-gray-300"
-                    {...register('isSubdealerActivity')}
-                  />
-                  <label htmlFor="isSubdealerActivity" className="text-sm font-medium text-gray-700">
-                    ซับดีลเลอร์
-                  </label>
-                </div>
+            {/* Dealer/Subdealer Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="form-label">ดีลเลอร์</label>
+                <Select
+                  onValueChange={(value) => setValue('advanceDealerName', value === 'none' ? '' : value)}
+                  value={watch('advanceDealerName') || 'none'}
+                >
+                  <SelectTrigger className="form-input">
+                    <SelectValue placeholder="เลือกดีลเลอร์" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">ไม่ระบุ</SelectItem>
+                    {dealerList.map((dealer) => (
+                      <SelectItem key={dealer.No || dealer.Name} value={dealer.Name}>
+                        {dealer.Name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  {...register('advanceDealerName')}
+                />
               </div>
 
-
+              <div className="space-y-2">
+                <label className="form-label">ซับดีลเลอร์</label>
+                <Input
+                  placeholder="ระบุซับดีลเลอร์"
+                  className="form-input"
+                  {...register('advanceSubdealerName')}
+                />
+              </div>
             </div>
 
             {/* สถานที่ อำเภอ และจังหวัด */}

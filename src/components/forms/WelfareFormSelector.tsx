@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WelfareType } from '@/types';
 import { cn } from '@/lib/utils';
 import { useWelfare } from '@/context/WelfareContext';
 import { useAuth } from '@/context/AuthContext';
 import { BenefitLimit, getBenefitLimits } from '@/services/welfareApi';
+import { getFormVisibility, FormVisibility } from '@/services/formVisibilityApi';
 
 interface WelfareOption {
   id: WelfareType;
@@ -111,27 +113,32 @@ const EmploymentIcon = () => (
 export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [selected, setSelected] = useState<WelfareType | null>(null);
   const [benefitLimits, setBenefitLimits] = useState<BenefitLimit[]>([]);
+  const [visibilitySettings, setVisibilitySettings] = useState<FormVisibility[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
   const { getRemainingBudget } = useWelfare();
 
-  // ดึงข้อมูลยอดเงินคงเหลือ
+  // ดึงข้อมูลยอดเงินคงเหลือและการแสดงฟอร์ม
   useEffect(() => {
-    const fetchBenefitLimits = async () => {
+    const fetchData = async () => {
       if (!user) return;
       
       try {
         setLoading(true);
-        const limits = await getBenefitLimits();
+        const [limits, visibility] = await Promise.all([
+          getBenefitLimits(),
+          getFormVisibility()
+        ]);
         setBenefitLimits(limits);
+        setVisibilitySettings(visibility);
       } catch (error) {
-        console.error('Error fetching benefit limits:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBenefitLimits();
+    fetchData();
   }, [user]);
 
   // ฟังก์ชันตรวจสอบอายุงาน (180 วัน)
@@ -146,8 +153,19 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     return diffDays;
   };
 
+  // ตรวจสอบว่าฟอร์มถูกซ่อนโดย admin หรือไม่
+  const isFormVisibleByAdmin = (type: WelfareType): boolean => {
+    const setting = visibilitySettings.find(s => s.form_type === type);
+    return setting?.is_visible ?? true;
+  };
+
   // ฟังก์ชันตรวจสอบว่าประเภทสวัสดิการสามารถเลือกได้หรือไม่
   const isWelfareTypeAvailable = (type: WelfareType): { available: boolean; reason?: string } => {
+    // ตรวจสอบว่าฟอร์มถูกซ่อนโดย admin หรือไม่
+    if (!isFormVisibleByAdmin(type)) {
+      return { available: false, reason: 'ฟอร์มนี้ถูกปิดใช้งานชั่วคราว' };
+    }
+
     // Exclude accounting types from welfare forms
     if (type === 'advance' || type === 'expense-clearing') {
       return { available: false, reason: 'ใช้ฟอร์มบัญชีแทน' };
@@ -233,7 +251,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท`;
   };
 
-  // Only include welfare types, exclude accounting types (advance, expense-clearing)
+  // Welfare forms only (exclude employment-approval)
   const welfareOptions: WelfareOption[] = [
     {
       id: 'training',
@@ -298,6 +316,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       icon: <InternalTrainingIcon />,
       color: 'text-welfare-indigo',
     },
+  ];
+
+  // Employment approval forms
+  const employmentOptions: WelfareOption[] = [
     {
       id: 'employment-approval',
       title: 'ขออนุมัติการจ้างงาน',
@@ -340,12 +362,23 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     );
   }
 
-  return (
-    <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการและอบรม</h1>
-      
+  const visibleWelfareOptions = welfareOptions.filter(option => isFormVisibleByAdmin(option.id));
+  const visibleEmploymentOptions = employmentOptions.filter(option => isFormVisibleByAdmin(option.id));
+
+  const renderFormCards = (options: WelfareOption[]) => {
+    if (options.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6 text-center text-gray-500">
+            ไม่มีฟอร์มที่สามารถใช้งานได้ในขณะนี้
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {welfareOptions.map((option) => {
+        {options.map((option) => {
           const availability = isWelfareTypeAvailable(option.id);
           const isDisabled = !availability.available;
           
@@ -407,6 +440,27 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
           );
         })}
       </div>
+    );
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการและอบรม</h1>
+      
+      <Tabs defaultValue="welfare" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="welfare">สวัสดิการ</TabsTrigger>
+          <TabsTrigger value="employment">ขออนุมัติจ้างงาน</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="welfare">
+          {renderFormCards(visibleWelfareOptions)}
+        </TabsContent>
+        
+        <TabsContent value="employment">
+          {renderFormCards(visibleEmploymentOptions)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

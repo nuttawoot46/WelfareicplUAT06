@@ -5,6 +5,7 @@ import { Bell, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getActiveAnnouncements, type Announcement } from '@/services/announcementApi';
 import { convertToYouTubeEmbed } from '@/utils/youtubeUtils';
+import { AnnouncementHTMLViewer } from '@/components/dashboard/AnnouncementHTMLViewer';
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -68,37 +69,41 @@ const Dashboard = () => {
               <div className="text-center py-8">กำลังโหลดประกาศ...</div>
             ) : announcements.length > 0 ? (
               announcements.map((announcement) => (
-                <Card key={announcement.id} className={`border-l-4 ${getPriorityColor(announcement.priority)}`}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        {announcement.title}
-                        {announcement.youtube_embed_url && (
-                          <Play className="h-4 w-4 text-red-600" />
-                        )}
-                      </h3>
-                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
-                        {new Date(announcement.created_at).toLocaleDateString('th-TH')}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 text-sm mb-3">{announcement.content}</p>
-                    
-                    {announcement.youtube_embed_url && (
-                      <div className="mt-4">
-                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                          <iframe
-                            className="absolute top-0 left-0 w-full h-full rounded-lg"
-                            src={convertToYouTubeEmbed(announcement.youtube_embed_url) || announcement.youtube_embed_url}
-                            title={`YouTube video: ${announcement.title}`}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
+                announcement.generated_html_content ? (
+                  <AnnouncementHTMLViewer key={announcement.id} announcement={announcement} />
+                ) : (
+                  <Card key={announcement.id} className={`border-l-4 ${getPriorityColor(announcement.priority)}`}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                          {announcement.title}
+                          {announcement.youtube_embed_url && (
+                            <Play className="h-4 w-4 text-red-600" />
+                          )}
+                        </h3>
+                        <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                          {new Date(announcement.created_at).toLocaleDateString('th-TH')}
+                        </span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      <p className="text-gray-700 text-sm mb-3">{announcement.content}</p>
+                      
+                      {announcement.youtube_embed_url && (
+                        <div className="mt-4">
+                          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                            <iframe
+                              className="absolute top-0 left-0 w-full h-full rounded-lg"
+                              src={convertToYouTubeEmbed(announcement.youtube_embed_url) || announcement.youtube_embed_url}
+                              title={`YouTube video: ${announcement.title}`}
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
               ))
             ) : (
               <Card>

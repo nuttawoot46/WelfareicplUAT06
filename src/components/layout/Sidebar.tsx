@@ -21,7 +21,8 @@ import {
   Database,
   Shield,
   Activity,
-  HelpCircle
+  HelpCircle,
+  Layout
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -459,6 +460,13 @@ export function Sidebar() {
                   )}>
                     <Bell className="h-4 w-4" />
                     <span>จัดการประกาศ</span>
+                  </Link>
+                  <Link to="/admin/forms" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Layout className="h-4 w-4" />
+                    <span>จัดการฟอร์ม</span>
                   </Link>
                   <Link to="/admin/report" className={cn(
                     "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",

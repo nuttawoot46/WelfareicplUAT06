@@ -19,10 +19,10 @@ export function WelfareFormsPage() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">ฟอร์มสวัสดิการ</h1>
-        <p className="text-gray-600">เลือกประเภทสวัสดิการหรือการอบรมที่ต้องการยื่นขอ</p>
+        <h1 className="text-3xl font-bold">ฟอร์ม HR</h1>
+
       </div>
-      
+
       {selectedType ? (
         selectedType === 'employment-approval' ? (
           <EmploymentApprovalForm />

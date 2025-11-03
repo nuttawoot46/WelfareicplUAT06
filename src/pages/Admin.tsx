@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout/Layout';
 import { UserManagement } from './admin/UserManagement';
 import { SupportManagement } from './admin/SupportManagement';
 import { AnnouncementManagement } from './admin/AnnouncementManagement';
+import { FormManagement } from './admin/FormManagement';
 import React, { Suspense } from 'react';
 
 const AdminReport = React.lazy(() => import('./AdminReport'));
@@ -18,6 +19,7 @@ const Admin = () => {
             <Route path="users" element={<UserManagement />} />
             <Route path="support" element={<SupportManagement />} />
             <Route path="announcements" element={<AnnouncementManagement />} />
+            <Route path="forms" element={<FormManagement />} />
             <Route
               path="report"
               element={

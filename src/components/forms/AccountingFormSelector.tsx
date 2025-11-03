@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { getFormVisibility, FormVisibility } from '@/services/formVisibilityApi';
 
 type AccountingFormType = 'advance' | 'general-advance' | 'expense-clearing' | 'general-expense-clearing';
 
@@ -49,8 +51,30 @@ const ExpenseClearingIcon = () => (
 
 export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps) {
   const [selected, setSelected] = useState<AccountingFormType | null>(null);
+  const [visibilitySettings, setVisibilitySettings] = useState<FormVisibility[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const accountingOptions: AccountingOption[] = [
+  useEffect(() => {
+    const loadVisibility = async () => {
+      try {
+        const settings = await getFormVisibility();
+        setVisibilitySettings(settings);
+      } catch (error) {
+        console.error('Error loading form visibility:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadVisibility();
+  }, []);
+
+  const isFormVisible = (formType: AccountingFormType): boolean => {
+    const setting = visibilitySettings.find(s => s.form_type === formType);
+    return setting?.is_visible ?? true;
+  };
+
+  // Advance payment forms
+  const advanceOptions: AccountingOption[] = [
     {
       id: 'advance',
       title: 'เบิกเงินล่วงหน้า (ฝ่ายขาย)',
@@ -65,6 +89,10 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
       icon: <GeneralAdvanceIcon />,
       color: 'text-purple-600',
     },
+  ];
+
+  // Expense clearing forms
+  const clearingOptions: AccountingOption[] = [
     {
       id: 'expense-clearing',
       title: 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)',
@@ -86,12 +114,45 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
     onSelect(type);
   };
 
-  return (
-    <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
-      
+  if (loading) {
+    return (
+      <div className="animate-fade-in">
+        <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="w-12 h-12 rounded-full bg-gray-200"></div>
+                <div className="h-4 bg-gray-200 rounded mt-4"></div>
+                <div className="h-3 bg-gray-200 rounded mt-2"></div>
+              </CardHeader>
+              <CardFooter>
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const visibleAdvanceOptions = advanceOptions.filter(option => isFormVisible(option.id));
+  const visibleClearingOptions = clearingOptions.filter(option => isFormVisible(option.id));
+
+  const renderFormCards = (options: AccountingOption[]) => {
+    if (options.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6 text-center text-gray-500">
+            ไม่มีฟอร์มที่สามารถใช้งานได้ในขณะนี้
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {accountingOptions.map((option) => (
+        {options.map((option) => (
           <Card 
             key={option.id}
             className={cn(
@@ -129,6 +190,27 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
           </Card>
         ))}
       </div>
+    );
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
+      
+      <Tabs defaultValue="advance" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="advance">เบิกค่าใช้จ่าย</TabsTrigger>
+          <TabsTrigger value="clearing">เคลียร์ค่าใช้จ่าย</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="advance">
+          {renderFormCards(visibleAdvanceOptions)}
+        </TabsContent>
+        
+        <TabsContent value="clearing">
+          {renderFormCards(visibleClearingOptions)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
