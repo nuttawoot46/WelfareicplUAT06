@@ -559,19 +559,26 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ลำดับ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินใช้</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">% ภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหักณที่จ่าย</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดเงินสุทธิ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืน</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">อัตราภาษี</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเบิก</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนใช้<br/>(ก่อนภาษีมูลค่าเพิ่ม)</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีมูลค่าเพิ่ม</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รวมจำนวนเงินทั้งสิ้น</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
+                      {/* ลำดับ */}
+                      <td className="border border-gray-300 p-1 text-center">
+                        <span className="font-medium">{index + 1}</span>
+                      </td>
+                      {/* ชื่อรายการ */}
                       <td className="border border-gray-300 p-1">
                         <div className="space-y-2">
                           <Select
@@ -608,32 +615,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                           )}
                         </div>
                       </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28"
-                          placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.requestAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28"
-                          placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.usedAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
-                        />
-                      </td>
+                      {/* อัตราภาษี */}
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
@@ -647,6 +629,47 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.taxRate` as const)} />
                       </td>
+                      {/* จำนวนเบิก */}
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="w-28"
+                          placeholder="0.00"
+                          {...register(`expenseClearingItems.${index}.requestAmount` as const, {
+                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
+                            valueAsNumber: true
+                          })}
+                        />
+                      </td>
+                      {/* จำนวนใช้ (ก่อนภาษีมูลค่าเพิ่ม) */}
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="w-28"
+                          placeholder="0.00"
+                          {...register(`expenseClearingItems.${index}.usedAmount` as const, {
+                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
+                            valueAsNumber: true
+                          })}
+                        />
+                      </td>
+                      {/* ภาษีมูลค่าเพิ่ม (VAT) - Currently 0, placeholder for future */}
+                      <td className="border border-gray-300 p-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="w-28 bg-gray-100"
+                          placeholder="0.00"
+                          value="0.00"
+                          readOnly
+                        />
+                      </td>
+                      {/* ภาษีหัก ณ ที่จ่าย */}
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
@@ -659,6 +682,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.taxAmount` as const)} />
                       </td>
+                      {/* รวมจำนวนเงินทั้งสิ้น */}
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
@@ -670,17 +694,23 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.netAmount` as const)} />
                       </td>
+                      {/* คืนเงินบริษัท(+) เบิกเงินบริษัท(-) */}
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
                           step="0.01"
-                          className="w-28 bg-yellow-50"
+                          className={`w-28 ${
+                            (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0 
+                              ? 'bg-green-50' 
+                              : 'bg-red-50'
+                          }`}
                           placeholder="0.00"
                           value={(watch(`expenseClearingItems.${index}.refund`) || 0).toFixed(2)}
                           readOnly
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.refund` as const)} />
                       </td>
+                      {/* จัดการ */}
                       <td className="border border-gray-300 p-1 text-center">
                         {expenseFields.length > 1 && (
                           <Button
@@ -697,7 +727,8 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                     </tr>
                   ))}
                   <tr className="bg-purple-50 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
+                    <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
@@ -722,7 +753,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
+                    <td className="border border-gray-300 px-2 py-2 text-center">0.00</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];

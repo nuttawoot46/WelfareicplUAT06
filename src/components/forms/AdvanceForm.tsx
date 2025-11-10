@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,14 +86,42 @@ const generateAdvanceRunNumber = () => {
 
 // รายการค่าใช้จ่ายเบิกเงินล่วงหน้า
 const ADVANCE_EXPENSE_CATEGORIES = [
-  { name: 'ค่าอาหารและเครื่องดื่ม', taxRate: 0 },
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
   { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'ค่าบริการ/ค่าสนับสนุนร้านค้า/ค่าจ้างทำป้าย/ค่าจ้างอื่นๆ/ค่าบริการสถานที่', taxRate: 3 },
-  { name: 'ค่าดนตรี/เครื่องเสียง/MC', taxRate: 3 },
-  { name: 'ของรางวัลเพื่อการชิงโชค', taxRate: 5 },
-  { name: 'ค่าโฆษณา (โฆษณาทางวิทยุ)', taxRate: 2 },
-  { name: 'ค่าตั๋วเครื่องบิน/ค่าที่พัก', taxRate: 0 },
-  { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 }
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5 },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 }
+];
+
+// ประเภทกิจกรรมและคำนิยาม
+const ACTIVITY_TYPES = [
+  {
+    name: 'จัดประชุมเกษตรกร',
+    description: 'ค่าอาหาร-เครื่องดื่ม สำหรับจัดประชุม\nค่าถ่ายเอกสาร / อุปกรณ์อื่นๆ เพื่อใช้ในการประชุมเกษตรกร\nค่าป้ายไวนิล / ป้ายประกาศให้มาร่วมงาน / ใบปลิว / โบร์ชัวร์'
+  },
+  {
+    name: 'จัดบูธประชาสัมพันธ์สินค้า',
+    description: 'ค่าอาหาร-เครื่องดื่มตั้งบูธ หน้าร้านลูกค้าเพื่อช่วยระบายสินค้า\nซื้อของรางวัลร่วมจัดงานหน้าร้านลูกค้า เช่น กระติกน้ำ ปากกา แจกคนร่วมงาน\nจัดซื้อสินค้าอื่นๆ เพื่อแจกเกษตรที่เข้าร่วมงาน (กรุณาระบุสิ่งที่ต้องซื้อ)'
+  },
+  {
+    name: 'จัดซื้อสินค้าอื่นๆ เพื่อแจกเกษตรที่เข้าร่วมงาน (กรุณาระบุสิ่งที่ต้องซื้อ)',
+    description: 'สินค้าแถมเพื่อโปรโมชันต่างๆ เช่น ซื้อทูโฟฟอสแถมน้ำมัน'
+  },
+  {
+    name: 'จัดงานฟิลเดย์ ลงแปลงเกษตร',
+    description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
+  },
+  {
+    name: 'จัดประชุมดิลเลอร์',
+    description: 'ค่าใช้จ่ายในการจัดประชุมดิลเลอร์'
+  },
+  {
+    name: 'ค่ารับรองลูกค้า/ของขวัญร้านค้า',
+    description: 'อาหาร-เครื่องดื่ม / กาแฟ / ขนม'
+  }
 ];
 
 export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
@@ -119,6 +147,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string }>>([]);
+  const [showActivityInfoModal, setShowActivityInfoModal] = useState(false);
+  const [selectedActivityInfo, setSelectedActivityInfo] = useState<string>('');
 
   const {
     register,
@@ -147,12 +177,32 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       try {
         const { data, error } = await supabase
           .from('Employee')
-          .select('id, Name, Position, Team, start_date')
+          .select('id, Name, Position, Team')
           .eq('email_user', user.email)
           .single();
 
         if (!error && data) {
           setEmployeeData(data);
+          
+          // Fetch district code from sales_data based on employee name
+          if (data.Name) {
+            const { data: salesData, error: salesError } = await supabase
+              .from('sales_data' as any)
+              .select('code')
+              .eq('name', data.Name)
+              .single();
+
+            if (!salesError && salesData) {
+              // Auto-populate the district field with the code
+              const districtCode = (salesData as any).code;
+              if (districtCode) {
+                setValue('advanceDistrict', districtCode);
+                console.log('✅ Auto-populated district code:', districtCode, 'for employee:', data.Name);
+              }
+            } else {
+              console.log('ℹ️ No district code found for employee:', data.Name);
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching employee data:', error);
@@ -160,7 +210,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     };
 
     fetchEmployeeData();
-  }, [user?.email]);
+  }, [user?.email, setValue]);
 
   // Fetch dealer list when component mounts
   useEffect(() => {
@@ -169,31 +219,31 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     const fetchDealerList = async () => {
       try {
         console.log('🔍 Fetching dealer list...');
-        
+
         // Try RPC function first
         const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any);
-        
+
         if (!rpcError && rpcData && isMounted) {
           console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers');
           setDealerList(rpcData as Array<{ No: string; Name: string }>);
           return;
         }
-        
+
         if (rpcError) {
           console.warn('⚠️ RPC function not available, trying direct query:', rpcError.message);
         }
-        
+
         // Fallback: Direct query with proper error handling
         const { data, error } = await supabase
           .from('data_dealer' as any)
           .select('*')
           .order('Name', { ascending: true });
-        
+
         if (!error && data && isMounted) {
           console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
-          setDealerList(data.map((d: any) => ({ 
-            No: d['No.'] || '', 
-            Name: d.Name || '' 
+          setDealerList(data.map((d: any) => ({
+            No: d['No.'] || '',
+            Name: d.Name || ''
           })));
         } else if (error) {
           console.warn('⚠️ Dealer table not available:', error.message);
@@ -255,7 +305,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
             venue: dbData.advance_location || '', // เพิ่มการโหลดข้อมูลสถานที่
-            advanceExpenseItems: dbData.advance_expense_items ? 
+            advanceExpenseItems: dbData.advance_expense_items ?
               JSON.parse(dbData.advance_expense_items).map((item: any) => ({
                 ...item,
                 requestAmount: Number(item.requestAmount) || 0,
@@ -292,9 +342,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
   // Watch expense items for real-time updates
   const watchedExpenseItems = watch('advanceExpenseItems');
-  
+
   // Watch individual request amounts for immediate calculation
-  const watchedRequestAmounts = watchedExpenseItems?.map((_, index) => 
+  const watchedRequestAmounts = watchedExpenseItems?.map((_, index) =>
     watch(`advanceExpenseItems.${index}.requestAmount`)
   ) || [];
 
@@ -302,8 +352,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const calculateTotalAmount = useCallback(() => {
     const expenseItems = watchedExpenseItems || [];
     return expenseItems.reduce((sum, item) => {
-      const netAmount = typeof item.netAmount === 'string' 
-        ? parseFloat(item.netAmount) || 0 
+      const netAmount = typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
         : Number(item.netAmount) || 0;
       return sum + netAmount;
     }, 0);
@@ -313,34 +363,34 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   useEffect(() => {
     const expenseItems = watchedExpenseItems || [];
     let hasChanges = false;
-    
+
     expenseItems.forEach((item, index) => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      const requestAmount = typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0;
-      const taxRate = typeof item.taxRate === 'string' 
-        ? parseFloat(item.taxRate) || 0 
+      const taxRate = typeof item.taxRate === 'string'
+        ? parseFloat(item.taxRate) || 0
         : Number(item.taxRate) || 0;
-      
+
       // Auto-calculate tax amount based on request amount and tax rate
       const autoTaxAmount = (requestAmount * taxRate) / 100;
       const netAmount = requestAmount - autoTaxAmount;
-      
+
       // Check if values need to be updated
-      const currentTaxAmount = typeof item.taxAmount === 'string' 
-        ? parseFloat(item.taxAmount) || 0 
+      const currentTaxAmount = typeof item.taxAmount === 'string'
+        ? parseFloat(item.taxAmount) || 0
         : Number(item.taxAmount) || 0;
-      const currentNetAmount = typeof item.netAmount === 'string' 
-        ? parseFloat(item.netAmount) || 0 
+      const currentNetAmount = typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
         : Number(item.netAmount) || 0;
-      
+
       if (Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 || Math.abs(currentNetAmount - netAmount) > 0.01) {
         setValue(`advanceExpenseItems.${index}.taxAmount`, autoTaxAmount, { shouldValidate: false });
         setValue(`advanceExpenseItems.${index}.netAmount`, netAmount, { shouldValidate: false });
         hasChanges = true;
       }
     });
-    
+
     // Force update total amount if there were changes
     if (hasChanges) {
       const totalAmount = calculateTotalAmount();
@@ -448,32 +498,32 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     // คำนวณยอดรวมใหม่ก่อนส่งข้อมูล และแปลงข้อมูลให้เป็น number
     const expenseItems = data.advanceExpenseItems || [];
     const calculatedAmount = expenseItems.reduce((sum, item) => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      const requestAmount = typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0;
       return sum + requestAmount;
     }, 0);
-    
+
     data.amount = calculatedAmount;
-    
+
     // แปลงข้อมูลใน expense items ให้เป็น number ทั้งหมด
     data.advanceExpenseItems = expenseItems.map(item => ({
       ...item,
-      requestAmount: typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      requestAmount: typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0,
-      taxRate: typeof item.taxRate === 'string' 
-        ? parseFloat(item.taxRate) || 0 
+      taxRate: typeof item.taxRate === 'string'
+        ? parseFloat(item.taxRate) || 0
         : Number(item.taxRate) || 0,
-      taxAmount: typeof item.taxAmount === 'string' 
-        ? parseFloat(item.taxAmount) || 0 
+      taxAmount: typeof item.taxAmount === 'string'
+        ? parseFloat(item.taxAmount) || 0
         : Number(item.taxAmount) || 0,
-      netAmount: typeof item.netAmount === 'string' 
-        ? parseFloat(item.netAmount) || 0 
+      netAmount: typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
         : Number(item.netAmount) || 0,
       otherDescription: item.otherDescription || ''
     }));
-    
+
     console.log('🚀 Form submitted with data:', data);
     console.log('🚀 Employee data:', employeeData);
     console.log('🚀 Form errors:', errors);
@@ -796,9 +846,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <label className="form-label">เขต</label>
                 <Input
                   placeholder="ระบุเขต"
-                  className="form-input"
+                  className="form-input bg-gray-50"
+                  readOnly
                   {...register('advanceDistrict')}
                 />
+                <p className="text-xs text-gray-500">เขตจะถูกกรอกอัตโนมัติตามข้อมูลพนักงาน</p>
               </div>
             </div>
 
@@ -821,18 +873,59 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
             {/* ประเภทกิจกรรม */}
             <div className="space-y-2">
-              <label className="form-label">ประเภทกิจกรรม <span className="text-red-500">*</span></label>
-              <Input
-                placeholder="ระบุประเภทกิจกรรม เช่น จัดประชุม, ออกบูธ, อบรม, สัมมนา"
-                className="form-input"
+              <label className="form-label flex items-center gap-2">
+                ประเภทกิจกรรม <span className="text-red-500">*</span>
+                {watch('advanceActivityType') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const activity = ACTIVITY_TYPES.find(a => a.name === watch('advanceActivityType'));
+                      if (activity) {
+                        setSelectedActivityInfo(activity.description);
+                        setShowActivityInfoModal(true);
+                      }
+                    }}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                )}
+              </label>
+              <Select
+                onValueChange={(value) => setValue('advanceActivityType', value)}
+                value={watch('advanceActivityType')}
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="เลือกประเภทกิจกรรม" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTIVITY_TYPES.map((activity) => (
+                    <SelectItem key={activity.name} value={activity.name}>
+                      {activity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="hidden"
                 {...register('advanceActivityType', {
-                  required: 'กรุณาระบุประเภทกิจกรรม'
+                  required: 'กรุณาเลือกประเภทกิจกรรม'
                 })}
               />
               {errors.advanceActivityType && (
                 <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
               )}
             </div>
+            {/* รายละเอียดเพิ่มเติม */}
+          <div className="space-y-2">
+            <label className="form-label">โปรดระบุรายละเอียด</label>
+            <Textarea
+              placeholder="ระบุรายละเอียด"
+              className="form-input"
+              rows={3}
+              {...register('details')}
+            />
+          </div>
 
 
 
@@ -984,7 +1077,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium w-16">ลำดับ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
@@ -993,6 +1088,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <tbody>
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
+                      <td className="border border-gray-300 p-1 text-center">
+                        <div className="text-sm font-medium text-gray-700">{index + 1}</div>
+                      </td>
                       <td className="border border-gray-300 p-1">
                         <div className="space-y-2">
                           <Select
@@ -1003,7 +1101,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                                 setValue(`advanceExpenseItems.${index}.taxRate`, selectedCategory.taxRate);
                               }
                               // Clear other description when changing category
-                              if (value !== 'อุปกรณ์และอื่นๆ') {
+                              if (value !== 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)') {
                                 setValue(`advanceExpenseItems.${index}.otherDescription`, '');
                               }
                             }}
@@ -1022,15 +1120,20 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             type="hidden"
                             {...register(`advanceExpenseItems.${index}.name` as const)}
                           />
-                          {watch(`advanceExpenseItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' && (
+                          {watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
                               className="w-full text-sm"
                               {...register(`advanceExpenseItems.${index}.otherDescription` as const, {
-                                required: watch(`advanceExpenseItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? 'กรุณาระบุรายละเอียด' : false
+                                required: watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
                             />
                           )}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 p-1 text-center">
+                        <div className="text-sm font-medium text-gray-700">
+                          {watch(`advanceExpenseItems.${index}.taxRate`) || 0}%
                         </div>
                       </td>
                       <td className="border border-gray-300 p-1">
@@ -1085,13 +1188,13 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   ))}
                   {/* Row รวม */}
                   <tr className="bg-blue-50 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const requestAmount = typeof item.requestAmount === 'string' 
-                            ? parseFloat(item.requestAmount) || 0 
+                          const requestAmount = typeof item.requestAmount === 'string'
+                            ? parseFloat(item.requestAmount) || 0
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
                         }, 0);
@@ -1102,8 +1205,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const netAmount = typeof item.netAmount === 'string' 
-                            ? parseFloat(item.netAmount) || 0 
+                          const netAmount = typeof item.netAmount === 'string'
+                            ? parseFloat(item.netAmount) || 0
                             : Number(item.netAmount) || 0;
                           return sum + netAmount;
                         }, 0);
@@ -1117,12 +1220,12 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             </div>
 
             {/* Hidden amount field for form submission */}
-          <input
-            type="hidden"
-            {...register('amount', { valueAsNumber: true })}
-          />
+            <input
+              type="hidden"
+              {...register('amount', { valueAsNumber: true })}
+            />
 
-          {/* Total Amount Display */}
+            {/* Total Amount Display */}
             <div className="flex justify-end">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-[200px]">
                 <div className="text-sm text-blue-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
@@ -1136,16 +1239,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             </div>
           </div>
 
-          {/* รายละเอียดเพิ่มเติม */}
-          <div className="space-y-2">
-            <label className="form-label">รายละเอียดเพิ่มเติม</label>
-            <Textarea
-              placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
-              className="form-input"
-              rows={3}
-              {...register('details')}
-            />
-          </div>
+          
 
           {/* แนบไฟล์ */}
           <div className="space-y-4">
@@ -1248,6 +1342,40 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         onConfirm={handleSignatureConfirm}
         userName={employeeData?.Name || user?.email || ''}
       />
+
+      {/* Activity Info Modal */}
+      {showActivityInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">ความหมายของประเภทกิจกรรม</h3>
+              <button
+                onClick={() => setShowActivityInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">
+                {watch('advanceActivityType')}
+              </p>
+              <div className="text-sm text-gray-600 whitespace-pre-line bg-gray-50 p-4 rounded">
+                {selectedActivityInfo}
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowActivityInfoModal(false)}
+                variant="outline"
+              >
+                ปิด
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

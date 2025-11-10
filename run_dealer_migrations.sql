@@ -3,7 +3,11 @@
 -- Step 1: Create data_dealer table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.data_dealer (
   "No." text NULL,
-  "Name" text NULL
+  "Name" text NULL,
+  "City" text NULL,
+  "County" text NULL,
+  "Phone No." text NULL,
+  "SellCoda Phone" text NULL
 ) TABLESPACE pg_default;
 
 -- Step 2: Enable RLS
@@ -33,11 +37,11 @@ DROP FUNCTION IF EXISTS public.get_dealer_list();
 
 -- Step 7: Create function to get dealer list
 CREATE OR REPLACE FUNCTION public.get_dealer_list()
-RETURNS TABLE("No." text, "Name" text)
+RETURNS TABLE("No." text, "Name" text, "City" text, "County" text, "Phone No." text, "SellCoda Phone" text)
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
-  SELECT "No.", "Name"
+  SELECT "No.", "Name", "City", "County", "Phone No.", "SellCoda Phone"
   FROM public.data_dealer
   ORDER BY "Name" ASC NULLS LAST;
 $$;
