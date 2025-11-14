@@ -33,6 +33,7 @@ interface GeneralExpenseClearingFormValues {
     taxRate: number;
     requestAmount: number;
     usedAmount: number;
+    vatAmount: number; // VAT 7%
     taxAmount: number;
     netAmount: number;
     refund: number;
@@ -82,7 +83,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
     formState: { errors }
   } = useForm<GeneralExpenseClearingFormValues>({
     defaultValues: {
-      expenseClearingItems: [{ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' }]
+      expenseClearingItems: [{ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, vatAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' }]
     }
   });
 
@@ -164,6 +165,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
             ...item,
             requestAmount: Number(item.requestAmount) || 0,
             usedAmount: 0,
+            vatAmount: 0,
             taxAmount: Number(item.taxAmount) || 0,
             netAmount: Number(item.netAmount) || 0,
             taxRate: Number(item.taxRate) || 0,
@@ -204,37 +206,57 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
   useEffect(() => {
     const expenseItems = watchedExpenseItems || [];
     let hasChanges = false;
+
     expenseItems.forEach((item, index) => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      const requestAmount = typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0;
-      const usedAmount = typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
+      const usedAmount = typeof item.usedAmount === 'string'
+        ? parseFloat(item.usedAmount) || 0
         : Number(item.usedAmount) || 0;
-      const taxRate = typeof item.taxRate === 'string' 
-        ? parseFloat(item.taxRate) || 0 
+      const taxRate = typeof item.taxRate === 'string'
+        ? parseFloat(item.taxRate) || 0
         : Number(item.taxRate) || 0;
+
+      // Auto-calculate VAT 7% from used amount
+      const autoVatAmount = (usedAmount * 7) / 100;
+
+      // Auto-calculate tax amount (ภาษีหัก ณ ที่จ่าย) based on used amount and tax rate
       const autoTaxAmount = (usedAmount * taxRate) / 100;
-      const netAmount = usedAmount - autoTaxAmount;
-      const refund = requestAmount - usedAmount;
-      const currentTaxAmount = typeof item.taxAmount === 'string' 
-        ? parseFloat(item.taxAmount) || 0 
+
+      // Net amount = used amount + VAT - tax
+      const netAmount = usedAmount + autoVatAmount - autoTaxAmount;
+
+      // Refund = จำนวนเงินเบิก - รวมจำนวนเงินทั้งสิ้น
+      const refund = requestAmount - netAmount;
+
+      // Check if values need to be updated
+      const currentVatAmount = typeof item.vatAmount === 'string'
+        ? parseFloat(item.vatAmount) || 0
+        : Number(item.vatAmount) || 0;
+      const currentTaxAmount = typeof item.taxAmount === 'string'
+        ? parseFloat(item.taxAmount) || 0
         : Number(item.taxAmount) || 0;
-      const currentNetAmount = typeof item.netAmount === 'string' 
-        ? parseFloat(item.netAmount) || 0 
+      const currentNetAmount = typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
         : Number(item.netAmount) || 0;
-      const currentRefund = typeof item.refund === 'string' 
-        ? parseFloat(item.refund) || 0 
+      const currentRefund = typeof item.refund === 'string'
+        ? parseFloat(item.refund) || 0
         : Number(item.refund) || 0;
-      if (Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 || 
+
+      if (Math.abs(currentVatAmount - autoVatAmount) > 0.01 ||
+          Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 ||
           Math.abs(currentNetAmount - netAmount) > 0.01 ||
           Math.abs(currentRefund - refund) > 0.01) {
+        setValue(`expenseClearingItems.${index}.vatAmount`, autoVatAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.taxAmount`, autoTaxAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.netAmount`, netAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
         hasChanges = true;
       }
     });
+
+    // Force update total amount if there were changes
     if (hasChanges) {
       const refundAmount = calculateTotalRefund();
       setValue('amount', refundAmount, { shouldValidate: true, shouldDirty: true });
@@ -310,34 +332,38 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
   const onSubmit = async (data: GeneralExpenseClearingFormValues) => {
     const expenseItems = data.expenseClearingItems || [];
     const calculatedRefund = expenseItems.reduce((sum, item) => {
-      const requestAmount = typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      const requestAmount = typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0;
-      const usedAmount = typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
-        : Number(item.usedAmount) || 0;
-      return sum + (requestAmount - usedAmount);
+      const netAmount = typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
+        : Number(item.netAmount) || 0;
+      // Refund = จำนวนเงินเบิก - รวมจำนวนเงินทั้งสิ้น
+      return sum + (requestAmount - netAmount);
     }, 0);
     data.amount = calculatedRefund;
     data.expenseClearingItems = expenseItems.map(item => ({
       ...item,
-      requestAmount: typeof item.requestAmount === 'string' 
-        ? parseFloat(item.requestAmount) || 0 
+      requestAmount: typeof item.requestAmount === 'string'
+        ? parseFloat(item.requestAmount) || 0
         : Number(item.requestAmount) || 0,
-      usedAmount: typeof item.usedAmount === 'string' 
-        ? parseFloat(item.usedAmount) || 0 
+      usedAmount: typeof item.usedAmount === 'string'
+        ? parseFloat(item.usedAmount) || 0
         : Number(item.usedAmount) || 0,
-      taxRate: typeof item.taxRate === 'string' 
-        ? parseFloat(item.taxRate) || 0 
+      vatAmount: typeof item.vatAmount === 'string'
+        ? parseFloat(item.vatAmount) || 0
+        : Number(item.vatAmount) || 0,
+      taxRate: typeof item.taxRate === 'string'
+        ? parseFloat(item.taxRate) || 0
         : Number(item.taxRate) || 0,
-      taxAmount: typeof item.taxAmount === 'string' 
-        ? parseFloat(item.taxAmount) || 0 
+      taxAmount: typeof item.taxAmount === 'string'
+        ? parseFloat(item.taxAmount) || 0
         : Number(item.taxAmount) || 0,
-      netAmount: typeof item.netAmount === 'string' 
-        ? parseFloat(item.netAmount) || 0 
+      netAmount: typeof item.netAmount === 'string'
+        ? parseFloat(item.netAmount) || 0
         : Number(item.netAmount) || 0,
-      refund: typeof item.refund === 'string' 
-        ? parseFloat(item.refund) || 0 
+      refund: typeof item.refund === 'string'
+        ? parseFloat(item.refund) || 0
         : Number(item.refund) || 0,
       otherDescription: item.otherDescription || ''
     }));
@@ -546,7 +572,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
               <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่ายจริง</h3>
               <Button
                 type="button"
-                onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' })}
+                onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, vatAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' })}
                 variant="outline"
                 size="sm"
               >
@@ -657,17 +683,18 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                           })}
                         />
                       </td>
-                      {/* ภาษีมูลค่าเพิ่ม (VAT) - Currently 0, placeholder for future */}
+                      {/* ภาษีมูลค่าเพิ่ม (VAT) 7% */}
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
                           step="0.01"
                           min="0"
-                          className="w-28 bg-gray-100"
+                          className="w-28 bg-purple-50"
                           placeholder="0.00"
-                          value="0.00"
+                          value={(watch(`expenseClearingItems.${index}.vatAmount`) || 0).toFixed(2)}
                           readOnly
                         />
+                        <input type="hidden" {...register(`expenseClearingItems.${index}.vatAmount` as const)} />
                       </td>
                       {/* ภาษีหัก ณ ที่จ่าย */}
                       <td className="border border-gray-300 p-1">
@@ -726,15 +753,15 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-purple-50 font-semibold">
+                  <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const requestAmount = typeof item.requestAmount === 'string' 
-                            ? parseFloat(item.requestAmount) || 0 
+                          const requestAmount = typeof item.requestAmount === 'string'
+                            ? parseFloat(item.requestAmount) || 0
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
                         }, 0);
@@ -745,21 +772,32 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const usedAmount = typeof item.usedAmount === 'string' 
-                            ? parseFloat(item.usedAmount) || 0 
+                          const usedAmount = typeof item.usedAmount === 'string'
+                            ? parseFloat(item.usedAmount) || 0
                             : Number(item.usedAmount) || 0;
                           return sum + usedAmount;
                         }, 0);
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">0.00</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const taxAmount = typeof item.taxAmount === 'string' 
-                            ? parseFloat(item.taxAmount) || 0 
+                          const vatAmount = typeof item.vatAmount === 'string'
+                            ? parseFloat(item.vatAmount) || 0
+                            : Number(item.vatAmount) || 0;
+                          return sum + vatAmount;
+                        }, 0);
+                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                      })()}
+                    </td>
+                    <td className="border border-gray-300 px-2 py-2 text-center">
+                      {(() => {
+                        const expenseItems = watchedExpenseItems || [];
+                        const total = expenseItems.reduce((sum, item) => {
+                          const taxAmount = typeof item.taxAmount === 'string'
+                            ? parseFloat(item.taxAmount) || 0
                             : Number(item.taxAmount) || 0;
                           return sum + taxAmount;
                         }, 0);
@@ -770,8 +808,8 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const netAmount = typeof item.netAmount === 'string' 
-                            ? parseFloat(item.netAmount) || 0 
+                          const netAmount = typeof item.netAmount === 'string'
+                            ? parseFloat(item.netAmount) || 0
                             : Number(item.netAmount) || 0;
                           return sum + netAmount;
                         }, 0);
@@ -904,7 +942,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               {isSubmitting ? (
                 <>

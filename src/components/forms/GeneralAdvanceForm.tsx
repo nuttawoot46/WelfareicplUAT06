@@ -43,6 +43,11 @@ interface GeneralAdvanceFormValues {
   advanceOtherExpenses?: number;
   advanceProjectName?: string;
   advanceProjectLocation?: string;
+  
+  // Bank account information
+  bankAccountName?: string; // ชื่อบัญชี
+  bankName?: string; // ธนาคาร
+  bankAccountNumber?: string; // เลขที่บัญชี
 
   // General advance expense items
   advanceExpenseItems: {
@@ -85,6 +90,30 @@ const GENERAL_ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'ค่าโฆษณา (โฆษณาทางวิทยุ)', taxRate: 2 },
   { name: 'ค่าตั๋วเครื่องบิน/ค่าที่พัก', taxRate: 0 },
   { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 }
+];
+
+// รายชื่อธนาคารในประเทศไทย
+const THAI_BANKS = [
+  'ธนาคารกรุงเทพ (Bangkok Bank)',
+  'ธนาคารกสิกรไทย (Kasikornbank)',
+  'ธนาคารกรุงไทย (Krungthai Bank)',
+  'ธนาคารทหารไทยธนชาต (TTB Bank)',
+  'ธนาคารไทยพาณิชย์ (Siam Commercial Bank)',
+  'ธนาคารกรุงศรีอยุธยา (Bank of Ayudhya)',
+  'ธนาคารเกียรตินาคินภัทร (Kiatnakin Phatra Bank)',
+  'ธนาคารซีไอเอ็มบีไทย (CIMB Thai Bank)',
+  'ธนาคารทิสโก้ (TISCO Bank)',
+  'ธนาคารธนชาต (Thanachart Bank)',
+  'ธนาคารยูโอบี (United Overseas Bank)',
+  'ธนาคารแลนด์ แอนด์ เฮ้าส์ (Land and Houses Bank)',
+  'ธนาคารไอซีบีซี (ไทย) (ICBC Thai)',
+  'ธนาคารพัฒนาวิสาหกิจขนาดกลางและขนาดย่อมแห่งประเทศไทย (SME Bank)',
+  'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร (BAAC)',
+  'ธนาคารเพื่อการส่งออกและนำเข้าแห่งประเทศไทย (EXIM Bank)',
+  'ธนาคารออมสิน (Government Savings Bank)',
+  'ธนาคารอาคารสงเคราะห์ (Government Housing Bank)',
+  'ธนาคารอิสลามแห่งประเทศไทย (Islamic Bank of Thailand)',
+  'ธนาคารสแตนดาร์ดชาร์เตอร์ด (ไทย) (Standard Chartered Thailand)'
 ];
 
 export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) {
@@ -184,6 +213,10 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
             advanceOtherExpenses: dbData.advance_other_expenses || 0,
             advanceProjectName: dbData.advance_project_name || '',
             advanceProjectLocation: dbData.advance_project_location || '',
+            // Bank account information
+            bankAccountName: dbData.bank_account_name || '',
+            bankName: dbData.bank_name || '',
+            bankAccountNumber: dbData.bank_account_number || '',
             advanceExpenseItems: dbData.advance_expense_items ? 
               JSON.parse(dbData.advance_expense_items).map((item: any) => ({
                 ...item,
@@ -253,7 +286,8 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
       
       // Auto-calculate tax amount based on request amount and tax rate
       const autoTaxAmount = (requestAmount * taxRate) / 100;
-      const netAmount = requestAmount - autoTaxAmount;
+      // Net amount = request amount (no tax deduction)
+      const netAmount = requestAmount;
       
       // Check if values need to be updated
       const currentTaxAmount = typeof item.taxAmount === 'string' 
@@ -281,13 +315,16 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const totalAmount = calculateTotalAmount();
-      console.log('💰 Updating amount field:', totalAmount);
-      console.log('💰 Expense items:', watchedExpenseItems);
-      setValue('amount', totalAmount, { shouldValidate: true, shouldDirty: true });
+      const currentAmount = watch('amount');
+      
+      // Only update if the amount has actually changed to prevent infinite loop
+      if (Math.abs(currentAmount - totalAmount) > 0.01) {
+        setValue('amount', totalAmount, { shouldValidate: false, shouldDirty: false });
+      }
     }, 100); // Small debounce to prevent excessive updates
 
     return () => clearTimeout(timeoutId);
-  }, [calculateTotalAmount, setValue, watchedExpenseItems, watchedRequestAmounts]);
+  }, [calculateTotalAmount, setValue, watchedRequestAmounts]);
 
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,6 +551,10 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
           advance_other_expenses: data.advanceOtherExpenses,
           advance_project_name: data.advanceProjectName,
           advance_project_location: data.advanceProjectLocation,
+          // Bank account information
+          bank_account_name: data.bankAccountName,
+          bank_name: data.bankName,
+          bank_account_number: data.bankAccountNumber,
           advance_expense_items: data.advanceExpenseItems ? JSON.stringify(data.advanceExpenseItems) : null,
           // Document selections
           attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
@@ -577,6 +618,10 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
         advanceOtherExpenses: data.advanceOtherExpenses,
         advanceProjectName: data.advanceProjectName,
         advanceProjectLocation: data.advanceProjectLocation,
+        // Bank account information
+        bankAccountName: data.bankAccountName,
+        bankName: data.bankName,
+        bankAccountNumber: data.bankAccountNumber,
         advanceExpenseItems: data.advanceExpenseItems,
       };
 
@@ -807,17 +852,20 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium w-16">ลำดับ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">% ภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดเงินสุทธิ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
+                      <td className="border border-gray-300 p-1 text-center">
+                        <div className="text-sm font-medium text-gray-700">{index + 1}</div>
+                      </td>
                       <td className="border border-gray-300 p-1">
                         <div className="space-y-2">
                           <Select
@@ -858,12 +906,17 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                           )}
                         </div>
                       </td>
+                      <td className="border border-gray-300 p-1 text-center">
+                        <div className="text-sm font-medium text-gray-700">
+                          {watch(`advanceExpenseItems.${index}.taxRate`) || 0}%
+                        </div>
+                      </td>
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="number"
                           step="0.01"
                           min="0"
-                          className="w-28"
+                          className="w-32"
                           placeholder="0.00"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
                             min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
@@ -875,41 +928,18 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                         <Input
                           type="number"
                           step="0.01"
-                          min="0"
-                          max="100"
-                          className="w-20 bg-gray-100"
-                          placeholder="0"
-                          value={watch(`advanceExpenseItems.${index}.taxRate`) || 0}
+                          className="w-32 bg-blue-50 font-semibold"
+                          placeholder="0.00"
+                          value={(watch(`advanceExpenseItems.${index}.netAmount`) || 0).toFixed(2)}
                           readOnly
                         />
                         <input
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.taxRate` as const)}
                         />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28 bg-gray-100"
-                          placeholder="0.00"
-                          value={(watch(`advanceExpenseItems.${index}.taxAmount`) || 0).toFixed(2)}
-                          readOnly
-                        />
                         <input
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.taxAmount` as const)}
-                        />
-                      </td>
-                      <td className="border border-gray-300 p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-28 bg-blue-50 font-semibold"
-                          placeholder="0.00"
-                          value={(watch(`advanceExpenseItems.${index}.netAmount`) || 0).toFixed(2)}
-                          readOnly
                         />
                         <input
                           type="hidden"
@@ -933,7 +963,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                   ))}
                   {/* Row รวม */}
                   <tr className="bg-purple-50 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center">รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
@@ -942,19 +972,6 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                             ? parseFloat(item.requestAmount) || 0 
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
-                        }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
-                      })()}
-                    </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
-                      {(() => {
-                        const expenseItems = watchedExpenseItems || [];
-                        const total = expenseItems.reduce((sum, item) => {
-                          const taxAmount = typeof item.taxAmount === 'string' 
-                            ? parseFloat(item.taxAmount) || 0 
-                            : Number(item.taxAmount) || 0;
-                          return sum + taxAmount;
                         }, 0);
                         return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
                       })()}
@@ -1006,6 +1023,73 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
               rows={3}
               {...register('details')}
             />
+          </div>
+
+          {/* ข้อมูลบัญชีธนาคาร */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลบัญชีธนาคาร (สำหรับโอนเงิน)</h3>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <label className="form-label">ชื่อบัญชี <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="ระบุชื่อบัญชีธนาคาร"
+                  className="form-input"
+                  {...register('bankAccountName', {
+                    required: 'กรุณาระบุชื่อบัญชี'
+                  })}
+                />
+                {errors.bankAccountName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bankAccountName.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">ธนาคาร <span className="text-red-500">*</span></label>
+                <Select
+                  onValueChange={(value) => setValue('bankName', value)}
+                  value={watch('bankName')}
+                >
+                  <SelectTrigger className="form-input">
+                    <SelectValue placeholder="เลือกธนาคาร" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THAI_BANKS.map((bank) => (
+                      <SelectItem key={bank} value={bank}>
+                        {bank}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  {...register('bankName', {
+                    required: 'กรุณาเลือกธนาคาร'
+                  })}
+                />
+                {errors.bankName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bankName.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">เลขที่บัญชี <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="ระบุเลขที่บัญชีธนาคาร"
+                  className="form-input"
+                  {...register('bankAccountNumber', {
+                    required: 'กรุณาระบุเลขที่บัญชี',
+                    pattern: {
+                      value: /^[0-9-]+$/,
+                      message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
+                    }
+                  })}
+                />
+                {errors.bankAccountNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bankAccountNumber.message}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* แนบไฟล์ */}

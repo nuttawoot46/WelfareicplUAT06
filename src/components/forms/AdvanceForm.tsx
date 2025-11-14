@@ -146,7 +146,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [userSignature, setUserSignature] = useState<string>('');
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
-  const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string }>>([]);
+  const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [showActivityInfoModal, setShowActivityInfoModal] = useState(false);
   const [selectedActivityInfo, setSelectedActivityInfo] = useState<string>('');
 
@@ -225,7 +225,13 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
         if (!rpcError && rpcData && isMounted) {
           console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers');
-          setDealerList(rpcData as Array<{ No: string; Name: string }>);
+          console.log('📋 Sample dealer data from RPC:', rpcData[0]);
+          setDealerList(rpcData.map((d: any) => ({
+            No: d['No.'] || d.No || '',
+            Name: d.Name || '',
+            City: d.City || '',
+            County: d.County || ''
+          })));
           return;
         }
 
@@ -241,10 +247,15 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
         if (!error && data && isMounted) {
           console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
-          setDealerList(data.map((d: any) => ({
+          console.log('📋 Sample dealer data from direct query:', data[0]);
+          const mappedData = data.map((d: any) => ({
             No: d['No.'] || '',
-            Name: d.Name || ''
-          })));
+            Name: d.Name || '',
+            City: d.City || '',
+            County: d.County || ''
+          }));
+          console.log('📋 Mapped dealer data sample:', mappedData[0]);
+          setDealerList(mappedData);
         } else if (error) {
           console.warn('⚠️ Dealer table not available:', error.message);
           if (isMounted) {
@@ -374,7 +385,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
       // Auto-calculate tax amount based on request amount and tax rate
       const autoTaxAmount = (requestAmount * taxRate) / 100;
-      const netAmount = requestAmount - autoTaxAmount;
+      // Net amount = request amount (no tax deduction)
+      const netAmount = requestAmount;
 
       // Check if values need to be updated
       const currentTaxAmount = typeof item.taxAmount === 'string'
@@ -402,13 +414,16 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const totalAmount = calculateTotalAmount();
-      console.log('💰 Updating amount field:', totalAmount);
-      console.log('💰 Expense items:', watchedExpenseItems);
-      setValue('amount', totalAmount, { shouldValidate: true, shouldDirty: true });
+      const currentAmount = watch('amount');
+      
+      // Only update if the amount has actually changed to prevent infinite loop
+      if (Math.abs(currentAmount - totalAmount) > 0.01) {
+        setValue('amount', totalAmount, { shouldValidate: false, shouldDirty: false });
+      }
     }, 100); // Small debounce to prevent excessive updates
 
     return () => clearTimeout(timeoutId);
-  }, [calculateTotalAmount, setValue, watchedExpenseItems, watchedRequestAmounts]);
+  }, [calculateTotalAmount, setValue, watchedRequestAmounts]);
 
   // ฟังก์ชันสำหรับอัพโหลดไฟล์ไปยัง Supabase Storage
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -980,7 +995,38 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               <div className="space-y-2">
                 <label className="form-label">ดีลเลอร์</label>
                 <Select
-                  onValueChange={(value) => setValue('advanceDealerName', value === 'none' ? '' : value)}
+                  onValueChange={(value) => {
+                    console.log('🔍 Dealer selected:', value);
+                    console.log('🔍 Current dealer list:', dealerList);
+                    
+                    if (value === 'none') {
+                      setValue('advanceDealerName', '');
+                      // Don't clear amphur/province when selecting "none"
+                    } else {
+                      setValue('advanceDealerName', value);
+                      // Find the selected dealer and auto-populate amphur and province
+                      const selectedDealer = dealerList.find(d => d.Name === value);
+                      console.log('🔍 Found dealer:', selectedDealer);
+                      
+                      if (selectedDealer) {
+                        if (selectedDealer.City) {
+                          setValue('advanceAmphur', selectedDealer.City);
+                          console.log('✅ Set amphur to:', selectedDealer.City);
+                        } else {
+                          console.log('⚠️ No City found for dealer');
+                        }
+                        if (selectedDealer.County) {
+                          setValue('advanceProvince', selectedDealer.County);
+                          console.log('✅ Set province to:', selectedDealer.County);
+                        } else {
+                          console.log('⚠️ No County found for dealer');
+                        }
+                        console.log('✅ Auto-populated amphur:', selectedDealer.City, 'province:', selectedDealer.County);
+                      } else {
+                        console.log('❌ Dealer not found in list');
+                      }
+                    }
+                  }}
                   value={watch('advanceDealerName') || 'none'}
                 >
                   <SelectTrigger className="form-input">
@@ -988,8 +1034,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">ไม่ระบุ</SelectItem>
-                    {dealerList.map((dealer) => (
-                      <SelectItem key={dealer.No || dealer.Name} value={dealer.Name}>
+                    {dealerList.map((dealer, index) => (
+                      <SelectItem key={`${dealer.No}-${index}`} value={dealer.Name}>
                         {dealer.Name}
                       </SelectItem>
                     ))}
@@ -1013,25 +1059,18 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
             {/* สถานที่ อำเภอ และจังหวัด */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="form-label">ชื่อร้าน/บริษัท <span className="text-red-500">*</span></label>
-                <Input
-                  placeholder="ระบุสถานที่"
-                  className="form-input"
-                  {...register('venue', {
-                    required: 'กรุณาระบุชื่อร้าน/บริษัท'
-                  })}
-                />
-                {errors.venue && (
-                  <p className="text-red-500 text-sm mt-1">{errors.venue.message}</p>
-                )}
-              </div>
+              
 
               <div className="space-y-2">
                 <label className="form-label">อำเภอ <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุอำเภอ"
                   className="form-input"
+                  value={watch('advanceAmphur') || ''}
+                  onChange={(e) => setValue('advanceAmphur', e.target.value)}
+                />
+                <input
+                  type="hidden"
                   {...register('advanceAmphur', {
                     required: 'กรุณาระบุอำเภอ'
                   })}
@@ -1046,6 +1085,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุจังหวัด"
                   className="form-input"
+                  value={watch('advanceProvince') || ''}
+                  onChange={(e) => setValue('advanceProvince', e.target.value)}
+                />
+                <input
+                  type="hidden"
                   {...register('advanceProvince', {
                     required: 'กรุณาระบุจังหวัด'
                   })}

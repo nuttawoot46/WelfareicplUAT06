@@ -394,6 +394,11 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         advance_subdealer_name: (requestData as any).advanceSubdealerName,
         // Add run number for advance and general-advance types
         run_number: (requestData.type === 'advance' || requestData.type === 'general-advance') ? (requestData as any).runNumber : null,
+        
+        // Bank account information for general-advance
+        bank_account_name: (requestData as any).bankAccountName,
+        bank_name: (requestData as any).bankName,
+        bank_account_number: (requestData as any).bankAccountNumber,
 
         // Expense clearing specific fields
         original_advance_request_id: (requestData as any).originalAdvanceRequestId,

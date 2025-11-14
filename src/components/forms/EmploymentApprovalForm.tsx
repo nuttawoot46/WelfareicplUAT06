@@ -20,77 +20,60 @@ interface EmploymentApprovalFormData {
   employmentStartDate: string;
   employmentEndDate?: string;
   workingHours: string;
-  probationPeriod: number;
-  salaryOffered: number;
-  housingAllowance: number;
-  transportationAllowance: number;
-  mealAllowance: number;
-  otherAllowance: number;
-  otherAllowanceDescription: string;
-  benefits: string[];
-  jobDescription: string;
-  educationRequired: string;
-  experienceRequired: string;
-  skillsRequired: string;
-  certificationsRequired: string;
-  reasonForHiring: string;
+  hiringReason: 'replacement' | 'new-position' | 'temporary';
+  replacementFor?: string;
+  replacementReason?: string;
+  temporaryDurationYears?: number;
+  temporaryDurationMonths?: number;
+  temporaryReason?: string;
+  gender: string;
+  minimumEducation: string;
+  major: string;
+  experienceField: string;
+  minimumExperience: string;
+  otherSkills: string;
   budgetCode: string;
   costCenter: string;
-  replacementFor: string;
   contractType: 'permanent' | 'temporary' | 'contract' | 'probation';
   workLocation: string;
   numberOfPositions: number;
-  urgencyLevel: 'normal' | 'urgent' | 'critical';
-  recruitmentMethod: 'internal' | 'external' | 'agency' | 'referral';
-  expectedInterviewDate: string;
-  expectedOnboardingDate: string;
 }
 
-const benefitOptions = [
-  'ประกันสังคม',
-  'ประกันสุขภาพ',
-  'ประกันชีวิต',
-  'กองทุนสำรองเลี้ยงชีพ',
-  'โบนัสประจำปี',
-  'ค่าเดินทาง',
-  'ค่าโทรศัพท์',
-  'ค่าอาหาร',
-  'ชุดยูนิฟอร์ม',
-  'วันหยุดพักผ่อน',
+const departmentOptions = [
+  'Inspiration (IS)',
+  'Management',
+  'Strategy',
+  'Account',
+  'Marketing(PES)',
+  'Marketing(DIS)',
+  'Marketing(COP)',
+  'Marketing(PD)',
+  'Procurement',
+  'Registration',
 ];
 
 export function EmploymentApprovalForm() {
   const { user, profile } = useAuth();
   const { submitRequest } = useWelfare();
   const [loading, setLoading] = useState(false);
-  const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EmploymentApprovalFormData>({
     defaultValues: {
       employmentType: 'new-hire',
       contractType: 'probation',
-      urgencyLevel: 'normal',
-      recruitmentMethod: 'external',
       numberOfPositions: 1,
-      probationPeriod: 3,
       workingHours: '08:00-17:00',
-      housingAllowance: 0,
-      transportationAllowance: 0,
-      mealAllowance: 0,
-      otherAllowance: 0,
+      hiringReason: 'new-position',
+      temporaryDurationYears: 0,
+      temporaryDurationMonths: 0,
+      gender: 'ไม่ระบุ',
+      minimumEducation: 'ปริญญาตรี',
     }
   });
 
   const employmentType = watch('employmentType');
   const contractType = watch('contractType');
-
-  const handleBenefitToggle = (benefit: string) => {
-    setSelectedBenefits(prev =>
-      prev.includes(benefit)
-        ? prev.filter(b => b !== benefit)
-        : [...prev, benefit]
-    );
-  };
+  const hiringReason = watch('hiringReason');
 
   const onSubmit = async (data: EmploymentApprovalFormData) => {
     if (!user) {
@@ -101,24 +84,16 @@ export function EmploymentApprovalForm() {
     try {
       setLoading(true);
 
-      const totalAllowances = 
-        (data.housingAllowance || 0) +
-        (data.transportationAllowance || 0) +
-        (data.mealAllowance || 0) +
-        (data.otherAllowance || 0);
-
-      const totalCompensation = (data.salaryOffered || 0) + totalAllowances;
-
       const request: Partial<WelfareRequest> = {
         userId: user.id,
         userName: profile?.display_name || user.email,
         userDepartment: profile?.department || '',
         type: 'employment-approval',
         status: 'pending_manager',
-        amount: totalCompensation,
+        amount: 0,
         date: new Date().toISOString(),
         title: `ขออนุมัติการจ้างงาน - ${data.positionTitle}`,
-        details: data.reasonForHiring || '',
+        details: `แผนก: ${data.departmentRequesting}, ตำแหน่ง: ${data.positionTitle}`,
         employmentType: data.employmentType,
         positionTitle: data.positionTitle,
         departmentRequesting: data.departmentRequesting,
@@ -126,34 +101,23 @@ export function EmploymentApprovalForm() {
         employmentStartDate: data.employmentStartDate,
         employmentEndDate: data.employmentEndDate,
         workingHours: data.workingHours,
-        probationPeriod: data.probationPeriod,
-        salaryOffered: data.salaryOffered,
-        allowances: {
-          housing: data.housingAllowance,
-          transportation: data.transportationAllowance,
-          meal: data.mealAllowance,
-          other: data.otherAllowance,
-          otherDescription: data.otherAllowanceDescription,
-        },
-        benefits: selectedBenefits,
-        jobDescription: data.jobDescription,
-        qualifications: {
-          education: data.educationRequired,
-          experience: data.experienceRequired,
-          skills: data.skillsRequired.split(',').map(s => s.trim()).filter(Boolean),
-          certifications: data.certificationsRequired.split(',').map(c => c.trim()).filter(Boolean),
-        },
-        reasonForHiring: data.reasonForHiring,
+        hiringReason: data.hiringReason,
+        replacementFor: data.replacementFor,
+        replacementReason: data.replacementReason,
+        temporaryDurationYears: data.temporaryDurationYears,
+        temporaryDurationMonths: data.temporaryDurationMonths,
+        temporaryReason: data.temporaryReason,
+        gender: data.gender,
+        minimumEducation: data.minimumEducation,
+        major: data.major,
+        experienceField: data.experienceField,
+        minimumExperience: data.minimumExperience,
+        otherSkills: data.otherSkills,
         budgetCode: data.budgetCode,
         costCenter: data.costCenter,
-        replacementFor: data.replacementFor,
         contractType: data.contractType,
         workLocation: data.workLocation,
         numberOfPositions: data.numberOfPositions,
-        urgencyLevel: data.urgencyLevel,
-        recruitmentMethod: data.recruitmentMethod,
-        expectedInterviewDate: data.expectedInterviewDate,
-        expectedOnboardingDate: data.expectedOnboardingDate,
       };
 
       await submitRequest(request as any);
@@ -222,11 +186,21 @@ export function EmploymentApprovalForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="departmentRequesting">แผนกที่ขอจ้าง *</Label>
-                <Input
-                  id="departmentRequesting"
-                  {...register('departmentRequesting', { required: true })}
-                  placeholder="เช่น แผนกพัฒนาระบบ"
-                />
+                <Select
+                  value={watch('departmentRequesting')}
+                  onValueChange={(value) => setValue('departmentRequesting', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกแผนก" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departmentOptions.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -249,53 +223,104 @@ export function EmploymentApprovalForm() {
                 />
               </div>
             </div>
-
-            {employmentType === 'replacement' && (
-              <div className="space-y-2">
-                <Label htmlFor="replacementFor">ทดแทนตำแหน่งของ</Label>
-                <Input
-                  id="replacementFor"
-                  {...register('replacementFor')}
-                  placeholder="ชื่อพนักงานที่จะทดแทน"
-                />
-              </div>
-            )}
           </div>
 
           {/* Section 2: รายละเอียดการจ้างงาน */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">2. รายละเอียดการจ้างงาน</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contractType">ประเภทสัญญา *</Label>
-                <Select
-                  value={contractType}
-                  onValueChange={(value) => setValue('contractType', value as any)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="probation">ทดลองงาน</SelectItem>
-                    <SelectItem value="permanent">พนักงานประจำ</SelectItem>
-                    <SelectItem value="temporary">ชั่วคราว</SelectItem>
-                    <SelectItem value="contract">สัญญาจ้าง</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="probationPeriod">ระยะเวลาทดลองงาน (เดือน)</Label>
-                <Input
-                  id="probationPeriod"
-                  type="number"
-                  min="0"
-                  max="12"
-                  {...register('probationPeriod')}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractType">ประเภทสัญญา *</Label>
+              <Select
+                value={contractType}
+                onValueChange={(value) => setValue('contractType', value as any)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="probation">ทดลองงาน</SelectItem>
+                  <SelectItem value="permanent">พนักงานประจำ</SelectItem>
+                  <SelectItem value="temporary">ชั่วคราว</SelectItem>
+                  <SelectItem value="contract">สัญญาจ้าง</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hiringReason">ประเภท/เหตุผลการจ้าง *</Label>
+              <Select
+                value={hiringReason}
+                onValueChange={(value) => setValue('hiringReason', value as any)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="replacement">ตำแหน่งทดแทน</SelectItem>
+                  <SelectItem value="new-position">ตำแหน่งงานใหม่</SelectItem>
+                  <SelectItem value="temporary">ตำแหน่งชั่วคราว</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hiringReason === 'replacement' && (
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                <div className="space-y-2">
+                  <Label htmlFor="replacementFor">ทดแทนใคร</Label>
+                  <Input
+                    id="replacementFor"
+                    {...register('replacementFor')}
+                    placeholder="ระบุชื่อพนักงานที่จะทดแทน"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="replacementReason">ลาออกไป</Label>
+                  <Input
+                    id="replacementReason"
+                    {...register('replacementReason')}
+                    placeholder="ระบุเหตุผล เช่น ลาออก, เกษียณอายุ"
+                  />
+                </div>
+              </div>
+            )}
+
+            {hiringReason === 'temporary' && (
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="temporaryDurationYears">ระยะเวลาจ้าง (ปี)</Label>
+                    <Input
+                      id="temporaryDurationYears"
+                      type="number"
+                      min="0"
+                      {...register('temporaryDurationYears')}
+                      placeholder="จำนวนปี"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="temporaryDurationMonths">ระยะเวลาจ้าง (เดือน)</Label>
+                    <Input
+                      id="temporaryDurationMonths"
+                      type="number"
+                      min="0"
+                      max="11"
+                      {...register('temporaryDurationMonths')}
+                      placeholder="จำนวนเดือน"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="temporaryReason">เหตุผล</Label>
+                  <Textarea
+                    id="temporaryReason"
+                    {...register('temporaryReason')}
+                    rows={3}
+                    placeholder="ระบุเหตุผลในการจ้างชั่วคราว"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -329,226 +354,92 @@ export function EmploymentApprovalForm() {
             </div>
           </div>
 
-          {/* Section 3: ค่าตอบแทนและสวัสดิการ */}
+          {/* Section 3: คุณสมบัติและหน้าที่ */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">3. ค่าตอบแทนและสวัสดิการ</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="salaryOffered">เงินเดือน (บาท) *</Label>
-                <Input
-                  id="salaryOffered"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('salaryOffered', { required: true, min: 0 })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="housingAllowance">ค่าที่พัก (บาท)</Label>
-                <Input
-                  id="housingAllowance"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('housingAllowance')}
-                />
-              </div>
-            </div>
+            <h3 className="text-lg font-semibold border-b pb-2">3. คุณสมบัติและหน้าที่</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="transportationAllowance">ค่าเดินทาง (บาท)</Label>
-                <Input
-                  id="transportationAllowance"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('transportationAllowance')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mealAllowance">ค่าอาหาร (บาท)</Label>
-                <Input
-                  id="mealAllowance"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('mealAllowance')}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="otherAllowance">เบี้ยเลี้ยงอื่นๆ (บาท)</Label>
-                <Input
-                  id="otherAllowance"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  {...register('otherAllowance')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="otherAllowanceDescription">ระบุเบี้ยเลี้ยงอื่นๆ</Label>
-                <Input
-                  id="otherAllowanceDescription"
-                  {...register('otherAllowanceDescription')}
-                  placeholder="ระบุรายละเอียด"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>สวัสดิการที่ได้รับ</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {benefitOptions.map((benefit) => (
-                  <div key={benefit} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={benefit}
-                      checked={selectedBenefits.includes(benefit)}
-                      onCheckedChange={() => handleBenefitToggle(benefit)}
-                    />
-                    <Label htmlFor={benefit} className="font-normal cursor-pointer">
-                      {benefit}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: คุณสมบัติและหน้าที่ */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">4. คุณสมบัติและหน้าที่</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="jobDescription">หน้าที่และความรับผิดชอบ *</Label>
-              <Textarea
-                id="jobDescription"
-                {...register('jobDescription', { required: true })}
-                rows={4}
-                placeholder="อธิบายหน้าที่และความรับผิดชอบของตำแหน่งนี้"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="educationRequired">วุฒิการศึกษา *</Label>
-              <Input
-                id="educationRequired"
-                {...register('educationRequired', { required: true })}
-                placeholder="เช่น ปริญญาตรี สาขาวิทยาการคอมพิวเตอร์"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experienceRequired">ประสบการณ์ที่ต้องการ *</Label>
-              <Input
-                id="experienceRequired"
-                {...register('experienceRequired', { required: true })}
-                placeholder="เช่น 2-3 ปี ในสายงานที่เกี่ยวข้อง"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="skillsRequired">ทักษะที่ต้องการ (คั่นด้วยเครื่องหมายจุลภาค)</Label>
-              <Textarea
-                id="skillsRequired"
-                {...register('skillsRequired')}
-                rows={2}
-                placeholder="เช่น JavaScript, React, Node.js, SQL"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="certificationsRequired">ใบรับรองหรือคุณสมบัติพิเศษ (คั่นด้วยเครื่องหมายจุลภาค)</Label>
-              <Input
-                id="certificationsRequired"
-                {...register('certificationsRequired')}
-                placeholder="เช่น PMP, AWS Certified"
-              />
-            </div>
-          </div>
-
-          {/* Section 5: เหตุผลและความจำเป็น */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">5. เหตุผลและความจำเป็น</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="reasonForHiring">เหตุผลในการจ้างงาน *</Label>
-              <Textarea
-                id="reasonForHiring"
-                {...register('reasonForHiring', { required: true })}
-                rows={4}
-                placeholder="อธิบายเหตุผลและความจำเป็นในการจ้างงานตำแหน่งนี้"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="urgencyLevel">ระดับความเร่งด่วน *</Label>
+                <Label htmlFor="gender">เพศ *</Label>
                 <Select
-                  defaultValue="normal"
-                  onValueChange={(value) => setValue('urgencyLevel', value as any)}
+                  value={watch('gender')}
+                  onValueChange={(value) => setValue('gender', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">ปกติ</SelectItem>
-                    <SelectItem value="urgent">เร่งด่วน</SelectItem>
-                    <SelectItem value="critical">เร่งด่วนมาก</SelectItem>
+                    <SelectItem value="ชาย">ชาย</SelectItem>
+                    <SelectItem value="หญิง">หญิง</SelectItem>
+                    <SelectItem value="ไม่ระบุ">ไม่ระบุ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="recruitmentMethod">วิธีการสรรหา *</Label>
+                <Label htmlFor="minimumEducation">วุฒิการศึกษาขั้นต่ำ *</Label>
                 <Select
-                  defaultValue="external"
-                  onValueChange={(value) => setValue('recruitmentMethod', value as any)}
+                  value={watch('minimumEducation')}
+                  onValueChange={(value) => setValue('minimumEducation', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="internal">ภายในองค์กร</SelectItem>
-                    <SelectItem value="external">ภายนอกองค์กร</SelectItem>
-                    <SelectItem value="agency">ผ่านเอเจนซี่</SelectItem>
-                    <SelectItem value="referral">แนะนำโดยพนักงาน</SelectItem>
+                    <SelectItem value="ม.6">ม.6</SelectItem>
+                    <SelectItem value="ปวช.">ปวช.</SelectItem>
+                    <SelectItem value="ปวส.">ปวส.</SelectItem>
+                    <SelectItem value="ปริญญาตรี">ปริญญาตรี</SelectItem>
+                    <SelectItem value="ปริญญาโท">ปริญญาโท</SelectItem>
+                    <SelectItem value="ปริญญาเอก">ปริญญาเอก</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="major">สาขาวิชา</Label>
+              <Input
+                id="major"
+                {...register('major')}
+                placeholder="เช่น วิทยาการคอมพิวเตอร์, บริหารธุรกิจ, วิศวกรรมศาสตร์"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="expectedInterviewDate">วันที่คาดว่าจะสัมภาษณ์</Label>
+                <Label htmlFor="experienceField">ประสบการณ์ด้าน</Label>
                 <Input
-                  id="expectedInterviewDate"
-                  type="date"
-                  {...register('expectedInterviewDate')}
+                  id="experienceField"
+                  {...register('experienceField')}
+                  placeholder="เช่น การตลาดดิจิทัล, การพัฒนาซอฟต์แวร์"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="expectedOnboardingDate">วันที่คาดว่าจะเริ่มงาน</Label>
+                <Label htmlFor="minimumExperience">ประสบการณ์ขั้นต่ำ</Label>
                 <Input
-                  id="expectedOnboardingDate"
-                  type="date"
-                  {...register('expectedOnboardingDate')}
+                  id="minimumExperience"
+                  {...register('minimumExperience')}
+                  placeholder="เช่น 2-3 ปี, 5 ปีขึ้นไป"
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="otherSkills">ความสามารถชำนาญอื่นๆ</Label>
+              <Textarea
+                id="otherSkills"
+                {...register('otherSkills')}
+                rows={3}
+                placeholder="ระบุความสามารถ ทักษะพิเศษ หรือคุณสมบัติอื่นๆ ที่ต้องการ"
+              />
+            </div>
           </div>
 
-          {/* Section 6: ข้อมูลงบประมาณ */}
+          {/* Section 4: ข้อมูลงบประมาณ */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">6. ข้อมูลงบประมาณ</h3>
+            <h3 className="text-lg font-semibold border-b pb-2">4. ข้อมูลงบประมาณ</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
