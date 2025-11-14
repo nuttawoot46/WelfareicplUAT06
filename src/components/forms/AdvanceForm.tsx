@@ -61,9 +61,7 @@ interface AdvanceFormValues {
     otherDescription?: string; // For "อุปกรณ์และอื่นๆ" specification
   }[];
 
-  // Dealer/Subdealer checkboxes
-  isDealerActivity?: boolean;
-  isSubdealerActivity?: boolean;
+
 
   // Document selections for advance types
   attachmentSelections?: {

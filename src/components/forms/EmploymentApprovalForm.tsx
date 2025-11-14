@@ -32,8 +32,6 @@ interface EmploymentApprovalFormData {
   experienceField: string;
   minimumExperience: string;
   otherSkills: string;
-  budgetCode: string;
-  costCenter: string;
   contractType: 'permanent' | 'temporary' | 'contract' | 'probation';
   workLocation: string;
   numberOfPositions: number;
@@ -113,8 +111,6 @@ export function EmploymentApprovalForm() {
         experienceField: data.experienceField,
         minimumExperience: data.minimumExperience,
         otherSkills: data.otherSkills,
-        budgetCode: data.budgetCode,
-        costCenter: data.costCenter,
         contractType: data.contractType,
         workLocation: data.workLocation,
         numberOfPositions: data.numberOfPositions,
@@ -434,31 +430,6 @@ export function EmploymentApprovalForm() {
                 rows={3}
                 placeholder="ระบุความสามารถ ทักษะพิเศษ หรือคุณสมบัติอื่นๆ ที่ต้องการ"
               />
-            </div>
-          </div>
-
-          {/* Section 4: ข้อมูลงบประมาณ */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">4. ข้อมูลงบประมาณ</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="budgetCode">รหัสงบประมาณ</Label>
-                <Input
-                  id="budgetCode"
-                  {...register('budgetCode')}
-                  placeholder="เช่น BUD-2024-001"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="costCenter">Cost Center</Label>
-                <Input
-                  id="costCenter"
-                  {...register('costCenter')}
-                  placeholder="เช่น CC-IT-001"
-                />
-              </div>
             </div>
           </div>
 
