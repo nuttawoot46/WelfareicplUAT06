@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateExpenseClearingPDF } from '../pdf/ExpenseClearingPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
+import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
 
 interface GeneralExpenseClearingFormProps {
   onBack: () => void;
@@ -28,6 +29,10 @@ interface GeneralExpenseClearingFormValues {
   title?: string;
   attachments?: FileList;
   originalAdvanceRequestId?: number;
+  advanceDepartment?: string;
+  advanceDepartmentOther?: string;
+  advanceActivityType?: string;
+  advanceParticipants?: number;
   expenseClearingItems: {
     name: string;
     taxRate: number;
@@ -49,14 +54,14 @@ interface GeneralExpenseClearingFormValues {
 }
 
 const GENERAL_EXPENSE_CATEGORIES = [
-  { name: 'ค่าอาหารและเครื่องดื่ม', taxRate: 0 },
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
   { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'ค่าบริการ/ค่าสนับสนุน', taxRate: 3 },
-  { name: 'ค่าดนตรี/เครื่องเสียง', taxRate: 3 },
-  { name: 'ของรางวัล', taxRate: 5 },
-  { name: 'ค่าโฆษณา', taxRate: 2 },
-  { name: 'ค่าเดินทาง/ที่พัก', taxRate: 0 },
-  { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 },
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 },
 ];
 
 export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseClearingFormProps) {
@@ -159,6 +164,10 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         setValue('originalAdvanceRequestId', data.id);
         setValue('startDate', data.start_date || '');
         setValue('endDate', data.end_date || '');
+        setValue('advanceDepartment', (data as any).advance_department || '');
+        setValue('advanceDepartmentOther', (data as any).advance_department_other || '');
+        setValue('advanceActivityType', (data as any).advance_activity_type || '');
+        setValue('advanceParticipants', (data as any).advance_participants || 0);
         if ((data as any).advance_expense_items) {
           const expenseItems = JSON.parse((data as any).advance_expense_items);
           setValue('expenseClearingItems', expenseItems.map((item: any) => ({
@@ -218,22 +227,21 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         ? parseFloat(item.taxRate) || 0
         : Number(item.taxRate) || 0;
 
-      // Auto-calculate VAT 7% from used amount
-      const autoVatAmount = (usedAmount * 7) / 100;
+      // Get manually entered VAT amount
+      const vatAmount = typeof item.vatAmount === 'string'
+        ? parseFloat(item.vatAmount) || 0
+        : Number(item.vatAmount) || 0;
 
       // Auto-calculate tax amount (ภาษีหัก ณ ที่จ่าย) based on used amount and tax rate
       const autoTaxAmount = (usedAmount * taxRate) / 100;
 
       // Net amount = used amount + VAT - tax
-      const netAmount = usedAmount + autoVatAmount - autoTaxAmount;
+      const netAmount = usedAmount + vatAmount - autoTaxAmount;
 
       // Refund = จำนวนเงินเบิก - รวมจำนวนเงินทั้งสิ้น
       const refund = requestAmount - netAmount;
 
       // Check if values need to be updated
-      const currentVatAmount = typeof item.vatAmount === 'string'
-        ? parseFloat(item.vatAmount) || 0
-        : Number(item.vatAmount) || 0;
       const currentTaxAmount = typeof item.taxAmount === 'string'
         ? parseFloat(item.taxAmount) || 0
         : Number(item.taxAmount) || 0;
@@ -244,11 +252,9 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         ? parseFloat(item.refund) || 0
         : Number(item.refund) || 0;
 
-      if (Math.abs(currentVatAmount - autoVatAmount) > 0.01 ||
-          Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 ||
+      if (Math.abs(currentTaxAmount - autoTaxAmount) > 0.01 ||
           Math.abs(currentNetAmount - netAmount) > 0.01 ||
           Math.abs(currentRefund - refund) > 0.01) {
-        setValue(`expenseClearingItems.${index}.vatAmount`, autoVatAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.taxAmount`, autoTaxAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.netAmount`, netAmount, { shouldValidate: false });
         setValue(`expenseClearingItems.${index}.refund`, refund, { shouldValidate: false });
@@ -437,6 +443,10 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         attachmentSelections: data.attachmentSelections,
         originalAdvanceRequestId: data.originalAdvanceRequestId,
         expenseClearingItems: data.expenseClearingItems,
+        advanceDepartment: data.advanceDepartment,
+        advanceDepartmentOther: data.advanceDepartmentOther,
+        advanceActivityType: data.advanceActivityType,
+        advanceParticipants: data.advanceParticipants,
       };
 
       let result: any;
@@ -502,7 +512,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
 
       <div id="general-expense-clearing-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบเคลียร์ค่าใช้จ่าย (ทั่วไป)</h1>
+          <h1 className="text-2xl font-bold">แบบฟอร์มเคลียร์ค่าใช้จ่าย (ทั่วไป)</h1>
         </div>
 
         <div className="mb-6">
@@ -529,7 +539,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                   <SelectContent>
                     {availableAdvanceRequests.map((request) => (
                       <SelectItem key={request.id} value={request.id.toString()}>
-                        {`${request.run_number || 'ไม่มีเลขที่'} - ${request.amount?.toLocaleString()} บาท (${new Date(request.created_at).toLocaleDateString('th-TH')}) - สถานะ: ${getStatusText(request.status)}`}
+                        {`${request.run_number || 'ไม่มีเลขที่'} - ${formatNumberWithCommas(request.amount)} บาท (${new Date(request.created_at).toLocaleDateString('th-TH')}) - สถานะ: ${getStatusText(request.status)}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -546,7 +556,48 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
 
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
-            <div className="grid grid-cols-2 gap-4">
+            
+            {/* แผนก */}
+            <div className="space-y-2">
+              <label className="form-label">แผนก</label>
+              <Select
+                onValueChange={(value) => setValue('advanceDepartment', value)}
+                value={watch('advanceDepartment')}
+              >
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="เลือกแผนก" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={employeeData?.Team || 'แผนกของฉัน'}>{employeeData?.Team || 'แผนกของฉัน'}</SelectItem>
+                  <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* ฟิลด์ระบุแผนกอื่นๆ */}
+            {watch('advanceDepartment') === 'อื่นๆ' && (
+              <div className="space-y-2">
+                <label className="form-label">โปรดระบุแผนก</label>
+                <Input
+                  placeholder="ระบุแผนกอื่นๆ"
+                  className="form-input"
+                  {...register('advanceDepartmentOther')}
+                />
+              </div>
+            )}
+
+            {/* ประเภทกิจกรรม */}
+            <div className="space-y-2">
+              <label className="form-label">ประเภทกิจกรรม</label>
+              <Input
+                placeholder="ระบุประเภทกิจกรรม เช่น จัดประชุม, ออกบูธ, อบรม, สัมมนา"
+                className="form-input"
+                {...register('advanceActivityType')}
+              />
+            </div>
+
+            {/* วันที่และจำนวนผู้เข้าร่วม */}
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="form-label">วันที่เริ่มกิจกรรม</label>
                 <Input
@@ -563,6 +614,21 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
               <div className="space-y-2">
                 <label className="form-label">วันที่สิ้นสุดกิจกรรม</label>
                 <Input type="date" className="form-input" {...register('endDate')} />
+              </div>
+              <div className="space-y-2">
+                <label className="form-label">จำนวนผู้เข้าร่วม</label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="80"
+                  className="form-input"
+                  {...register('advanceParticipants', {
+                    min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' }
+                  })}
+                />
+                {errors.advanceParticipants && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -594,7 +660,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รวมจำนวนเงินทั้งสิ้น</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -614,7 +680,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                               if (selectedCategory) {
                                 setValue(`expenseClearingItems.${index}.taxRate`, selectedCategory.taxRate);
                               }
-                              if (value !== 'อุปกรณ์และอื่นๆ') {
+                              if (value !== 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)') {
                                 setValue(`expenseClearingItems.${index}.otherDescription`, '');
                               }
                             }}
@@ -630,12 +696,12 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             </SelectContent>
                           </Select>
                           <input type="hidden" {...register(`expenseClearingItems.${index}.name` as const)} />
-                          {watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' && (
+                          {watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
                               className="w-full text-sm"
                               {...register(`expenseClearingItems.${index}.otherDescription` as const, {
-                                required: watch(`expenseClearingItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? 'กรุณาระบุรายละเอียด' : false
+                                required: watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
                             />
                           )}
@@ -658,53 +724,52 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       {/* จำนวนเบิก */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28"
+                          type="text"
+                          className="w-28 text-right"
                           placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.requestAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.requestAmount`))}
+                          onChange={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
+                          }}
                         />
+                        <input type="hidden" {...register(`expenseClearingItems.${index}.requestAmount` as const, { valueAsNumber: true })} />
                       </td>
                       {/* จำนวนใช้ (ก่อนภาษีมูลค่าเพิ่ม) */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28"
+                          type="text"
+                          className="w-28 text-right"
                           placeholder="0.00"
-                          {...register(`expenseClearingItems.${index}.usedAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
-                            valueAsNumber: true
-                          })}
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.usedAmount`))}
+                          onChange={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
+                          }}
                         />
+                        <input type="hidden" {...register(`expenseClearingItems.${index}.usedAmount` as const, { valueAsNumber: true })} />
                       </td>
-                      {/* ภาษีมูลค่าเพิ่ม (VAT) 7% */}
+                      {/* ภาษีมูลค่าเพิ่ม (VAT) - Manual Entry */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28 bg-purple-50"
+                          type="text"
+                          className="w-28 text-right"
                           placeholder="0.00"
-                          value={(watch(`expenseClearingItems.${index}.vatAmount`) || 0).toFixed(2)}
-                          readOnly
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.vatAmount`))}
+                          onChange={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            setValue(`expenseClearingItems.${index}.vatAmount`, numValue);
+                          }}
                         />
-                        <input type="hidden" {...register(`expenseClearingItems.${index}.vatAmount` as const)} />
+                        <input type="hidden" {...register(`expenseClearingItems.${index}.vatAmount` as const, { valueAsNumber: true })} />
                       </td>
                       {/* ภาษีหัก ณ ที่จ่าย */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-28 bg-gray-100"
+                          type="text"
+                          className="w-28 bg-gray-100 text-right"
                           placeholder="0.00"
-                          value={(watch(`expenseClearingItems.${index}.taxAmount`) || 0).toFixed(2)}
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.taxAmount`) || 0)}
                           readOnly
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.taxAmount` as const)} />
@@ -712,11 +777,10 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       {/* รวมจำนวนเงินทั้งสิ้น */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          className="w-28 bg-blue-50 font-semibold"
+                          type="text"
+                          className="w-28 bg-blue-50 font-semibold text-right"
                           placeholder="0.00"
-                          value={(watch(`expenseClearingItems.${index}.netAmount`) || 0).toFixed(2)}
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.netAmount`) || 0)}
                           readOnly
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.netAmount` as const)} />
@@ -724,15 +788,14 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                       {/* คืนเงินบริษัท(+) เบิกเงินบริษัท(-) */}
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          className={`w-28 ${
-                            (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0 
-                              ? 'bg-green-50' 
+                          type="text"
+                          className={`w-28 text-right ${
+                            (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0
+                              ? 'bg-green-50'
                               : 'bg-red-50'
                           }`}
                           placeholder="0.00"
-                          value={(watch(`expenseClearingItems.${index}.refund`) || 0).toFixed(2)}
+                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.refund`) || 0)}
                           readOnly
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.refund` as const)} />
@@ -765,7 +828,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -777,7 +840,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             : Number(item.usedAmount) || 0;
                           return sum + usedAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -789,7 +852,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             : Number(item.vatAmount) || 0;
                           return sum + vatAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -801,7 +864,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             : Number(item.taxAmount) || 0;
                           return sum + taxAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -813,7 +876,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                             : Number(item.netAmount) || 0;
                           return sum + netAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -822,7 +885,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         const isNegative = total < 0;
                         return (
                           <span className={isNegative ? 'text-red-700 font-bold' : 'text-green-700 font-bold'}>
-                            {total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            {formatNumberWithCommas(total)}
                           </span>
                         );
                       })()}
@@ -840,32 +903,29 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                 const isPositive = amount > 0;
                 return (
                   <div className={`border rounded-lg p-4 min-w-[200px] ${
-                    isNegative 
-                      ? 'bg-red-50 border-red-200' 
-                      : isPositive 
+                    isNegative
+                      ? 'bg-red-50 border-red-200'
+                      : isPositive
                         ? 'bg-green-50 border-green-200'
                         : 'bg-gray-50 border-gray-200'
                   }`}>
                     <div className={`text-sm font-medium ${
-                      isNegative 
-                        ? 'text-red-600' 
-                        : isPositive 
+                      isNegative
+                        ? 'text-red-600'
+                        : isPositive
                           ? 'text-green-600'
                           : 'text-gray-600'
                     }`}>
                       {isNegative ? 'จำนวนเงินที่ต้องชำระเพิ่ม' : 'จำนวนเงินคืนรวม'}
                     </div>
                     <div className={`text-2xl font-bold ${
-                      isNegative 
-                        ? 'text-red-800' 
-                        : isPositive 
+                      isNegative
+                        ? 'text-red-800'
+                        : isPositive
                           ? 'text-green-800'
                           : 'text-gray-800'
                     }`}>
-                      {isNegative ? '-' : ''}{Math.abs(amount).toLocaleString('th-TH', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })} บาท
+                      {isNegative ? '-' : ''}{formatNumberWithCommas(Math.abs(amount))} บาท
                     </div>
                   </div>
                 );

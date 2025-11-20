@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
+import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
 
 interface AdvanceFormProps {
   onBack: () => void;
@@ -89,7 +90,7 @@ const ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
   { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
   { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
-  { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5 },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
   { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
   { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 }
 ];
@@ -119,7 +120,11 @@ const ACTIVITY_TYPES = [
   {
     name: 'ค่ารับรองลูกค้า/ของขวัญร้านค้า',
     description: 'อาหาร-เครื่องดื่ม / กาแฟ / ขนม'
-  }
+  },
+  {
+    name: 'ค่าน้ำมันรถทดแทน ',
+    
+  },
 ];
 
 export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
@@ -147,6 +152,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [showActivityInfoModal, setShowActivityInfoModal] = useState(false);
   const [selectedActivityInfo, setSelectedActivityInfo] = useState<string>('');
+  const [dealerSearchTerm, setDealerSearchTerm] = useState<string>('');
+  const [showDealerDropdown, setShowDealerDropdown] = useState<boolean>(false);
+  const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
 
   const {
     register,
@@ -275,6 +283,20 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     };
   }, []);
 
+  // Filter dealers based on search term
+  useEffect(() => {
+    if (dealerSearchTerm.trim() === '') {
+      setFilteredDealers([]);
+      setShowDealerDropdown(false);
+    } else {
+      const filtered = dealerList.filter(dealer =>
+        dealer.Name.toLowerCase().includes(dealerSearchTerm.toLowerCase())
+      );
+      setFilteredDealers(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setShowDealerDropdown(filtered.length > 0);
+    }
+  }, [dealerSearchTerm, dealerList]);
+
   // Load edit data if editId is provided
   useEffect(() => {
     const fetchEditData = async () => {
@@ -326,6 +348,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             // Document selections
             attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
           });
+
+          // Set dealer search term for autocomplete
+          if (dbData.advance_dealer_name) {
+            setDealerSearchTerm(dbData.advance_dealer_name);
+          }
 
           // Attachments
           if (data.attachment_url) {
@@ -803,7 +830,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
       <div id="advance-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบขออนุมัติเบิกเงินล่วงหน้า</h1>
+          <h1 className="text-2xl font-bold">แบบฟอร์มขออนุมัติเบิกเงินล่วงหน้า (ฝ่ายขาย)</h1>
         </div>
 
         {/* Special info for advance payment */}
@@ -990,59 +1017,66 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
             {/* Dealer/Subdealer Fields */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <label className="form-label">ดีลเลอร์</label>
-                <Select
-                  onValueChange={(value) => {
-                    console.log('🔍 Dealer selected:', value);
-                    console.log('🔍 Current dealer list:', dealerList);
-                    
-                    if (value === 'none') {
-                      setValue('advanceDealerName', '');
-                      // Don't clear amphur/province when selecting "none"
-                    } else {
-                      setValue('advanceDealerName', value);
-                      // Find the selected dealer and auto-populate amphur and province
-                      const selectedDealer = dealerList.find(d => d.Name === value);
-                      console.log('🔍 Found dealer:', selectedDealer);
-                      
-                      if (selectedDealer) {
-                        if (selectedDealer.City) {
-                          setValue('advanceAmphur', selectedDealer.City);
-                          console.log('✅ Set amphur to:', selectedDealer.City);
-                        } else {
-                          console.log('⚠️ No City found for dealer');
-                        }
-                        if (selectedDealer.County) {
-                          setValue('advanceProvince', selectedDealer.County);
-                          console.log('✅ Set province to:', selectedDealer.County);
-                        } else {
-                          console.log('⚠️ No County found for dealer');
-                        }
-                        console.log('✅ Auto-populated amphur:', selectedDealer.City, 'province:', selectedDealer.County);
-                      } else {
-                        console.log('❌ Dealer not found in list');
-                      }
+                <Input
+                  placeholder="ค้นหาดีลเลอร์..."
+                  className="form-input"
+                  value={dealerSearchTerm}
+                  onChange={(e) => {
+                    setDealerSearchTerm(e.target.value);
+                    setValue('advanceDealerName', e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (dealerSearchTerm && filteredDealers.length > 0) {
+                      setShowDealerDropdown(true);
                     }
                   }}
-                  value={watch('advanceDealerName') || 'none'}
-                >
-                  <SelectTrigger className="form-input">
-                    <SelectValue placeholder="เลือกดีลเลอร์" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">ไม่ระบุ</SelectItem>
-                    {dealerList.map((dealer, index) => (
-                      <SelectItem key={`${dealer.No}-${index}`} value={dealer.Name}>
-                        {dealer.Name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onBlur={() => {
+                    // Delay to allow click on dropdown item
+                    setTimeout(() => setShowDealerDropdown(false), 200);
+                  }}
+                />
                 <input
                   type="hidden"
                   {...register('advanceDealerName')}
                 />
+
+                {/* Autocomplete Dropdown */}
+                {showDealerDropdown && filteredDealers.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {filteredDealers.map((dealer, index) => (
+                      <div
+                        key={`${dealer.No}-${index}`}
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => {
+                          console.log('🔍 Dealer selected:', dealer.Name);
+                          setDealerSearchTerm(dealer.Name);
+                          setValue('advanceDealerName', dealer.Name);
+
+                          // Auto-populate amphur and province
+                          if (dealer.City) {
+                            setValue('advanceAmphur', dealer.City);
+                            console.log('✅ Set amphur to:', dealer.City);
+                          }
+                          if (dealer.County) {
+                            setValue('advanceProvince', dealer.County);
+                            console.log('✅ Set province to:', dealer.County);
+                          }
+
+                          setShowDealerDropdown(false);
+                        }}
+                      >
+                        <div className="font-medium text-sm">{dealer.Name}</div>
+                        {(dealer.City || dealer.County) && (
+                          <div className="text-xs text-gray-500">
+                            {dealer.City && dealer.County ? `${dealer.City}, ${dealer.County}` : dealer.City || dealer.County}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1124,7 +1158,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1180,11 +1214,17 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       </td>
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-32"
+                          type="text"
+                          className="w-32 text-right"
                           placeholder="0.00"
+                          value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.requestAmount`))}
+                          onChange={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
+                          }}
+                        />
+                        <input
+                          type="hidden"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
                             min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
                             valueAsNumber: true
@@ -1193,11 +1233,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       </td>
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          className="w-32 bg-blue-50 font-semibold"
+                          type="text"
+                          className="w-32 bg-blue-50 font-semibold text-right"
                           placeholder="0.00"
-                          value={(watch(`advanceExpenseItems.${index}.netAmount`) || 0).toFixed(2)}
+                          value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly
                         />
                         <input
@@ -1240,7 +1279,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
@@ -1252,7 +1291,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             : Number(item.netAmount) || 0;
                           return sum + netAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2"></td>
@@ -1272,10 +1311,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-[200px]">
                 <div className="text-sm text-blue-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
                 <div className="text-2xl font-bold text-blue-800">
-                  {calculateTotalAmount().toLocaleString('th-TH', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })} บาท
+                  {formatNumberWithCommas(calculateTotalAmount())} บาท
                 </div>
               </div>
             </div>

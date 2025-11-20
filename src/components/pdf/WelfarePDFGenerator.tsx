@@ -356,6 +356,39 @@ const createWelfareFormHTML = (
           </div>
         </div>
 
+        <!-- Childbirth Details Section -->
+        ${welfareData.type === 'childbirth' && welfareData.childbirths ? `
+        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
+          <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px;">รายละเอียดบุตร</div>
+          ${(() => {
+            try {
+              const childbirths = typeof welfareData.childbirths === 'string'
+                ? JSON.parse(welfareData.childbirths)
+                : welfareData.childbirths;
+
+              return childbirths.map((child: any, index: number) => `
+                <div style="margin-bottom: 8px; padding: 10px; background-color: white; border: 1px solid #ddd; border-radius: 4px;">
+                  <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <span style="font-weight: bold; margin-right: 10px;">บุตรคนที่ ${index + 1}:</span>
+                    <span>${child.childName || '-'}</span>
+                  </div>
+                  <div style="display: flex; align-items: center;">
+                    <span style="font-weight: bold; margin-right: 10px;">ประเภทการคลอด:</span>
+                    <span>${child.birthType === 'natural' ? 'คลอดธรรมชาติ (4,000 บาท)' : 'ผ่าคลอด (6,000 บาท)'}</span>
+                  </div>
+                </div>
+              `).join('');
+            } catch (e) {
+              return '<div>ไม่สามารถแสดงข้อมูลบุตรได้</div>';
+            }
+          })()}
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+            <span style="font-weight: bold;">จำนวนเงินรวม: </span>
+            <span>${Number(welfareData.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
+          </div>
+        </div>
+        ` : ''}
+
         <!-- Details Section -->
         <div style="margin-bottom: 25px;">
           <div style="font-weight: bold; margin-bottom: 15px; font-size: 13px;">หมายเหตุ/เหตุผลในการขอเบิกสวัสดิการ ดังรายละเอียดต่อไปนี้</div>

@@ -198,9 +198,19 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
       <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
       
       <Tabs defaultValue="advance" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="advance">เบิกค่าใช้จ่าย</TabsTrigger>
-          <TabsTrigger value="clearing">เคลียร์ค่าใช้จ่าย</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1">
+          <TabsTrigger 
+            value="advance"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+          >
+            เบิกค่าใช้จ่าย
+          </TabsTrigger>
+          <TabsTrigger 
+            value="clearing"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+          >
+            เคลียร์ค่าใช้จ่าย
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="advance">

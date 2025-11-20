@@ -14,6 +14,7 @@ import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download } 
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
 
 import LoadingPopup from './LoadingPopup';
 import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
@@ -40,6 +41,10 @@ interface FormValues {
   title?: string;
 
   birthType?: 'natural' | 'caesarean';
+  childbirths?: {
+    childName?: string;
+    birthType: 'natural' | 'caesarean';
+  }[];
   funeralType?: 'employee_spouse' | 'child' | 'parent';
   attachments?: FileList;
   trainingTopics?: { value: string }[];
@@ -170,9 +175,20 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     editIdNum = editIdStr ? Number(editIdStr) : undefined;
   }
   const { user, profile } = useAuth();
-  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests } = useWelfare();
+  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount } = useWelfare();
   const { submitRequest: submitInternalTrainingRequest, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [files, setFiles] = useState<string[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<{
+    receipt?: string[];
+    idCardCopy?: string[];
+    bankBookCopy?: string[];
+    birthCertificate?: string[];
+    deathCertificate?: string[];
+    weddingCard?: string[];
+    medicalCertificate?: string[];
+    marriageCertificate?: string[];
+    other?: string[];
+  }>({});
   const { toast } = useToast();
   const [maxAmount, setMaxAmount] = useState<number | null>(null);
   const [condition, setCondition] = useState<string | undefined>();
@@ -184,6 +200,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [workDaysError, setWorkDaysError] = useState<string>('');
+  const [childbirthLimit, setChildbirthLimit] = useState<{ total: number; remaining: number }>({ total: 0, remaining: 3 });
 
   const {
     register,
@@ -196,7 +213,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   } = useForm<FormValues>({
     defaultValues: {
       trainingTopics: [{ value: '' }, { value: '' }],
-      participants: [{ team: '', count: 0, selectedParticipants: [] }]
+      participants: [{ team: '', count: 0, selectedParticipants: [] }],
+      childbirths: [{ childName: '', birthType: 'natural' }]
     }
   });
 
@@ -211,6 +229,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const { fields: participantFields, append: appendParticipant, remove: removeParticipant } = useFieldArray({
     control,
     name: "participants"
+  });
+
+  const { fields: childbirthFields, append: appendChildbirth, remove: removeChildbirth } = useFieldArray({
+    control,
+    name: "childbirths"
   });
 
 
@@ -284,6 +307,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       setEmployeeBudget(budgetResult);
     } else if (type !== 'training' && limitAmount) {
       setValue('amount', parseFloat(limitAmount.toFixed(2)));
+    }
+
+    // ถ้าเป็น childbirth ให้ดึงข้อมูลจำนวนบุตรที่เบิกไปแล้ว
+    if (type === 'childbirth' && user) {
+      const childbirthInfo = getChildbirthCount(user.id);
+      setChildbirthLimit(childbirthInfo);
     }
 
     // ถ้ามี editId ให้ดึงข้อมูลมา prefill
@@ -365,14 +394,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
   // For childbirth form
   const birthType = watch('birthType');
+  const childbirths = watch('childbirths');
 
-  // Update amount when birth type changes
+  // Update amount when childbirths change
   useEffect(() => {
-    if (type === 'childbirth' && birthType) {
-      const amount = birthType === 'natural' ? 4000.00 : 6000.00;
-      setValue('amount', parseFloat(amount.toFixed(2)));
+    if (type === 'childbirth' && childbirths && childbirths.length > 0) {
+      const totalAmount = childbirths.reduce((sum, child) => {
+        const childAmount = child.birthType === 'natural' ? 4000.00 : 6000.00;
+        return sum + childAmount;
+      }, 0);
+      setValue('amount', parseFloat(totalAmount.toFixed(2)));
     }
-  }, [birthType, type, setValue]);
+  }, [childbirths, type, setValue]);
 
   // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยน amount, VAT หรือ withholding tax
   useEffect(() => {
@@ -686,6 +719,102 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     }
   };
 
+  // ฟังก์ชันสำหรับอัพโหลดไฟล์แยกตามประเภทเอกสาร
+  const handleDocumentFileChange = async (e: React.ChangeEvent<HTMLInputElement>, documentType: string) => {
+    const fileInput = e.target;
+
+    if (!fileInput.files || fileInput.files.length === 0) return;
+
+    try {
+      const uploadPromises = Array.from(fileInput.files).map(async (file) => {
+        // Create a unique file path
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${documentType}_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${user?.id || 'anonymous'}/${fileName}`;
+
+        // Upload file to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('welfare-attachments')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('welfare-attachments')
+          .getPublicUrl(data.path);
+
+        return publicUrl;
+      });
+
+      // Wait for all uploads to complete
+      const uploadedUrls = await Promise.all(uploadPromises);
+
+      // Update documentFiles state for specific document type
+      setDocumentFiles(prev => ({
+        ...prev,
+        [documentType]: [...(prev[documentType as keyof typeof prev] || []), ...uploadedUrls]
+      }));
+
+      // Also add to general files array for backward compatibility
+      setFiles(prevFiles => [...prevFiles, ...uploadedUrls]);
+
+      toast({
+        title: "อัพโหลดสำเร็จ",
+        description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
+      });
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถอัปโหลดไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      // Reset the file input
+      fileInput.value = '';
+    }
+  };
+
+  // ฟังก์ชันสำหรับลบไฟล์แยกตามประเภท
+  const handleRemoveDocumentFile = async (documentType: string, index: number) => {
+    try {
+      const fileUrl = documentFiles[documentType as keyof typeof documentFiles]?.[index];
+      if (!fileUrl) return;
+
+      // Extract the file path from the URL
+      const filePath = fileUrl.split('/').slice(-2).join('/');
+
+      // Delete the file from Supabase Storage
+      const { error } = await supabase.storage
+        .from('welfare-attachments')
+        .remove([filePath]);
+
+      if (error) throw error;
+
+      // Update the documentFiles state
+      setDocumentFiles(prev => ({
+        ...prev,
+        [documentType]: prev[documentType as keyof typeof prev]?.filter((_, i) => i !== index)
+      }));
+
+      // Also remove from general files array
+      setFiles(prevFiles => prevFiles.filter(f => f !== fileUrl));
+
+      toast({
+        title: "ลบไฟล์สำเร็จ",
+        description: "ลบไฟล์เรียบร้อยแล้ว",
+      });
+    } catch (error: any) {
+      console.error('Error removing file:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถลบไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get remaining budget from getBenefitLimits API to ensure consistency
   const [currentRemainingBudget, setCurrentRemainingBudget] = useState<number>(0);
 
@@ -766,6 +895,23 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         throw new Error('User not authenticated');
       }
 
+      // ตรวจสอบจำนวนบุตรสำหรับ childbirth type
+      if (type === 'childbirth') {
+        const childbirthInfo = getChildbirthCount(user.id);
+        const currentChildbirthCount = data.childbirths?.length || 0;
+        const totalAfterSubmit = childbirthInfo.total + currentChildbirthCount;
+
+        if (totalAfterSubmit > 3) {
+          toast({
+            title: 'ไม่สามารถส่งคำร้องได้',
+            description: `คุณได้เบิกค่าคลอดบุตรไปแล้ว ${childbirthInfo.total} คน เหลืออีก ${childbirthInfo.remaining} คน แต่คุณกำลังพยายามเบิก ${currentChildbirthCount} คน`,
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // First, fetch the employee data to get the correct department and name
       const { data: employeeData, error: employeeError } = await supabase
         .from('Employee')
@@ -824,6 +970,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           end_date: data.endDate,
           total_days: data.totalDays,
           birth_type: data.birthType,
+          childbirths: data.childbirths ? JSON.stringify(data.childbirths) : null,
           funeral_type: data.funeralType,
           training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
           total_amount: data.totalAmount,
@@ -1091,6 +1238,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       end_date: data.endDate,
       total_days: data.totalDays,
       birth_type: data.birthType,
+      childbirths: data.childbirths ? JSON.stringify(data.childbirths) : null,
       funeral_type: data.funeralType,
       training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
       total_amount: data.totalAmount,
@@ -1284,14 +1432,16 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 {type === 'childbirth' ? (
                   <>คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</>
                 ) : (
-                  <>วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี`}</>
+                  <>
+                    วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี`}
+                    {condition && <> ({condition})</>}
+                  </>
                 )}
-                {condition && <> ({condition})</>}
               </AlertDescription>
             </Alert>
           </div>
         )}
-        {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
+        {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && type !== 'childbirth' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
               งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{(remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
@@ -1453,25 +1603,26 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <label htmlFor="amount" className="form-label">จำนวนเงิน</label>
                 <Input
                   id="amount"
-                  type="number"
-                  step="0.01"
-                  className="form-input"
+                  type="text"
+                  className="form-input text-right"
                   placeholder="ระบุจำนวนเงิน"
-                  {...register('amount', {
-                    required: 'กรุณาระบุจำนวนเงิน',
-                    min: {
-                      value: 1,
-                      message: 'จำนวนเงินต้องมากกว่า 0'
-
-                    },
-                    onChange: (e) => {
-                      const amount = Number(e.target.value);
-                      const vatAmount = Number(watch('tax7Percent')) || 0;
-                      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-                      calculateTrainingAmounts(amount, remainingBudget, vatAmount, withholdingAmount);
-                    }
-                  })}
+                  value={formatNumberWithCommas(watch('amount'))}
+                  onChange={(e) => {
+                    const numValue = parseFormattedNumber(e.target.value);
+                    setValue('amount', numValue);
+                    const vatAmount = Number(watch('tax7Percent')) || 0;
+                    const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+                    calculateTrainingAmounts(numValue, remainingBudget, vatAmount, withholdingAmount);
+                  }}
                 />
+                <input type="hidden" {...register('amount', {
+                  required: 'กรุณาระบุจำนวนเงิน',
+                  min: {
+                    value: 1,
+                    message: 'จำนวนเงินต้องมากกว่า 0'
+                  },
+                  valueAsNumber: true
+                })} />
                 {errors.amount && (
                   <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
                 )}
@@ -1483,24 +1634,24 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <div className="space-y-2">
                   <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
                   <Input
-                    type="number"
-                    className="form-input"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    className="form-input text-right"
                     placeholder="0.00"
-                    defaultValue="0"
-                    {...register('tax7Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
-                      onChange: (e) => {
-                        const amount = watch('amount');
-                        const vatAmount = Number(e.target.value) || 0;
-                        const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-                        if (amount) {
-                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
-                        }
+                    value={formatNumberWithCommas(watch('tax7Percent'))}
+                    onChange={(e) => {
+                      const numValue = parseFormattedNumber(e.target.value);
+                      setValue('tax7Percent', numValue);
+                      const amount = watch('amount');
+                      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+                      if (amount) {
+                        calculateTrainingAmounts(Number(amount), remainingBudget, numValue, withholdingAmount);
                       }
-                    })}
+                    }}
                   />
+                  <input type="hidden" {...register('tax7Percent', {
+                    min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                    valueAsNumber: true
+                  })} />
                   {errors.tax7Percent && (
                     <p className="text-red-500 text-sm mt-1">{errors.tax7Percent.message}</p>
                   )}
@@ -1508,24 +1659,24 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <div className="space-y-2">
                   <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
                   <Input
-                    type="number"
-                    className="form-input"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    className="form-input text-right"
                     placeholder="0.00"
-                    defaultValue="0"
-                    {...register('withholdingTax3Percent', {
-                      min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
-                      onChange: (e) => {
-                        const amount = watch('amount');
-                        const withholdingAmount = Number(e.target.value) || 0;
-                        const vatAmount = Number(watch('tax7Percent')) || 0;
-                        if (amount) {
-                          calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, withholdingAmount);
-                        }
+                    value={formatNumberWithCommas(watch('withholdingTax3Percent'))}
+                    onChange={(e) => {
+                      const numValue = parseFormattedNumber(e.target.value);
+                      setValue('withholdingTax3Percent', numValue);
+                      const amount = watch('amount');
+                      const vatAmount = Number(watch('tax7Percent')) || 0;
+                      if (amount) {
+                        calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, numValue);
                       }
-                    })}
+                    }}
                   />
+                  <input type="hidden" {...register('withholdingTax3Percent', {
+                    min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                    valueAsNumber: true
+                  })} />
                   {errors.withholdingTax3Percent && (
                     <p className="text-red-500 text-sm mt-1">{errors.withholdingTax3Percent.message}</p>
                   )}
@@ -1533,13 +1684,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                 <div className="space-y-2">
                   <label className="form-label">จำนวนเงินสุทธิ</label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-gray-100"
+                    type="text"
+                    className="form-input bg-gray-100 text-right"
                     readOnly
-                    value={watch('netAmount') ? Number(watch('netAmount')).toFixed(2) : ''}
-                    {...register('netAmount')}
+                    value={formatNumberWithCommas(watch('netAmount'))}
                   />
+                  <input type="hidden" {...register('netAmount')} />
                 </div>
               </div>
 
@@ -1547,37 +1697,34 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
               <div className="space-y-2">
                 <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  className="form-input bg-gray-100"
+                  type="text"
+                  className="form-input bg-gray-100 text-right"
                   readOnly
-                  value={watch('excessAmount') ? Number(watch('excessAmount')).toFixed(2) : ''}
-                  {...register('excessAmount')}
+                  value={formatNumberWithCommas(watch('excessAmount'))}
                 />
+                <input type="hidden" {...register('excessAmount')} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="form-label">บริษัทจ่าย</label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-gray-100"
+                    type="text"
+                    className="form-input bg-gray-100 text-right"
                     readOnly
-                    value={watch('companyPayment') ? Number(watch('companyPayment')).toFixed(2) : ''}
-                    {...register('companyPayment')}
+                    value={formatNumberWithCommas(watch('companyPayment'))}
                   />
+                  <input type="hidden" {...register('companyPayment')} />
                 </div>
                 <div className="space-y-2">
                   <label className="form-label">พนักงานจ่าย</label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    className="form-input bg-gray-100"
+                    type="text"
+                    className="form-input bg-gray-100 text-right"
                     readOnly
-                    value={watch('employeePayment') ? Number(watch('employeePayment')).toFixed(2) : ''}
-                    {...register('employeePayment')}
+                    value={formatNumberWithCommas(watch('employeePayment'))}
                   />
+                  <input type="hidden" {...register('employeePayment')} />
                 </div>
               </div>
             </>
@@ -1901,15 +2048,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">จำนวนเงิน</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('instructorFee', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('instructorFee'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('instructorFee', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('instructorFee', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                       {errors.instructorFee && (
                         <p className="text-red-500 text-xs mt-1">{errors.instructorFee.message}</p>
                       )}
@@ -1917,39 +2068,46 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('instructorFeeWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('instructorFeeWithholding'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('instructorFeeWithholding', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('instructorFeeWithholding', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm">VAT (7%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('instructorFeeVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('instructorFeeVat'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('instructorFeeVat', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('instructorFeeVat', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวม</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-blue-100 font-semibold"
+                        type="text"
+                        className="form-input bg-blue-100 font-semibold text-right"
                         readOnly
-                        value={watch('instructorFeeTotal') ? Number(watch('instructorFeeTotal')).toFixed(2) : '0.00'}
-                        {...register('instructorFeeTotal')}
+                        value={formatNumberWithCommas(watch('instructorFeeTotal'))}
                       />
+                      <input type="hidden" {...register('instructorFeeTotal')} />
                     </div>
                   </div>
                 </div>
@@ -1961,15 +2119,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">จำนวนเงิน</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('roomFoodBeverage', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('roomFoodBeverage'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('roomFoodBeverage', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('roomFoodBeverage', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                       {errors.roomFoodBeverage && (
                         <p className="text-red-500 text-xs mt-1">{errors.roomFoodBeverage.message}</p>
                       )}
@@ -1977,39 +2139,46 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('roomFoodBeverageWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('roomFoodBeverageWithholding'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('roomFoodBeverageWithholding', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('roomFoodBeverageWithholding', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm">VAT (7%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('roomFoodBeverageVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('roomFoodBeverageVat'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('roomFoodBeverageVat', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('roomFoodBeverageVat', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวม</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-blue-100 font-semibold"
+                        type="text"
+                        className="form-input bg-blue-100 font-semibold text-right"
                         readOnly
-                        value={watch('roomFoodBeverageTotal') ? Number(watch('roomFoodBeverageTotal')).toFixed(2) : '0.00'}
-                        {...register('roomFoodBeverageTotal')}
+                        value={formatNumberWithCommas(watch('roomFoodBeverageTotal'))}
                       />
+                      <input type="hidden" {...register('roomFoodBeverageTotal')} />
                     </div>
                   </div>
                 </div>
@@ -2021,15 +2190,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">จำนวนเงิน</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('otherExpenses', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('otherExpenses'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('otherExpenses', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('otherExpenses', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                       {errors.otherExpenses && (
                         <p className="text-red-500 text-xs mt-1">{errors.otherExpenses.message}</p>
                       )}
@@ -2037,39 +2210,46 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('otherExpensesWithholding', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('otherExpensesWithholding'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('otherExpensesWithholding', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('otherExpensesWithholding', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm">VAT (7%)</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
+                        type="text"
+                        className="form-input text-right"
                         placeholder="0.00"
-                        {...register('otherExpensesVat', {
-                          min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' }
-                        })}
+                        value={formatNumberWithCommas(watch('otherExpensesVat'))}
+                        onChange={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          setValue('otherExpensesVat', numValue);
+                        }}
                       />
+                      <input type="hidden" {...register('otherExpensesVat', {
+                        min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
+                        valueAsNumber: true
+                      })} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวม</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-blue-100 font-semibold"
+                        type="text"
+                        className="form-input bg-blue-100 font-semibold text-right"
                         readOnly
-                        value={watch('otherExpensesTotal') ? Number(watch('otherExpensesTotal')).toFixed(2) : '0.00'}
-                        {...register('otherExpensesTotal')}
+                        value={formatNumberWithCommas(watch('otherExpensesTotal'))}
                       />
+                      <input type="hidden" {...register('otherExpensesTotal')} />
                     </div>
                   </div>
                 </div>
@@ -2091,46 +2271,42 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวมหักภาษี ณ ที่จ่าย</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-red-100 font-semibold"
+                        type="text"
+                        className="form-input bg-red-100 font-semibold text-right"
                         readOnly
-                        value={watch('withholdingTax') ? Number(watch('withholdingTax')).toFixed(2) : '0.00'}
-                        {...register('withholdingTax')}
+                        value={formatNumberWithCommas(watch('withholdingTax'))}
                       />
+                      <input type="hidden" {...register('withholdingTax')} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">รวม VAT</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-green-100 font-semibold"
+                        type="text"
+                        className="form-input bg-green-100 font-semibold text-right"
                         readOnly
-                        value={watch('vat') ? Number(watch('vat')).toFixed(2) : '0.00'}
-                        {...register('vat')}
+                        value={formatNumberWithCommas(watch('vat'))}
                       />
+                      <input type="hidden" {...register('vat')} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-bold">รวมเป็นเงินทั้งสิ้น</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-yellow-100 font-bold text-lg"
+                        type="text"
+                        className="form-input bg-yellow-100 font-bold text-lg text-right"
                         readOnly
-                        value={watch('totalAmount') ? Number(watch('totalAmount')).toFixed(2) : '0.00'}
-                        {...register('totalAmount')}
+                        value={formatNumberWithCommas(watch('totalAmount'))}
                       />
+                      <input type="hidden" {...register('totalAmount')} />
                     </div>
                     <div className="space-y-2">
                       <label className="form-label text-sm font-semibold">เฉลี่ยต่อคน</label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        className="form-input bg-purple-100 font-semibold"
+                        type="text"
+                        className="form-input bg-purple-100 font-semibold text-right"
                         readOnly
-                        value={watch('averageCostPerPerson') ? Number(watch('averageCostPerPerson')).toFixed(2) : '0.00'}
-                        {...register('averageCostPerPerson')}
+                        value={formatNumberWithCommas(watch('averageCostPerPerson'))}
                       />
+                      <input type="hidden" {...register('averageCostPerPerson')} />
                     </div>
                   </div>
                 </div>
@@ -2153,13 +2329,12 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   <div className="space-y-2">
                     <label className="form-label">จำนวนเงินที่ต้องหัก ณ ที่จ่าย</label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      className="form-input bg-gray-100"
+                      type="text"
+                      className="form-input bg-gray-100 text-right"
                       readOnly
-                      value={watch('withholdingTaxAmount') ? Number(watch('withholdingTaxAmount')).toFixed(2) : ''}
-                      {...register('withholdingTaxAmount')}
+                      value={formatNumberWithCommas(watch('withholdingTaxAmount'))}
                     />
+                    <input type="hidden" {...register('withholdingTaxAmount')} />
                   </div>
                 </div>
 
@@ -2180,15 +2355,130 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
           {/* Continue with existing fields for other welfare types */}
           {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
             <>
+              {/* Childbirth specific fields */}
+              {type === 'childbirth' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      ข้อมูลบุตร
+                    </h3>
+                    <div className="text-sm">
+                      <span className="text-gray-600">เบิกไปแล้ว: </span>
+                      <span className="font-semibold text-blue-600">{childbirthLimit.total} คน</span>
+                      <span className="text-gray-600 mx-2">|</span>
+                      <span className="text-gray-600">เหลือ: </span>
+                      <span className="font-semibold text-green-600">{childbirthLimit.remaining} คน</span>
+                    </div>
+                  </div>
+
+                  {childbirthLimit.remaining === 0 && (
+                    <Alert className="bg-red-50 border-red-200">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <AlertDescription className="text-red-800">
+                        คุณได้เบิกค่าคลอดบุตรครบ 3 คนแล้ว ไม่สามารถเบิกเพิ่มได้อีก
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {childbirthLimit.remaining > 0 && (
+                    <>
+                      {childbirthFields.map((field, index) => (
+                    <div key={field.id} className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">บุตรคนที่ {index + 1}</span>
+                        {childbirthFields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeChildbirth(index)}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            ลบ
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="form-label">ชื่อบุตร (ไม่บังคับ)</label>
+                          <Input
+                            placeholder="ระบุชื่อบุตร"
+                            className="form-input"
+                            {...register(`childbirths.${index}.childName` as const)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="form-label">ประเภทการคลอด *</label>
+                          <Controller
+                            name={`childbirths.${index}.birthType` as const}
+                            control={control}
+                            rules={{ required: 'กรุณาเลือกประเภทการคลอด' }}
+                            render={({ field }) => (
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger className="form-input">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="natural">
+                                    คลอดธรรมชาติ (4,000 บาท)
+                                  </SelectItem>
+                                  <SelectItem value="caesarean">
+                                    ผ่าคลอด (6,000 บาท)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                          {errors.childbirths?.[index]?.birthType && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.childbirths[index]?.birthType?.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                      {childbirthFields.length < childbirthLimit.remaining && (
+                        <Button
+                          type="button"
+                          onClick={() => appendChildbirth({ childName: '', birthType: 'natural' })}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          เพิ่มบุตร (เหลืออีก {childbirthLimit.remaining - childbirthFields.length} คน)
+                        </Button>
+                      )}
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>หมายเหตุ:</strong> พนักงานสามารถเบิกค่าคลอดบุตรได้สูงสุด 3 คนตลอดการทำงาน
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Original amount field */}
               <div className="space-y-2">
-                <label htmlFor="amount" className="form-label">จำนวนเงิน (บาท)</label>
+                <label htmlFor="amount" className="form-label">
+                  จำนวนเงิน (บาท)
+                  {type === 'childbirth' && ' - คำนวณอัตโนมัติ'}
+                </label>
                 <Input
                   id="amount"
                   type="number"
                   step="0.01"
-                  className="form-input"
+                  className={`form-input ${type === 'childbirth' ? 'bg-gray-100' : ''}`}
                   placeholder="ระบุจำนวนเงิน"
+                  readOnly={type === 'childbirth'}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
@@ -2434,66 +2724,337 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   </div>
                 )}
               </div>
+
+              {/* Dynamic file upload fields based on selections */}
+              <div className="mt-6 space-y-4">
+                <h3 className="text-sm font-semibold text-gray-700">แนบไฟล์เอกสาร</h3>
+
+                {/* Receipt */}
+                {watch('attachmentSelections.receipt') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      ใบเสร็จรับเงิน
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'receipt')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.receipt && documentFiles.receipt.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.receipt.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('receipt', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ID Card Copy */}
+                {watch('attachmentSelections.idCardCopy') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      สำเนาบัตรประชาชน
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'idCardCopy')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.idCardCopy && documentFiles.idCardCopy.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.idCardCopy.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('idCardCopy', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Bank Book Copy */}
+                {watch('attachmentSelections.bankBookCopy') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      สำเนาบัญชีธนาคาร
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'bankBookCopy')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.bankBookCopy && documentFiles.bankBookCopy.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.bankBookCopy.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('bankBookCopy', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Birth Certificate */}
+                {watch('attachmentSelections.birthCertificate') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      สำเนาสูติบัตรบุตร
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'birthCertificate')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.birthCertificate && documentFiles.birthCertificate.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.birthCertificate.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('birthCertificate', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Death Certificate */}
+                {watch('attachmentSelections.deathCertificate') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      สำเนาใบมรณะบัตร
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'deathCertificate')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.deathCertificate && documentFiles.deathCertificate.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.deathCertificate.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('deathCertificate', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Wedding Card */}
+                {watch('attachmentSelections.weddingCard') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      การ์ดแต่งงาน
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'weddingCard')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.weddingCard && documentFiles.weddingCard.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.weddingCard.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('weddingCard', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Medical Certificate */}
+                {watch('attachmentSelections.medicalCertificate') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      ใบรับรองแพทย์
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'medicalCertificate')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.medicalCertificate && documentFiles.medicalCertificate.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.medicalCertificate.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('medicalCertificate', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Marriage Certificate */}
+                {watch('attachmentSelections.marriageCertificate') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      สำเนาทะเบียนสมรส
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'marriageCertificate')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.marriageCertificate && documentFiles.marriageCertificate.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.marriageCertificate.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('marriageCertificate', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Other */}
+                {watch('attachmentSelections.other') && (
+                  <div className="border rounded-lg p-4 bg-white space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      อื่นๆ {watch('attachmentSelections.otherText') && `(${watch('attachmentSelections.otherText')})`}
+                    </label>
+                    <Input
+                      type="file"
+                      onChange={(e) => handleDocumentFileChange(e, 'other')}
+                      multiple
+                      className="form-input"
+                    />
+                    {documentFiles.other && documentFiles.other.length > 0 && (
+                      <div className="space-y-2">
+                        {documentFiles.other.map((fileUrl, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              ไฟล์ {index + 1}
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocumentFile('other', index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
-
-          {/* File Upload */}
-          <div className="space-y-2">
-            <label htmlFor="attachments" className="form-label flex items-center gap-2">
-              <Paperclip className="h-4 w-4" />
-              แนบเอกสาร (ใบเสร็จรับเงิน, รายละเอียดหลักสูตร, ใบเสนอราคา/ใบแจ้งหนี้)
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="attachments"
-                type="file"
-                className="form-input"
-                onChange={handleFileChange}
-                multiple
-              />
-            </div>
-
-            {/* Show uploaded files */}
-            {files.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm font-medium mb-1">ไฟล์ที่อัพโหลด:</p>
-                <ul className="text-sm space-y-1">
-                  {files.map((file, index) => {
-                    const fileName = file.split('/').pop() || `ไฟล์ ${index + 1}`;
-                    return (
-                      <li key={index} className="flex items-center justify-between group">
-                        <div className="flex items-center gap-2 text-green-600">
-                          <Check className="h-4 w-4 flex-shrink-0" />
-                          <a
-                            href={file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="truncate hover:underline"
-                            title={fileName}
-                          >
-                            {fileName}
-                          </a>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleRemoveFile(index)}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          <span className="sr-only">ลบไฟล์</span>
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-xs text-gray-500 mt-1">
-                  จำนวนไฟล์ที่อัปโหลด: {files.length} ไฟล์
-                </p>
-              </div>
-            )}
-          </div>
 
           {/* Submit Button */}
           <Button

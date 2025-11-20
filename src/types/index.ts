@@ -110,6 +110,7 @@ export interface WelfareRequest {
   end_date?: string;
   total_days?: number;
   birth_type?: string;
+  childbirths?: string; // JSON string of array of {childName?: string, birthType: 'natural' | 'caesarean'}
   funeral_type?: string;
   training_topics?: string;
   total_amount?: number;
@@ -217,35 +218,23 @@ export interface WelfareRequest {
   reportingTo?: string;
   employmentStartDate?: string;
   employmentEndDate?: string;
-  workingHours?: string;
-  probationPeriod?: number; // in months
-  salaryOffered?: number;
-  allowances?: {
-    housing?: number;
-    transportation?: number;
-    meal?: number;
-    other?: number;
-    otherDescription?: string;
-  };
-  benefits?: string[];
-  jobDescription?: string;
-  qualifications?: {
-    education?: string;
-    experience?: string;
-    skills?: string[];
-    certifications?: string[];
-  };
-  reasonForHiring?: string;
-  budgetCode?: string;
-  costCenter?: string;
+  hiringReason?: 'replacement' | 'new-position' | 'temporary';
   replacementFor?: string; // Name of person being replaced
+  replacementDepartureDate?: string; // Departure date of person being replaced
+  newPositionReason?: string; // Reason for requesting new position
+  temporaryDurationYears?: number; // Duration in years for temporary position
+  temporaryDurationMonths?: number; // Duration in months for temporary position
+  gender?: string;
+  minimumEducation?: string;
+  major?: string;
+  experienceField?: string;
+  minimumExperience?: string;
+  otherSkills?: string;
   contractType?: 'permanent' | 'temporary' | 'contract' | 'probation';
   workLocation?: string;
   numberOfPositions?: number;
-  urgencyLevel?: 'normal' | 'urgent' | 'critical';
-  recruitmentMethod?: 'internal' | 'external' | 'agency' | 'referral';
-  expectedInterviewDate?: string;
-  expectedOnboardingDate?: string;
+  currentEmployeeCount?: number; // Current number of employees in department
+  currentPositions?: any[] | string; // JSON array of current positions in department: [{positionName: string, count: number}]
 }
 
 export interface Notification {

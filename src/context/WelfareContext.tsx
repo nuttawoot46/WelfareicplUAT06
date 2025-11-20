@@ -18,6 +18,7 @@ interface WelfareContextType {
   isLoading: boolean;
   getWelfareLimit: (type: WelfareType) => { amount: number | null, condition?: string, monthly?: boolean };
   getRemainingBudget: (userId: string, type?: WelfareType) => number;
+  getChildbirthCount: (userId: string) => { total: number; remaining: number };
   trainingBudget: number | null;
 }
 
@@ -301,6 +302,49 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return limitInfo ? limitInfo.remaining : 0;
   };
 
+  // นับจำนวนบุตรที่เบิกไปแล้วทั้งหมดของพนักงาน (จากคำขอที่ approved/completed เท่านั้น)
+  const getChildbirthCount = (userId: string): { total: number; remaining: number } => {
+    const MAX_CHILDREN = 3;
+
+    // หา welfare requests ของ user นี้ที่เป็น childbirth และ status เป็น completed
+    const childbirthRequests = welfareRequests.filter(
+      request =>
+        request.userId === userId &&
+        request.type === 'childbirth' &&
+        request.status === 'completed'
+    );
+
+    // นับจำนวนบุตรทั้งหมดที่เบิกไปแล้ว
+    let totalChildren = 0;
+    childbirthRequests.forEach(request => {
+      if (request.childbirths) {
+        try {
+          const childbirths = typeof request.childbirths === 'string'
+            ? JSON.parse(request.childbirths)
+            : request.childbirths;
+
+          if (Array.isArray(childbirths)) {
+            totalChildren += childbirths.length;
+          }
+        } catch (e) {
+          console.error('Error parsing childbirths:', e);
+          // ถ้า parse ไม่ได้ แสดงว่าอาจเป็นคำขอเก่าที่ใช้ birth_type ให้นับเป็น 1 คน
+          totalChildren += 1;
+        }
+      } else {
+        // คำขอเก่าที่ใช้ birth_type ให้นับเป็น 1 คน
+        totalChildren += 1;
+      }
+    });
+
+    const remaining = Math.max(0, MAX_CHILDREN - totalChildren);
+
+    return {
+      total: totalChildren,
+      remaining: remaining
+    };
+  };
+
   const submitRequest = async (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     setIsLoading(true);
     try {
@@ -335,7 +379,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       // สร้าง object สำหรับ insert
       const requestDataObj = {
-        employee_id: Number(requestData.userId),
+        employee_id: (requestData as any).employeeId || Number(requestData.userId),
         employee_name: requestData.userName,
         request_type: requestData.type,
         status: 'pending_manager',
@@ -353,6 +397,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         end_date: requestData.end_date || null,
         total_days: requestData.total_days,
         birth_type: requestData.birth_type,
+        childbirths: requestData.childbirths,
         training_topics: requestData.training_topics,
         total_amount: requestData.total_amount,
         tax7_percent: requestData.tax7_percent,
@@ -411,6 +456,31 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.log('🔍 Expense clearing items to save:', itemsArray);
           return JSON.stringify(itemsArray);
         })(),
+
+        // Employment Approval specific fields
+        hiring_reason: (requestData as any).hiringReason,
+        new_position_reason: (requestData as any).newPositionReason,
+        replacement_departure_date: (requestData as any).replacementDepartureDate,
+        temporary_duration_years: (requestData as any).temporaryDurationYears,
+        temporary_duration_months: (requestData as any).temporaryDurationMonths,
+        employment_type: (requestData as any).employmentType,
+        position_title: (requestData as any).positionTitle,
+        department_requesting: (requestData as any).departmentRequesting,
+        reporting_to: (requestData as any).reportingTo,
+        employment_start_date: (requestData as any).employmentStartDate,
+        employment_end_date: (requestData as any).employmentEndDate,
+        replacement_for: (requestData as any).replacementFor,
+        contract_type: (requestData as any).contractType,
+        work_location: (requestData as any).workLocation,
+        number_of_positions: (requestData as any).numberOfPositions,
+        current_employee_count: (requestData as any).currentEmployeeCount,
+        current_positions: (requestData as any).currentPositions,
+        gender: (requestData as any).gender,
+        minimum_education: (requestData as any).minimumEducation,
+        major: (requestData as any).major,
+        experience_field: (requestData as any).experienceField,
+        minimum_experience: (requestData as any).minimumExperience,
+        other_skills: (requestData as any).otherSkills,
       };
       // requestDataObj ไม่มี id อยู่แล้ว
 
@@ -544,6 +614,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     isLoading,
     getWelfareLimit,
     getRemainingBudget,
+    getChildbirthCount,
     trainingBudget
   };
 

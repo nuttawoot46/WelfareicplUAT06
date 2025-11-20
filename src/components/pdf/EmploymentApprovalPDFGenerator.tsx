@@ -6,444 +6,412 @@ import { WelfareRequest, User } from '@/types';
 interface EmploymentApprovalPDFGeneratorProps {
   requestData: WelfareRequest;
   userData: User;
+  employeeData?: {
+    Name: string;
+    Position: string;
+    Team: string;
+  };
 }
 
 const createEmploymentApprovalHTML = (
   requestData: WelfareRequest,
   userData: User,
+  employeeData?: { Name: string; Position: string; Team: string },
   userSignature?: string,
   managerSignature?: string,
-  hrSignature?: string
+  hrSignature?: string,
+  specialSignature?: string
 ) => {
-  const formatThaiDate = (dateString: string): string => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const thaiMonths = [
-      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-    ];
-    const month = thaiMonths[date.getMonth()];
-    const year = date.getFullYear() + 543;
-    return `${day} ${month} ${year}`;
-  };
+  const employeeName = employeeData?.Name || userData.name || '';
+  const employeePosition = employeeData?.Position || userData.position || '';
 
-  const formatCurrency = (amount: number): string => {
-    return amount.toLocaleString('th-TH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
+  // Format dates
+  const requestDate = requestData.createdAt ? new Date(requestData.createdAt) : new Date();
+  const formattedRequestDate = requestDate.toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-  const currentDate = formatThaiDate(new Date().toISOString());
+  const startDate = requestData.employmentStartDate
+    ? new Date(requestData.employmentStartDate).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : '';
 
-  const employmentTypeMap = {
-    'new-hire': 'จ้างใหม่',
-    'replacement': 'ทดแทนตำแหน่งเดิม',
-    'temporary': 'จ้างชั่วคราว',
-    'contract-extension': 'ต่อสัญญา'
-  };
+  const departureDate = requestData.replacementDepartureDate
+    ? new Date(requestData.replacementDepartureDate).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : '';
 
-  const contractTypeMap = {
-    'permanent': 'พนักงานประจำ',
-    'temporary': 'ชั่วคราว',
-    'contract': 'สัญญาจ้าง',
-    'probation': 'ทดลองงาน'
-  };
+  // Checkbox helper
+  const checkbox = (checked: boolean) => checked ? '☑' : '☐';
 
-  const urgencyLevelMap = {
-    'normal': 'ปกติ',
-    'urgent': 'เร่งด่วน',
-    'critical': 'เร่งด่วนมาก'
-  };
+  // Dotted line helper - text appears 1cm above the dotted line
+  const dottedLine = (text: string = '', width: string = '200px') =>
+    `<span style="display: inline-block; min-width: ${width}; position: relative; vertical-align: bottom; height: 30px;">
+      <span style="position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 16px;">${text}</span>
+      <span style="position: absolute; bottom: 0; left: 0; right: 0; border-bottom: 1px dotted black;"></span>
+    </span>`;
 
-  const recruitmentMethodMap = {
-    'internal': 'ภายในองค์กร',
-    'external': 'ภายนอกองค์กร',
-    'agency': 'ผ่านเอเจนซี่',
-    'referral': 'แนะนำโดยพนักงาน'
-  };
+  // Parse current positions
+  const currentPositionsData = requestData.currentPositions
+    ? (typeof requestData.currentPositions === 'string'
+        ? JSON.parse(requestData.currentPositions)
+        : requestData.currentPositions
+      )
+    : [];
 
-  const allowances = requestData.allowances || {};
-  const qualifications = requestData.qualifications || {};
-  const benefits = requestData.benefits || [];
+  const positionRows = [];
+  for (let i = 0; i < 3; i++) {
+    const pos = currentPositionsData[i];
+    positionRows.push(`
+      <div style="margin-bottom: 3px; margin-left: 15px;">
+        ตำแหน่ง${dottedLine(pos?.positionName || '', '220px')} จำนวน ${dottedLine(pos?.count?.toString() || '', '50px')}คน
+      </div>
+    `);
+  }
 
   return `
     <div style="
       width: 210mm;
       min-height: 297mm;
-      padding: 15mm;
-      font-family: 'Sarabun', Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.3;
+      padding: 8mm 10mm;
+      font-family: 'Cordia New', 'TH Sarabun New', 'Sarabun', Arial, sans-serif;
+      font-size: 18px;
+      line-height: 1.2;
       background: white;
       color: black;
       box-sizing: border-box;
+      position: relative;
     ">
-      <!-- Header -->
-      <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0066cc; padding-bottom: 10px;">
-        <div style="font-size: 20px; font-weight: bold; color: #0066cc;">แบบขออนุมัติการจ้างงาน</div>
-        <div style="font-size: 12px; margin-top: 5px;">EMPLOYMENT APPROVAL FORM</div>
-        <div style="font-size: 11px; margin-top: 5px;">วันที่: ${currentDate}</div>
-      </div>
+      <!-- Company Logo and Header -->
+      <table style="width: 100%; margin-bottom: 6px; border-collapse: collapse;">
+        <tr>
+          <td style="width: 80px; vertical-align: top; padding-right: 8px;">
+            <div style="width: 75px; height: 60px; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 9px; text-align: center; background: #f8f8f8;">
+              <div>
+                <div style="color: #0066cc; font-weight: bold; font-size: 11px;">ICP</div>
+                <div style="color: #00aa00; font-weight: bold; font-size: 10px;">LADDA</div>
+                <div style="font-size: 7px; margin-top: 2px;">LOGO</div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 2px;">บริษัท ไอ ซี พี ลัดดา จำกัด</div>
+            <div style="font-size: 14px; line-height: 1.3;">42 อาคาร ไอ ซี พี ชั้น 5 ถนนสุรวงศ์ สีลม บางรัก กรุงเทพฯ 10500</div>
+            <div style="font-size: 14px; line-height: 1.3;">โทรศัพท์ (662) 029-9888 โทรสาร (662) 029-9886-7</div>
+          </td>
+        </tr>
+      </table>
 
-      <!-- Section 1: ข้อมูลทั่วไป -->
-      <div style="margin-bottom: 15px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          1. ข้อมูลทั่วไป (General Information)
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-          <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold;">ประเภทการจ้างงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${employmentTypeMap[requestData.employmentType as keyof typeof employmentTypeMap] || ''}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ตำแหน่งงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.positionTitle || ''}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">แผนกที่ขอจ้าง:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.departmentRequesting || ''}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">รายงานตัวต่อ:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.reportingTo || ''}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">สถานที่ทำงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.workLocation || ''}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">จำนวนตำแหน่ง:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.numberOfPositions || 1} ตำแหน่ง</td>
-          </tr>
-          ${requestData.replacementFor ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ทดแทนตำแหน่งของ:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.replacementFor}</td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
+      <!-- Form Header Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 0px; border: 1.5px solid black;">
+        <tr>
+          <td style="border: 1.5px solid black; padding: 5px 8px; width: 25%; vertical-align: top; font-size: 14px;">
+            <div style="margin-bottom: 2px;">รหัสแบบฟอร์ม:</div>
+            <div style="font-weight: bold;">FM-HRM-01-01 REV: 01</div>
+          </td>
+          <td style="border: 1.5px solid black; padding: 5px 8px; width: 50%; text-align: center; vertical-align: middle;">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 2px;">แบบขออนุมัติการจ้างงาน</div>
+            <div style="font-size: 14px; font-weight: bold;">Requisition Form</div>
+          </td>
+          <td style="border: 1.5px solid black; padding: 5px 8px; width: 25%; vertical-align: top; font-size: 14px; line-height: 1.4;">
+            <div>เริ่มใช้วันที่ 1 เมษายน 2560</div>
+            <div>ปรับปรุงครั้งที่ ....เมื่อ................</div>
+          </td>
+        </tr>
+      </table>
 
-      <!-- Section 2: รายละเอียดการจ้างงาน -->
-      <div style="margin-bottom: 15px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          2. รายละเอียดการจ้างงาน (Employment Details)
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+      <!-- Main container with left and right borders -->
+      <div style="border-left: 1.5px solid black; border-right: 1.5px solid black;">
+        <!-- Main Form Content - 2 columns -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0px;">
           <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold;">ประเภทสัญญา:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${contractTypeMap[requestData.contractType as keyof typeof contractTypeMap] || ''}
+            <!-- Left Column: Department Info -->
+            <td style="border-bottom: 1.5px solid black; border-right: 1.5px solid black; padding: 6px 8px; width: 50%; vertical-align: top; font-size: 16px; line-height: 1.2;">
+              <div style="margin-bottom: 4px;">
+                ฝ่าย ${dottedLine(requestData.departmentRequesting || '', '280px')}
+              </div>
+              <div style="margin-bottom: 4px;">
+                ปัจจุบันมีพนักงานในฝ่าย${dottedLine(requestData.currentEmployeeCount?.toString() || '', '120px')}คน ประกอบด้วย
+              </div>
+              <div style="margin-bottom: 4px;">
+                ตำแหน่ง${dottedLine(currentPositionsData[0]?.positionName || '', '180px')}จำนวน ${dottedLine(currentPositionsData[0]?.count?.toString() || '', '30px')}คน
+              </div>
+              <div style="margin-bottom: 4px;">
+                ตำแหน่ง${dottedLine(currentPositionsData[1]?.positionName || '', '180px')}จำนวน ${dottedLine(currentPositionsData[1]?.count?.toString() || '', '30px')}คน
+              </div>
+              <div style="margin-bottom: 4px;">
+                ตำแหน่ง${dottedLine(currentPositionsData[2]?.positionName || '', '180px')}จำนวน ${dottedLine(currentPositionsData[2]?.count?.toString() || '', '30px')}คน
+              </div>
             </td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ระยะเวลาทดลองงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.probationPeriod || 0} เดือน</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">วันที่เริ่มงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${requestData.employmentStartDate ? formatThaiDate(requestData.employmentStartDate) : ''}
-            </td>
-          </tr>
-          ${requestData.employmentEndDate ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">วันที่สิ้นสุดสัญญา:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${formatThaiDate(requestData.employmentEndDate)}
-            </td>
-          </tr>
-          ` : ''}
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">เวลาทำงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.workingHours || ''}</td>
-          </tr>
-        </table>
-      </div>
 
-      <!-- Section 3: ค่าตอบแทนและสวัสดิการ -->
-      <div style="margin-bottom: 15px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          3. ค่าตอบแทนและสวัสดิการ (Compensation & Benefits)
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-          <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold;">เงินเดือน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc; text-align: right;">
-              ${formatCurrency(requestData.salaryOffered || 0)} บาท
-            </td>
-          </tr>
-          ${allowances.housing ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ค่าที่พัก:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc; text-align: right;">
-              ${formatCurrency(allowances.housing)} บาท
-            </td>
-          </tr>
-          ` : ''}
-          ${allowances.transportation ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ค่าเดินทาง:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc; text-align: right;">
-              ${formatCurrency(allowances.transportation)} บาท
-            </td>
-          </tr>
-          ` : ''}
-          ${allowances.meal ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">ค่าอาหาร:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc; text-align: right;">
-              ${formatCurrency(allowances.meal)} บาท
-            </td>
-          </tr>
-          ` : ''}
-          ${allowances.other ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">เบี้ยเลี้ยงอื่นๆ:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc; text-align: right;">
-              ${formatCurrency(allowances.other)} บาท
-              ${allowances.otherDescription ? `<br/><span style="font-size: 10px; color: #666;">(${allowances.otherDescription})</span>` : ''}
-            </td>
-          </tr>
-          ` : ''}
-          <tr style="background: #f0f0f0;">
-            <td style="padding: 5px; font-weight: bold;">รวมค่าตอบแทนทั้งหมด:</td>
-            <td style="padding: 5px; text-align: right; font-weight: bold; color: #0066cc;">
-              ${formatCurrency(requestData.amount || 0)} บาท
+            <!-- Right Column: Position Requirements -->
+            <td style="border-bottom: 1.5px solid black; padding: 6px 8px; width: 50%; vertical-align: top; font-size: 16px; line-height: 1.2;">
+              <div style="margin-bottom: 4px;">
+                ตำแหน่งงานที่ต้องการ${dottedLine(requestData.positionTitle || '', '200px')}
+              </div>
+              <div style="margin-bottom: 4px;">
+                จำนวนที่ต้องการ${dottedLine(requestData.numberOfPositions?.toString() || '', '180px')}อัตรา
+              </div>
+              <div style="margin-bottom: 4px;">
+                วันที่ต้องการ${dottedLine(startDate, '220px')}
+              </div>
+              <div style="margin-bottom: 4px;">
+                สถานที่ทำงาน${dottedLine(requestData.workLocation || '', '210px')}
+              </div>
+              <div style="margin-bottom: 4px;">
+                รายงานโดยตรงต่อ${dottedLine(requestData.reportingTo || '', '200px')}
+              </div>
             </td>
           </tr>
         </table>
 
-        ${benefits.length > 0 ? `
-        <div style="margin-top: 10px;">
-          <div style="font-weight: bold; margin-bottom: 5px;">สวัสดิการที่ได้รับ:</div>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
-            ${benefits.map(benefit => `
-              <div style="padding: 3px;">✓ ${benefit}</div>
-            `).join('')}
-          </div>
+        <!-- Hiring type section and Job Description -->
+        <div style="border-bottom: 1.5px solid black; padding: 6px 8px; font-size: 16px; line-height: 1.2;">
+        <div style="margin-bottom: 5px; font-weight: bold;">ประเภท / เหตุผลของการจ้าง</div>
+
+        <div style="margin-bottom: 4px; margin-left: 40px;">
+          ${checkbox(requestData.hiringReason === 'replacement')} ตำแหน่งทดแทน (ระบุ ทดแทน ใคร)${dottedLine(requestData.hiringReason === 'replacement' ? (requestData.replacementFor || '') : '', '260px')}วันที่ออก${dottedLine(requestData.hiringReason === 'replacement' ? departureDate : '', '140px')}
         </div>
-        ` : ''}
+
+        <div style="margin-bottom: 4px; margin-left: 40px;">
+          ${checkbox(requestData.hiringReason === 'new-position')} ตำแหน่งประจำที่ขอเพิ่ม
+        </div>
+
+        <div style="margin-bottom: 4px; margin-left: 40px;">
+          ${checkbox(requestData.hiringReason === 'temporary')} ตำแหน่งชั่วคราว ระยะเวลาการจ้าง${dottedLine(requestData.hiringReason === 'temporary' ? (requestData.temporaryDurationMonths?.toString() || '') : '', '100px')}เดือน${dottedLine(requestData.hiringReason === 'temporary' ? (requestData.temporaryDurationYears?.toString() || '') : '', '100px')}ปี
+        </div>
+
+        <div style="margin-bottom: 3px;">
+          เหตุผลในการขอเพิ่ม ${dottedLine(requestData.hiringReason === 'new-position' ? (requestData.newPositionReason || '') : '', '560px')}
+        </div>
+        <div style="margin-bottom: 5px;">
+          ${dottedLine('', '680px')}
+        </div>
+
+        <!-- Job Description -->
+        <div style="margin-bottom: 0px;">
+          ตำแหน่งนี้มีหน้าที่โดยสังเขปตาม Job Description No${dottedLine('', '100px')} (หากยังไม่มี Job Description กรุณาจัดทำและแนบมาด้วย)
+        </div>
       </div>
 
-      <!-- Page Break -->
-      <div style="page-break-after: always;"></div>
+        <!-- Qualifications Section -->
+        <div style="border-bottom: 1.5px solid black; padding: 6px 8px; font-size: 16px; line-height: 1.2;">
+          <div style="font-weight: bold; margin-bottom: 4px;">คุณสมบัติเบื้องต้น</div>
 
-      <!-- Section 4: คุณสมบัติและหน้าที่ -->
-      <div style="margin-bottom: 15px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          4. คุณสมบัติและหน้าที่ (Qualifications & Responsibilities)
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
+            <tr>
+              <td style="width: 50%; padding: 2px 0; vertical-align: top;">
+                <div style="margin-bottom: 3px;">เพศ ${dottedLine(requestData.gender || '', '260px')}</div>
+                <div style="margin-bottom: 3px;">วุฒิการศึกษาขั้นต่ำ${dottedLine(requestData.minimumEducation || '', '210px')}</div>
+                <div style="margin-bottom: 3px;">สาขาวิชา ${dottedLine(requestData.major || '', '240px')}</div>
+                <div style="margin-bottom: 3px;">ผลประสบการณ์${dottedLine(requestData.experienceField || '', '210px')}</div>
+                <div style="margin-bottom: 0px;">ประสบการณ์ขั้นต่ำ${dottedLine('', '210px')}</div>
+              </td>
+              <td style="width: 50%; padding: 2px 0 2px 8px; vertical-align: top;">
+                <div style="margin-bottom: 3px;">ประสบการณ์ขั้นต่ำ${dottedLine(requestData.minimumExperience || '', '180px')}ปี</div>
+                <div style="margin-bottom: 3px;">ความสามารถ / ความชำนาญอย่างอื่น (ภาษาต่างประเทศ</div>
+                <div style="margin-bottom: 3px;">คอมพิวเตอร์ ขับรถยนตร์ได้มีใบอนุญาตขับขี่ ทำงานต่างจังหวัดได้ ฯลฯ)</div>
+                <div style="border: 1.5px solid black; padding: 4px; min-height: 30px; margin-top: 3px;">
+                  ${requestData.otherSkills || ''}
+                </div>
+              </td>
+            </tr>
+          </table>
         </div>
-        
-        <div style="margin-bottom: 10px;">
-          <div style="font-weight: bold; margin-bottom: 5px;">หน้าที่และความรับผิดชอบ:</div>
-          <div style="padding: 10px; background: #f9f9f9; border-left: 3px solid #0066cc; white-space: pre-wrap;">
-            ${requestData.jobDescription || ''}
+
+        <!-- Requester Signature -->
+        <div style="border-bottom: 1.5px solid black; padding: 6px 8px; font-size: 16px; line-height: 1.2;">
+          <div style="margin-bottom: 0px;">
+            ลงชื่อ${userSignature ? `<img src="${userSignature}" style="height: 25px; margin: 0 6px; vertical-align: middle;" />` : dottedLine('', '200px')}ผู้ขอ ตำแหน่ง${dottedLine(employeePosition, '180px')}วันที่${dottedLine(formattedRequestDate, '160px')}
           </div>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse;">
+        <!-- Approval Section -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0px;">
           <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold; vertical-align: top;">วุฒิการศึกษา:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${qualifications.education || ''}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold; vertical-align: top;">ประสบการณ์:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${qualifications.experience || ''}</td>
-          </tr>
-          ${qualifications.skills && qualifications.skills.length > 0 ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold; vertical-align: top;">ทักษะที่ต้องการ:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${qualifications.skills.join(', ')}
+            <!-- HR Opinion (Left Column) -->
+            <td style="border-right: 1.5px solid black; border-bottom: 1.5px solid black; padding: 6px 8px; width: 50%; vertical-align: top; font-size: 16px; line-height: 1.2;">
+              <div style="font-weight: bold; margin-bottom: 4px;">ความเห็นของฝ่ายทรัพยากรบุคคล</div>
+              <div style="margin-bottom: 3px;">
+                ${checkbox(false)} มีในแผนกำลังคน &nbsp;&nbsp; ${checkbox(false)} ไม่มีในแผนกำลังคน
+              </div>
+              <div style="margin-bottom: 6px;">
+                ความเห็นเพิ่มเติม${dottedLine('', '300px')}
+              </div>
+              <div style="margin-bottom: 3px;">
+                ลงชื่อ${hrSignature ? `<img src="${hrSignature}" style="height: 25px; margin: 0 6px; vertical-align: middle;" />` : dottedLine('', '200px')}ผู้จัดการฝ่าย
+              </div>
+              <div style="margin-left: 40px; margin-bottom: 3px;">
+                (${dottedLine(requestData.hrApproverName || '', '200px')})
+              </div>
             </td>
-          </tr>
-          ` : ''}
-          ${qualifications.certifications && qualifications.certifications.length > 0 ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold; vertical-align: top;">ใบรับรอง:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${qualifications.certifications.join(', ')}
-            </td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
 
-      <!-- Section 5: เหตุผลและความจำเป็น -->
-      <div style="margin-bottom: 15px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          5. เหตุผลและความจำเป็น (Justification)
-        </div>
-        
-        <div style="margin-bottom: 10px;">
-          <div style="font-weight: bold; margin-bottom: 5px;">เหตุผลในการจ้างงาน:</div>
-          <div style="padding: 10px; background: #f9f9f9; border-left: 3px solid #0066cc; white-space: pre-wrap;">
-            ${requestData.reasonForHiring || ''}
-          </div>
-        </div>
+            <!-- Deputy Managing Director Decision (Right Column) -->
+            <td style="border-bottom: 1.5px solid black; padding: 6px 8px; width: 50%; vertical-align: top; font-size: 16px; line-height: 1.2;">
+              <div style="font-weight: bold; margin-bottom: 4px;">คำสั่งของรองกรรมการผู้จัดการ / ประธานบริษัท</div>
+              <div style="margin-bottom: 3px;">
+                ${checkbox(requestData.status === 'completed')} อนุมัติ
+              </div>
+              <div style="margin-bottom: 6px;">
+                ${checkbox(requestData.status?.includes('rejected'))} ไม่อนุมัติ เพราะ${dottedLine('', '240px')}
+              </div>
+              <div style="margin-bottom: 3px;">
+                ผู้อนุมัติ${specialSignature ? `<img src="${specialSignature}" style="height: 25px; margin: 0 6px; vertical-align: middle;" />` : dottedLine('', '200px')}
+              </div>
+              <div style="margin-left: 40px; margin-bottom: 3px;">
+                (${dottedLine(requestData.specialApproverName || '', '200px')})
+              </div>
+            </td>
+          </tr>
 
-        <table style="width: 100%; border-collapse: collapse;">
+          <!-- HR Department Fill Section (Full Width) -->
           <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold;">ระดับความเร่งด่วน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${urgencyLevelMap[requestData.urgencyLevel as keyof typeof urgencyLevelMap] || ''}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">วิธีการสรรหา:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${recruitmentMethodMap[requestData.recruitmentMethod as keyof typeof recruitmentMethodMap] || ''}
-            </td>
-          </tr>
-          ${requestData.expectedInterviewDate ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">วันที่คาดว่าจะสัมภาษณ์:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${formatThaiDate(requestData.expectedInterviewDate)}
-            </td>
-          </tr>
-          ` : ''}
-          ${requestData.expectedOnboardingDate ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">วันที่คาดว่าจะเริ่มงาน:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">
-              ${formatThaiDate(requestData.expectedOnboardingDate)}
-            </td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
-
-      <!-- Section 6: ข้อมูลงบประมาณ -->
-      ${requestData.budgetCode || requestData.costCenter ? `
-      <div style="margin-bottom: 20px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 10px;">
-          6. ข้อมูลงบประมาณ (Budget Information)
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse;">
-          ${requestData.budgetCode ? `
-          <tr>
-            <td style="padding: 5px; width: 30%; font-weight: bold;">รหัสงบประมาณ:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.budgetCode}</td>
-          </tr>
-          ` : ''}
-          ${requestData.costCenter ? `
-          <tr>
-            <td style="padding: 5px; font-weight: bold;">Cost Center:</td>
-            <td style="padding: 5px; border-bottom: 1px solid #ccc;">${requestData.costCenter}</td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
-      ` : ''}
-
-      <!-- Signatures Section -->
-      <div style="margin-top: 30px;">
-        <div style="background: #0066cc; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 15px;">
-          ลายเซ็นอนุมัติ (Approval Signatures)
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 33%; text-align: center; padding: 10px; vertical-align: top;">
-              <div style="font-weight: bold; margin-bottom: 10px;">ผู้ขออนุมัติ</div>
-              <div style="height: 60px; display: flex; align-items: center; justify-content: center;">
-                ${userSignature ? `<img src="${userSignature}" style="max-height: 50px; max-width: 150px;" />` : ''}
-              </div>
-              <div style="border-top: 1px solid black; padding-top: 5px; margin-top: 5px;">
-                ${userData.name}
-              </div>
-              <div style="font-size: 10px; color: #666;">
-                วันที่: ${currentDate}
-              </div>
-            </td>
-            
-            <td style="width: 33%; text-align: center; padding: 10px; vertical-align: top;">
-              <div style="font-weight: bold; margin-bottom: 10px;">ผู้จัดการอนุมัติ</div>
-              <div style="height: 60px; display: flex; align-items: center; justify-content: center;">
-                ${managerSignature ? `<img src="${managerSignature}" style="max-height: 50px; max-width: 150px;" />` : ''}
-              </div>
-              <div style="border-top: 1px solid black; padding-top: 5px; margin-top: 5px;">
-                ${requestData.managerApproverName || ''}
-              </div>
-              <div style="font-size: 10px; color: #666;">
-                ${requestData.managerApprovedAt ? `วันที่: ${formatThaiDate(requestData.managerApprovedAt)}` : ''}
-              </div>
-            </td>
-            
-            <td style="width: 33%; text-align: center; padding: 10px; vertical-align: top;">
-              <div style="font-weight: bold; margin-bottom: 10px;">ฝ่ายทรัพยากรบุคคล</div>
-              <div style="height: 60px; display: flex; align-items: center; justify-content: center;">
-                ${hrSignature ? `<img src="${hrSignature}" style="max-height: 50px; max-width: 150px;" />` : ''}
-              </div>
-              <div style="border-top: 1px solid black; padding-top: 5px; margin-top: 5px;">
-                ${requestData.hrApproverName || ''}
-              </div>
-              <div style="font-size: 10px; color: #666;">
-                ${requestData.hrApprovedAt ? `วันที่: ${formatThaiDate(requestData.hrApprovedAt)}` : ''}
+            <td colspan="2" style="border-bottom: 1.5px solid black; padding: 6px 8px; font-size: 16px; line-height: 1.2;">
+              <div style="font-weight: bold; margin-bottom: 4px;">สำหรับแผนกทรัพยากรมนุษย์กรอก</div>
+              <div>
+                วันที่จ้างงานได้: ${dottedLine('', '140px')} ชื่อของพนักงานที่ว่าจ้าง${dottedLine('', '300px')}
               </div>
             </td>
           </tr>
         </table>
-      </div>
-
-      <!-- Footer -->
-      <div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
-        <div>แบบฟอร์มขออนุมัติการจ้างงาน | Employment Approval Form</div>
-        <div>เลขที่คำขอ: ${requestData.runNumber || requestData.id}</div>
       </div>
     </div>
+    </div>
   `;
+};
+
+// Main PDF generation function
+export const generateEmploymentApprovalPDF = async (
+  requestData: WelfareRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string },
+  userSignature?: string,
+  managerSignature?: string,
+  hrSignature?: string,
+  specialSignature?: string
+): Promise<Blob> => {
+  const html = createEmploymentApprovalHTML(
+    requestData,
+    userData,
+    employeeData,
+    userSignature,
+    managerSignature,
+    hrSignature,
+    specialSignature
+  );
+
+  // Create temporary div
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  tempDiv.style.position = 'fixed';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '0';
+  document.body.appendChild(tempDiv);
+
+  try {
+    // Convert to canvas with higher quality
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      windowWidth: 794, // A4 width in pixels at 96 DPI
+      windowHeight: 1123 // A4 height in pixels at 96 DPI
+    });
+
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const imgData = canvas.toDataURL('image/JPEG', 1.0);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+    return pdf.output('blob');
+  } finally {
+    document.body.removeChild(tempDiv);
+  }
+};
+
+// Download PDF function
+export const generateAndDownloadEmploymentApprovalPDF = async (
+  requestData: WelfareRequest,
+  userData: User,
+  employeeData?: { Name: string; Position: string; Team: string },
+  userSignature?: string,
+  managerSignature?: string,
+  hrSignature?: string,
+  specialSignature?: string
+) => {
+  try {
+    const pdfBlob = await generateEmploymentApprovalPDF(
+      requestData,
+      userData,
+      employeeData,
+      userSignature,
+      managerSignature,
+      hrSignature,
+      specialSignature
+    );
+
+    const employeeName = employeeData?.Name || userData.name || '';
+    const filename = `employment_approval_${requestData.positionTitle?.replace(/\s+/g, '_')}_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return filename;
+  } catch (error) {
+    console.error('Error generating and downloading PDF:', error);
+    throw error;
+  }
 };
 
 export const EmploymentApprovalPDFGenerator: React.FC<EmploymentApprovalPDFGeneratorProps> = ({
   requestData,
   userData,
+  employeeData
 }) => {
-  const generatePDF = async () => {
-    const htmlContent = createEmploymentApprovalHTML(
-      requestData,
-      userData,
-      requestData.userSignature,
-      requestData.managerSignature,
-      requestData.hrSignature
-    );
-
-    const container = document.createElement('div');
-    container.innerHTML = htmlContent;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
-
+  const handleGeneratePDF = async () => {
     try {
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`employment-approval-${requestData.id}.pdf`);
-    } finally {
-      document.body.removeChild(container);
+      await generateAndDownloadEmploymentApprovalPDF(
+        requestData,
+        userData,
+        employeeData,
+        requestData.userSignature
+      );
+    } catch (error) {
+      console.error('Error generating PDF:', error);
     }
   };
 
-  return null;
+  return (
+    <button
+      onClick={handleGeneratePDF}
+      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+    >
+      ดาวน์โหลด PDF
+    </button>
+  );
 };
 
-export { createEmploymentApprovalHTML };
+export default EmploymentApprovalPDFGenerator;

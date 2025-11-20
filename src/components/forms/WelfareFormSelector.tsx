@@ -448,9 +448,19 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการและอบรม</h1>
       
       <Tabs defaultValue="welfare" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="welfare">สวัสดิการ</TabsTrigger>
-          <TabsTrigger value="employment">ขออนุมัติจ้างงาน</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1">
+          <TabsTrigger 
+            value="welfare"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+          >
+            สวัสดิการ
+          </TabsTrigger>
+          <TabsTrigger 
+            value="employment"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+          >
+            ขออนุมัติจ้างงาน
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="welfare">

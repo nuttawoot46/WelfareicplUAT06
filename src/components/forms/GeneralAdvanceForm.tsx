@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
+import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
 
 interface GeneralAdvanceFormProps {
   onBack: () => void;
@@ -82,14 +83,14 @@ const generateGeneralAdvanceRunNumber = () => {
 
 // รายการค่าใช้จ่ายเบิกเงินล่วงหน้าทั่วไป
 const GENERAL_ADVANCE_EXPENSE_CATEGORIES = [
-  { name: 'ค่าอาหารและเครื่องดื่ม', taxRate: 0 },
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
   { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'ค่าบริการ/ค่าสนับสนุนร้านค้า/ค่าจ้างทำป้าย/ค่าจ้างอื่นๆ/ค่าบริการสถานที่', taxRate: 3 },
-  { name: 'ค่าดนตรี/เครื่องเสียง/MC', taxRate: 3 },
-  { name: 'ของรางวัลเพื่อการชิงโชค', taxRate: 5 },
-  { name: 'ค่าโฆษณา (โฆษณาทางวิทยุ)', taxRate: 2 },
-  { name: 'ค่าตั๋วเครื่องบิน/ค่าที่พัก', taxRate: 0 },
-  { name: 'อุปกรณ์และอื่นๆ', taxRate: 0 }
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 }
 ];
 
 // รายชื่อธนาคารในประเทศไทย
@@ -702,7 +703,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
 
       <div id="general-advance-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบขออนุมัติเบิกเงินล่วงหน้า (ทั่วไป)</h1>
+          <h1 className="text-2xl font-bold">แบบฟอร์มขออนุมัติเบิกเงินล่วงหน้า (ทั่วไป)</h1>
         </div>
 
         {/* Special info for general advance payment */}
@@ -821,7 +822,6 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                   placeholder="80"
                   className="form-input"
                   {...register('advanceParticipants', {
-                    required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
                     min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' }
                   })}
                 />
@@ -857,7 +857,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -876,7 +876,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                                 setValue(`advanceExpenseItems.${index}.taxRate`, selectedCategory.taxRate);
                               }
                               // Clear other description when changing category
-                              if (value !== 'อุปกรณ์และอื่นๆ') {
+                              if (value !== 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)') {
                                 setValue(`advanceExpenseItems.${index}.otherDescription`, '');
                               }
                             }}
@@ -895,12 +895,12 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                             type="hidden"
                             {...register(`advanceExpenseItems.${index}.name` as const)}
                           />
-                          {watch(`advanceExpenseItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' && (
+                          {watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
                               className="w-full text-sm"
                               {...register(`advanceExpenseItems.${index}.otherDescription` as const, {
-                                required: watch(`advanceExpenseItems.${index}.name`) === 'อุปกรณ์และอื่นๆ' ? 'กรุณาระบุรายละเอียด' : false
+                                required: watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
                             />
                           )}
@@ -913,13 +913,18 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       </td>
                       <td className="border border-gray-300 p-1">
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-32"
+                          type="text"
+                          className="w-32 text-right"
                           placeholder="0.00"
+                          value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.requestAmount`))}
+                          onChange={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
+                          }}
+                        />
+                        <input
+                          type="hidden"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
-                            min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
                             valueAsNumber: true
                           })}
                         />
@@ -968,24 +973,24 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const requestAmount = typeof item.requestAmount === 'string' 
-                            ? parseFloat(item.requestAmount) || 0 
+                          const requestAmount = typeof item.requestAmount === 'string'
+                            ? parseFloat(item.requestAmount) || 0
                             : Number(item.requestAmount) || 0;
                           return sum + requestAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
-                          const netAmount = typeof item.netAmount === 'string' 
-                            ? parseFloat(item.netAmount) || 0 
+                          const netAmount = typeof item.netAmount === 'string'
+                            ? parseFloat(item.netAmount) || 0
                             : Number(item.netAmount) || 0;
                           return sum + netAmount;
                         }, 0);
-                        return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                        return formatNumberWithCommas(total);
                       })()}
                     </td>
                     <td className="border border-gray-300 px-2 py-2"></td>
@@ -1005,10 +1010,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 min-w-[200px]">
                 <div className="text-sm text-purple-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
                 <div className="text-2xl font-bold text-purple-800">
-                  {calculateTotalAmount().toLocaleString('th-TH', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })} บาท
+                  {formatNumberWithCommas(calculateTotalAmount())} บาท
                 </div>
               </div>
             </div>
