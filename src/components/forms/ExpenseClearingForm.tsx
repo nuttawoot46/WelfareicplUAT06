@@ -7,14 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { generateExpenseClearingPDF } from '../pdf/ExpenseClearingPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
-import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
+import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
 
 interface ExpenseClearingFormProps {
   onBack: () => void;
@@ -66,11 +66,25 @@ interface ExpenseClearingFormValues {
 
   // Document selections for expense clearing
   attachmentSelections?: {
-    receipt?: boolean;
-    idCardCopy?: boolean;
-    bankBookCopy?: boolean;
-    other?: boolean;
-    otherText?: string;
+    receiptSubstitute?: boolean; // ใบแทนใบเสร็จรับเงิน
+    receipt?: boolean; // ใบเสร็จรับเงิน
+    transferSlip?: boolean; // สลิปโอนเงิน
+    photo?: boolean; // รูปภาพ
+    idCardCopySelf?: boolean; // สำเนาบัตร (ตนเอง)
+    idCardCopyContractor?: boolean; // สำเนาบัตร (ผู้รับจ้าง)
+    withholdingTaxCert?: boolean; // หนังสือรับรองการหัก ณ ที่จ่าย
+    taxInvoice?: boolean; // ใบกำกับภาษี
+  };
+  // File URLs for each document type
+  documentFiles?: {
+    receiptSubstitute?: string[];
+    receipt?: string[];
+    transferSlip?: string[];
+    photo?: string[];
+    idCardCopySelf?: string[];
+    idCardCopyContractor?: string[];
+    withholdingTaxCert?: string[];
+    taxInvoice?: string[];
   };
 }
 
@@ -108,14 +122,14 @@ const ACTIVITY_TYPES = [
 
 // รายการค่าใช้จ่ายเคลียร์
 const EXPENSE_CLEARING_CATEGORIES = [
-  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
-  { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
-  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
-  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
-  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
-  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
-  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 },
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
+  { name: 'ค่าเช่าสถานที่', taxRate: 5, hasInfo: false },
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3, hasInfo: false },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3, hasInfo: false },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3, hasInfo: false },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false },
 ];
 
 export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps) {
@@ -140,10 +154,52 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [availableAdvanceRequests, setAvailableAdvanceRequests] = useState<any[]>([]);
-  const [isAdvanceRequestSelected, setIsAdvanceRequestSelected] = useState(false);
   const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [dealerSearchTerm, setDealerSearchTerm] = useState('');
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
+  const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
+
+  // Document type files state
+  const [documentFiles, setDocumentFiles] = useState<{
+    receiptSubstitute: string[];
+    receipt: string[];
+    transferSlip: string[];
+    photo: string[];
+    idCardCopySelf: string[];
+    idCardCopyContractor: string[];
+    withholdingTaxCert: string[];
+    taxInvoice: string[];
+  }>({
+    receiptSubstitute: [],
+    receipt: [],
+    transferSlip: [],
+    photo: [],
+    idCardCopySelf: [],
+    idCardCopyContractor: [],
+    withholdingTaxCert: [],
+    taxInvoice: [],
+  });
+
+  // Document type checkboxes state
+  const [documentSelections, setDocumentSelections] = useState<{
+    receiptSubstitute: boolean;
+    receipt: boolean;
+    transferSlip: boolean;
+    photo: boolean;
+    idCardCopySelf: boolean;
+    idCardCopyContractor: boolean;
+    withholdingTaxCert: boolean;
+    taxInvoice: boolean;
+  }>({
+    receiptSubstitute: false,
+    receipt: false,
+    transferSlip: false,
+    photo: false,
+    idCardCopySelf: false,
+    idCardCopyContractor: false,
+    withholdingTaxCert: false,
+    taxInvoice: false,
+  });
 
   const {
     register,
@@ -195,12 +251,36 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       try {
         const { data, error } = await supabase
           .from('Employee')
-          .select('id, Name, Position, Team, start_date')
+          .select('id, Name, Position, Team')
           .eq('email_user', user.email)
           .single();
 
         if (!error && data) {
           setEmployeeData(data);
+
+          // Auto-populate department field
+          if (data.Team) {
+            setValue('advanceDepartment', data.Team);
+          }
+
+          // Fetch district code from sales_data based on employee name
+          if (data.Name) {
+            const { data: salesData, error: salesError } = await supabase
+              .from('sales_data' as any)
+              .select('code')
+              .eq('name', data.Name)
+              .single();
+
+            if (!salesError && salesData) {
+              const districtCode = (salesData as any).code;
+              if (districtCode) {
+                setValue('advanceDistrict', districtCode);
+                console.log('✅ Auto-populated district code:', districtCode, 'for employee:', data.Name);
+              }
+            } else {
+              console.log('ℹ️ No district code found for employee:', data.Name);
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching employee data:', error);
@@ -208,7 +288,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     };
 
     fetchEmployeeData();
-  }, [user?.email]);
+  }, [user?.email, setValue]);
 
   // Fetch dealer list when component mounts
   useEffect(() => {
@@ -300,7 +380,6 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   // Handle selection of original advance request
   const handleAdvanceRequestSelection = async (requestId: string) => {
     if (!requestId) {
-      setIsAdvanceRequestSelected(false);
       return;
     }
 
@@ -314,9 +393,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       if (!error && data) {
         console.log('📋 Loading advance request data:', data);
         console.log('📋 Advance expense items raw:', (data as any).advance_expense_items);
-        
-        setIsAdvanceRequestSelected(true);
-        
+
         // Populate form with data from original advance request
         setValue('originalAdvanceRequestId', data.id);
         setValue('advanceDepartment', (data as any).advance_department || '');
@@ -498,7 +575,113 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     return () => clearTimeout(timeoutId);
   }, [watchedUsedAmounts, setValue]); // Only watch used amounts, not the entire items array
 
-  // File handling functions (same as AdvanceForm)
+  // Document types configuration
+  type DocumentType = 'receiptSubstitute' | 'receipt' | 'transferSlip' | 'photo' | 'idCardCopySelf' | 'idCardCopyContractor' | 'withholdingTaxCert' | 'taxInvoice';
+
+  const DOCUMENT_TYPES: { key: DocumentType; label: string }[] = [
+    { key: 'receiptSubstitute', label: 'ใบแทนใบเสร็จรับเงิน' },
+    { key: 'receipt', label: 'ใบเสร็จรับเงิน' },
+    { key: 'transferSlip', label: 'สลิปโอนเงิน' },
+    { key: 'photo', label: 'รูปภาพ' },
+    { key: 'idCardCopySelf', label: 'สำเนาบัตร (ตนเอง)' },
+    { key: 'idCardCopyContractor', label: 'สำเนาบัตร (ผู้รับจ้าง)' },
+    { key: 'withholdingTaxCert', label: 'หนังสือรับรองการหัก ณ ที่จ่าย' },
+    { key: 'taxInvoice', label: 'ใบกำกับภาษี' },
+  ];
+
+  // Handle checkbox toggle for document type
+  const handleDocumentCheckboxChange = (docType: DocumentType) => {
+    setDocumentSelections(prev => ({
+      ...prev,
+      [docType]: !prev[docType]
+    }));
+    // Clear files if unchecked
+    if (documentSelections[docType]) {
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: []
+      }));
+    }
+  };
+
+  // File handling functions for document types
+  const handleDocumentFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: DocumentType) => {
+    const fileInput = e.target;
+
+    if (!fileInput.files || fileInput.files.length === 0) return;
+
+    try {
+      const uploadPromises = Array.from(fileInput.files).map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${user?.id || 'anonymous'}/${docType}/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('welfare-attachments')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('welfare-attachments')
+          .getPublicUrl(data.path);
+
+        return publicUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: [...prev[docType], ...uploadedUrls]
+      }));
+
+      toast({
+        title: "อัพโหลดสำเร็จ",
+        description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
+      });
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถอัปโหลดไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      fileInput.value = '';
+    }
+  };
+
+  const handleRemoveDocumentFile = async (docType: DocumentType, index: number) => {
+    try {
+      const fileUrl = documentFiles[docType][index];
+      const filePath = fileUrl.split('/').slice(-3).join('/');
+
+      const { error } = await supabase.storage
+        .from('welfare-attachments')
+        .remove([filePath]);
+
+      if (error) throw error;
+
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: prev[docType].filter((_, i) => i !== index)
+      }));
+
+      toast({
+        title: "ลบไฟล์สำเร็จ",
+        description: "ลบไฟล์เรียบร้อยแล้ว",
+      });
+    } catch (error: any) {
+      console.error('Error removing file:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถลบไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Legacy file handling (kept for compatibility)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = e.target;
 
@@ -677,6 +860,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         throw new Error('User not authenticated');
       }
 
+      // Collect all document file URLs into a single attachments array
+      const allAttachments = Object.values(documentFiles).flat();
+
       // CREATE NEW EXPENSE CLEARING REQUEST
       const requestData = {
         userId: profile.employee_id.toString(),
@@ -688,7 +874,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         amount: Number(data.amount || 0),
         date: data.startDate || new Date().toISOString(),
         details: data.details || '',
-        attachments: files,
+        attachments: allAttachments,
         notes: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -696,8 +882,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         start_date: data.startDate,
         end_date: data.endDate,
         userSignature: signature || userSignature,
-        // Document selections
-        attachmentSelections: data.attachmentSelections,
+        // Document selections (checkbox states)
+        attachmentSelections: documentSelections,
+        // Document files by type
+        documentFiles: documentFiles,
         // Expense clearing fields
         originalAdvanceRequestId: data.originalAdvanceRequestId,
         advanceDepartment: data.advanceDepartment,
@@ -871,19 +1059,13 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="form-label">แผนก</label>
-                <Select
-                  onValueChange={(value) => setValue('advanceDepartment', value)}
-                  value={watch('advanceDepartment')}
-                  disabled={isAdvanceRequestSelected}
-                >
-                  <SelectTrigger className={`form-input ${isAdvanceRequestSelected ? 'bg-gray-100 cursor-not-allowed' : ''}`}>
-                    <SelectValue placeholder="เลือกแผนก" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={employeeData?.Team || 'แผนกของฉัน'}>{employeeData?.Team || 'แผนกของฉัน'}</SelectItem>
-                    <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="แผนก"
+                  className="form-input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                  value={watch('advanceDepartment') || employeeData?.Team || ''}
+                  readOnly
+                />
                 <input
                   type="hidden"
                   {...register('advanceDepartment', {
@@ -898,9 +1080,14 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               <div className="space-y-2">
                 <label className="form-label">เขต</label>
                 <Input
-                  placeholder="ระบุเขต"
-                  className={`form-input ${isAdvanceRequestSelected ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                  disabled={isAdvanceRequestSelected}
+                  placeholder="เขต"
+                  className="form-input bg-gray-100 cursor-not-allowed"
+                  disabled={true}
+                  value={watch('advanceDistrict') || ''}
+                  readOnly
+                />
+                <input
+                  type="hidden"
                   {...register('advanceDistrict')}
                 />
               </div>
@@ -1014,7 +1201,13 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             {/* Dealer/Subdealer Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 relative">
-                <label className="form-label">ดีลเลอร์</label>
+                <label className="form-label">
+                  ดีลเลอร์
+                  {watch('advanceActivityType') !== 'ค่ารับรองลูกค้า/ของขวัญร้านค้า' &&
+                   watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
                   placeholder="ค้นหาดีลเลอร์..."
                   className="form-input"
@@ -1034,8 +1227,19 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 />
                 <input
                   type="hidden"
-                  {...register('advanceDealerName')}
+                  {...register('advanceDealerName', {
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      if (activityType === 'ค่ารับรองลูกค้า/ของขวัญร้านค้า' || activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุชื่อดีลเลอร์';
+                    }
+                  })}
                 />
+                {errors.advanceDealerName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceDealerName.message}</p>
+                )}
                 {/* Autocomplete Dropdown */}
                 {showDealerDropdown && filteredDealers.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -1153,7 +1357,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รวมจำนวนเงินทั้งสิ้น</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จัดการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1206,7 +1410,14 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                                   </SelectTrigger>
                                   <SelectContent>
                                     {EXPENSE_CLEARING_CATEGORIES.map((category) => (
-                                      <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
+                                      <SelectItem key={category.name} value={category.name}>
+                                        <span className="flex items-center gap-1">
+                                          {category.name}
+                                          {category.hasInfo && (
+                                            <Info className="h-3 w-3 text-blue-500" />
+                                          )}
+                                        </span>
+                                      </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -1217,6 +1428,17 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                               </>
                             );
                           })()}
+                          {/* Info button for lottery prize category */}
+                          {watch(`expenseClearingItems.${index}.name`) === 'ค่าของรางวัลเพื่อการชิงโชค' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowLotteryInfoModal(true)}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
+                            >
+                              <Info className="h-4 w-4" />
+                              <span>ดูข้อมูลเพิ่มเติม</span>
+                            </button>
+                          )}
                           {watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
@@ -1250,12 +1472,21 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.requestAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.requestAmount`))}
                         />
                         <input
                           type="hidden"
@@ -1269,12 +1500,21 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.usedAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.usedAmount`))}
                         />
                         <input
                           type="hidden"
@@ -1288,12 +1528,21 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.vatAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.vatAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.vatAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.vatAmount`))}
                         />
                         <input
                           type="hidden"
@@ -1493,53 +1742,90 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             />
           </div>
 
-          {/* แนบไฟล์ */}
+          {/* แนบไฟล์เอกสาร - Checkbox Based */}
           <div className="space-y-4">
-            <label className="form-label">แนบไฟล์เอกสาร (ใบเสร็จ, หลักฐานการจ่าย)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <div className="text-center">
-                <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-sm font-medium text-gray-900">
-                      คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
-                    </span>
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {DOCUMENT_TYPES.map((docType) => (
+                <div key={docType.key} className="border rounded-lg p-4 bg-white">
+                  {/* Checkbox for document type */}
+                  <div className="flex items-center space-x-3 mb-3">
                     <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileChange}
+                      type="checkbox"
+                      id={`doc-${docType.key}`}
+                      checked={documentSelections[docType.key]}
+                      onChange={() => handleDocumentCheckboxChange(docType.key)}
+                      className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
                     />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    รองรับไฟล์: PDF, JPG, PNG, DOC, DOCX (ขนาดไม่เกิน 10MB)
-                  </p>
+                    <label
+                      htmlFor={`doc-${docType.key}`}
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      {docType.label}
+                    </label>
+                  </div>
+
+                  {/* File upload area - shown when checkbox is checked */}
+                  {documentSelections[docType.key] && (
+                    <div className="mt-2 space-y-2">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                        <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
+                          <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
+                          <span className="mt-1 block text-xs text-gray-600">
+                            คลิกเพื่อเลือกไฟล์
+                          </span>
+                          <input
+                            id={`file-${docType.key}`}
+                            type="file"
+                            className="sr-only"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            onChange={(e) => handleDocumentFileChange(e, docType.key)}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Show uploaded files for this document type */}
+                      {documentFiles[docType.key].length > 0 && (
+                        <div className="space-y-1">
+                          {documentFiles[docType.key].map((fileUrl, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                              <div className="flex items-center space-x-2">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="text-xs text-green-700 truncate max-w-[150px]">
+                                  ไฟล์ {index + 1}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
             </div>
 
-            {/* แสดงรายการไฟล์ที่อัพโหลด */}
-            {files.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">ไฟล์ที่แนบ:</h4>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600 truncate">
-                        ไฟล์ที่ {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+            {/* Summary of uploaded documents */}
+            {Object.values(documentFiles).some(files => files.length > 0) && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <div className="space-y-1">
+                  {DOCUMENT_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
+                    <div key={dt.key} className="flex items-center text-xs text-blue-700">
+                      <Check className="h-3 w-3 mr-2" />
+                      {dt.label}: {documentFiles[dt.key].length} ไฟล์
                     </div>
                   ))}
                 </div>
@@ -1587,6 +1873,47 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         onConfirm={handleSignatureConfirm}
         userName={employeeData?.Name || user?.email || ''}
       />
+
+      {/* Lottery Prize Info Modal */}
+      {showLotteryInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
+              </div>
+              <button
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-gray-700 leading-relaxed">
+                <strong>ของรางวัลชิงโชค</strong> คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ <strong className="text-red-600">1,000 บาท</strong> ขึ้นไป
+              </p>
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                <p className="text-red-700 text-sm">
+                  <strong>คำเตือน:</strong> ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                รับทราบ
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

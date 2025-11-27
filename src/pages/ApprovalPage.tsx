@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, BarChart3, TrendingUp, Users, DollarSign, Download } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, BarChart3, TrendingUp, Users, DollarSign, Download, Check, X } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
@@ -130,12 +130,22 @@ export const ApprovalPage = () => {
     if (activeTab === 'reports') {
       return [];
     }
-    
+
     let base = combinedRequests;
     if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
-      base = combinedRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
+      // For history tab, include manager's own requests as well
+      if (activeTab === 'history') {
+        base = combinedRequests.filter(req => {
+          if (!req.userId) return false;
+          const userIdNum = parseInt(req.userId, 10);
+          // Include team members' requests OR manager's own requests
+          return teamMemberIds.includes(userIdNum) || req.userId === profile?.employee_id?.toString();
+        });
+      } else {
+        base = combinedRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
+      }
     }
-    
+
     return base
       .filter((req: WelfareRequest) => {
         // Filter by tab type first
@@ -574,22 +584,24 @@ export const ApprovalPage = () => {
   // Helper functions for reports
   const getTeamRequests = () => {
     let teamRequests = [];
-    
+
     // First, filter by role and team membership
     if (profile?.role === 'admin') {
       // Admin can see all requests
       teamRequests = combinedRequests;
     } else if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
-      // Manager can only see their team members' requests
+      // Manager can see their team members' requests AND their own requests
       teamRequests = combinedRequests.filter(req => {
         if (!req.userId) return false;
-        
+
         // Try both string and number comparison
         const userIdAsNumber = parseInt(req.userId, 10);
         const userIdAsString = req.userId.toString();
-        
-        return teamMemberIds.includes(userIdAsNumber) || 
-               teamMemberIds.map(id => id.toString()).includes(userIdAsString);
+
+        // Include team members' requests OR manager's own requests
+        return teamMemberIds.includes(userIdAsNumber) ||
+               teamMemberIds.map(id => id.toString()).includes(userIdAsString) ||
+               req.userId === profile?.employee_id?.toString();
       });
     } else {
       // If no team members loaded yet or not authorized, return empty array
@@ -1391,37 +1403,33 @@ export const ApprovalPage = () => {
             
             <TabsContent value="reports" className="space-y-6">
               {/* Report Filters */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search by employee..." 
-                      className="pl-8" 
+                    <Input
+                      placeholder="ค้นหาพนักงาน..."
+                      className="pl-8 w-[180px]"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select employee" />
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="เลือกพนักงาน" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Team Members</SelectItem>
+                      <SelectItem value="all">พนักงานทั้งหมด</SelectItem>
                       {Array.from(new Set(combinedRequests
                         .filter(req => {
-                          // For managers, only show their team members
                           if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
                             if (!req.userId) return false;
-                            
-                            // Try both string and number comparison
                             const userIdAsNumber = parseInt(req.userId, 10);
                             const userIdAsString = req.userId.toString();
-                            
-                            return teamMemberIds.includes(userIdAsNumber) || 
-                                   teamMemberIds.map(id => id.toString()).includes(userIdAsString);
+                            return teamMemberIds.includes(userIdAsNumber) ||
+                                   teamMemberIds.map(id => id.toString()).includes(userIdAsString) ||
+                                   req.userId === profile?.employee_id?.toString();
                           }
-                          // For admin, show all
                           return profile?.role === 'admin';
                         })
                         .map(req => req.userName)))
@@ -1433,11 +1441,11 @@ export const ApprovalPage = () => {
                   </Select>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                      <Button variant="outline" className="w-[220px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reportDateRange?.from && reportDateRange?.to 
-                          ? `${format(reportDateRange.from, 'PP')} - ${format(reportDateRange.to, 'PP')}`
-                          : <span>Pick date range</span>}
+                        {reportDateRange?.from && reportDateRange?.to
+                          ? `${format(reportDateRange.from, 'dd/MM/yy')} - ${format(reportDateRange.to, 'dd/MM/yy')}`
+                          : <span>เลือกช่วงวันที่</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1449,14 +1457,29 @@ export const ApprovalPage = () => {
                       />
                     </PopoverContent>
                   </Popover>
+                  {(searchTerm || selectedEmployee !== 'all' || reportDateRange) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSelectedEmployee('all');
+                        setReportDateRange(null);
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      ล้างตัวกรอง
+                    </Button>
+                  )}
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="default"
                   onClick={() => exportTeamReport()}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                 >
                   <Download className="h-4 w-4" />
-                  Export Report
+                  ส่งออกรายงาน
                 </Button>
               </div>
 
@@ -1464,133 +1487,250 @@ export const ApprovalPage = () => {
               {(profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length === 0 && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading team members...</p>
+                  <p className="text-gray-600">กำลังโหลดข้อมูลทีม...</p>
                 </div>
               )}
-
-
 
               {/* Show content only when team data is loaded or user is admin */}
               {(profile?.role === 'admin' || ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0)) && (
                 <>
-                  {/* Team Overview Cards */}
+                  {/* Team Overview Cards - 4 columns */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-blue-100 text-sm font-medium">Total Requests</p>
-                        <p className="text-2xl font-bold">{getTeamReportData().totalRequests}</p>
-                      </div>
-                      <div className="bg-blue-400/30 p-2 rounded-full">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 border-0 text-white">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-green-100 text-sm font-medium">Total Amount</p>
-                        <p className="text-2xl font-bold">{getTeamReportData().totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</p>
-                      </div>
-                      <div className="bg-green-400/30 p-2 rounded-full">
-                        <DollarSign className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                
-              </div>
-
-              {/* Welfare Type Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Welfare Type Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {getWelfareTypeSummary().map((item) => (
-                      <div key={item.type} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                          <span className="font-medium">{getWelfareTypeLabel(item.type)}</span>
+                    <Card className="bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white shadow-lg">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-blue-100 text-sm font-medium">คำร้องทั้งหมด</p>
+                            <p className="text-3xl font-bold mt-1">{getTeamReportData().totalRequests}</p>
+                          </div>
+                          <div className="bg-blue-400/30 p-3 rounded-full">
+                            <FileText className="w-6 h-6" />
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold">{item.amount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</div>
-                          <div className="text-sm text-gray-500">{item.count} requests</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
 
-              {/* Individual Employee Report */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Individual Employee Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
-                        <TableRow>
-                          <TableHead>Employee</TableHead>
-                          <TableHead>Department</TableHead>
-                          <TableHead className="text-center">Total Requests</TableHead>
-                          <TableHead className="text-center">Approved</TableHead>
-                          <TableHead className="text-center">Pending</TableHead>
-                          <TableHead className="text-center">Rejected</TableHead>
-                          <TableHead className="text-right">Total Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {getIndividualEmployeeReport().map((employee) => (
-                          <TableRow key={employee.name}>
-                            <TableCell className="font-medium">{employee.name}</TableCell>
-                            <TableCell>{employee.department}</TableCell>
-                            <TableCell className="text-center">{employee.totalRequests}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                {employee.approved}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                                {employee.pending}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                {employee.rejected}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {employee.totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 border-0 text-white shadow-lg">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-emerald-100 text-sm font-medium">ยอดเงินรวม</p>
+                            <p className="text-2xl font-bold mt-1">{getTeamReportData().totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</p>
+                          </div>
+                          <div className="bg-emerald-400/30 p-3 rounded-full">
+                            <DollarSign className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white shadow-lg">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-purple-100 text-sm font-medium">จำนวนพนักงาน</p>
+                            <p className="text-3xl font-bold mt-1">{getTeamReportData().activeMembers}</p>
+                          </div>
+                          <div className="bg-purple-400/30 p-3 rounded-full">
+                            <Users className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-amber-500 to-amber-600 border-0 text-white shadow-lg">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-amber-100 text-sm font-medium">อัตราอนุมัติ</p>
+                            <p className="text-3xl font-bold mt-1">{getTeamReportData().approvalRate}%</p>
+                          </div>
+                          <div className="bg-amber-400/30 p-3 rounded-full">
+                            <TrendingUp className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  
-                  {getIndividualEmployeeReport().length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No team members found or no requests in the selected period.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                  {/* Status Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-500 text-sm">อนุมัติแล้ว</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {getTeamRequests().filter(req => ['approved', 'completed', 'pending_hr', 'pending_accounting'].includes(req.status)).length}
+                            </p>
+                          </div>
+                          <div className="text-green-500 bg-green-50 p-2 rounded-full">
+                            <Check className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-yellow-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-500 text-sm">รอดำเนินการ</p>
+                            <p className="text-2xl font-bold text-yellow-600">
+                              {getTeamRequests().filter(req => req.status.includes('pending')).length}
+                            </p>
+                          </div>
+                          <div className="text-yellow-500 bg-yellow-50 p-2 rounded-full">
+                            <Clock className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-red-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-gray-500 text-sm">ปฏิเสธ</p>
+                            <p className="text-2xl font-bold text-red-600">
+                              {getTeamRequests().filter(req => req.status.includes('rejected')).length}
+                            </p>
+                          </div>
+                          <div className="text-red-500 bg-red-50 p-2 rounded-full">
+                            <X className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Welfare Type Summary with Progress Bars */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-blue-600" />
+                        สรุปตามประเภทสวัสดิการ
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {getWelfareTypeSummary().length > 0 ? (
+                        <div className="space-y-4">
+                          {(() => {
+                            const summary = getWelfareTypeSummary();
+                            const maxAmount = Math.max(...summary.map(s => s.amount), 1);
+                            const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-amber-500', 'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-rose-500'];
+                            return summary.map((item, index) => (
+                              <div key={item.type} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`}></div>
+                                    <span className="font-medium text-gray-700">{getWelfareTypeLabel(item.type)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-gray-900">{item.amount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}</span>
+                                    <span className="text-gray-500 text-sm ml-2">({item.count} รายการ)</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                  <div
+                                    className={`h-2.5 rounded-full ${colors[index % colors.length]} transition-all duration-500`}
+                                    style={{ width: `${(item.amount / maxAmount) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          ไม่มีข้อมูลในช่วงเวลาที่เลือก
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Individual Employee Report */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-purple-600" />
+                        รายงานรายบุคคล
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-gradient-to-r from-blue-600 to-blue-700 [&_th]:text-white">
+                            <TableRow>
+                              <TableHead className="font-semibold">พนักงาน</TableHead>
+                              <TableHead className="font-semibold">แผนก</TableHead>
+                              <TableHead className="text-center font-semibold">คำร้องทั้งหมด</TableHead>
+                              <TableHead className="text-center font-semibold">อนุมัติ</TableHead>
+                              <TableHead className="text-center font-semibold">รอดำเนินการ</TableHead>
+                              <TableHead className="text-center font-semibold">ปฏิเสธ</TableHead>
+                              <TableHead className="text-right font-semibold">ยอดรวม</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {getIndividualEmployeeReport().map((employee, index) => (
+                              <TableRow key={employee.name} className={index % 2 === 0 ? 'bg-gray-50/50' : ''}>
+                                <TableCell className="font-medium">{employee.name}</TableCell>
+                                <TableCell className="text-gray-600">{employee.department}</TableCell>
+                                <TableCell className="text-center">
+                                  <span className="font-semibold">{employee.totalRequests}</span>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-semibold">
+                                    {employee.approved}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 font-semibold">
+                                    {employee.pending}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-semibold">
+                                    {employee.rejected}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-blue-600">
+                                  {employee.totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {/* Total Row */}
+                            {getIndividualEmployeeReport().length > 0 && (
+                              <TableRow className="bg-gray-100 font-bold border-t-2">
+                                <TableCell colSpan={2} className="text-right">รวมทั้งหมด</TableCell>
+                                <TableCell className="text-center">{getTeamReportData().totalRequests}</TableCell>
+                                <TableCell className="text-center text-green-700">
+                                  {getTeamRequests().filter(req => ['approved', 'completed', 'pending_hr', 'pending_accounting'].includes(req.status)).length}
+                                </TableCell>
+                                <TableCell className="text-center text-yellow-700">
+                                  {getTeamRequests().filter(req => req.status.includes('pending')).length}
+                                </TableCell>
+                                <TableCell className="text-center text-red-700">
+                                  {getTeamRequests().filter(req => req.status.includes('rejected')).length}
+                                </TableCell>
+                                <TableCell className="text-right text-blue-700">
+                                  {getTeamReportData().totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 })}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {getIndividualEmployeeReport().length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-medium">ไม่พบข้อมูล</p>
+                          <p className="text-sm">ไม่มีคำร้องในช่วงเวลาที่เลือก</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </TabsContent>

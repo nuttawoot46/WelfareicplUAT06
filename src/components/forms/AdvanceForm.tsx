@@ -7,14 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
-import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
+import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
 
 interface AdvanceFormProps {
   onBack: () => void;
@@ -85,14 +85,14 @@ const generateAdvanceRunNumber = () => {
 
 // รายการค่าใช้จ่ายเบิกเงินล่วงหน้า
 const ADVANCE_EXPENSE_CATEGORIES = [
-  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
-  { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
-  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
-  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
-  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
-  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
-  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 }
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
+  { name: 'ค่าเช่าสถานที่', taxRate: 5, hasInfo: false },
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3, hasInfo: false },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3, hasInfo: false },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3, hasInfo: false },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false }
 ];
 
 // ประเภทกิจกรรมและคำนิยาม
@@ -152,6 +152,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [showActivityInfoModal, setShowActivityInfoModal] = useState(false);
   const [selectedActivityInfo, setSelectedActivityInfo] = useState<string>('');
+  const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
   const [dealerSearchTerm, setDealerSearchTerm] = useState<string>('');
   const [showDealerDropdown, setShowDealerDropdown] = useState<boolean>(false);
   const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
@@ -1018,7 +1019,13 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             {/* Dealer/Subdealer Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 relative">
-                <label className="form-label">ดีลเลอร์</label>
+                <label className="form-label">
+                  ดีลเลอร์
+                  {watch('advanceActivityType') !== 'ค่ารับรองลูกค้า/ของขวัญร้านค้า' &&
+                   watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
                   placeholder="ค้นหาดีลเลอร์..."
                   className="form-input"
@@ -1039,8 +1046,20 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 />
                 <input
                   type="hidden"
-                  {...register('advanceDealerName')}
+                  {...register('advanceDealerName', {
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      // ไม่บังคับถ้าเป็น ค่ารับรองลูกค้า หรือ ค่าน้ำมันรถทดแทน
+                      if (activityType === 'ค่ารับรองลูกค้า/ของขวัญร้านค้า' || activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุชื่อดีลเลอร์';
+                    }
+                  })}
                 />
+                {errors.advanceDealerName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.advanceDealerName.message}</p>
+                )}
 
                 {/* Autocomplete Dropdown */}
                 {showDealerDropdown && filteredDealers.length > 0 && (
@@ -1158,7 +1177,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"></th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1188,7 +1207,14 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             </SelectTrigger>
                             <SelectContent>
                               {ADVANCE_EXPENSE_CATEGORIES.map((category) => (
-                                <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
+                                <SelectItem key={category.name} value={category.name}>
+                                  <span className="flex items-center gap-1">
+                                    {category.name}
+                                    {category.hasInfo && (
+                                      <Info className="h-3 w-3 text-blue-500" />
+                                    )}
+                                  </span>
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1196,6 +1222,17 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             type="hidden"
                             {...register(`advanceExpenseItems.${index}.name` as const)}
                           />
+                          {/* Info button for lottery prize category */}
+                          {watch(`advanceExpenseItems.${index}.name`) === 'ค่าของรางวัลเพื่อการชิงโชค' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowLotteryInfoModal(true)}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
+                            >
+                              <Info className="h-4 w-4" />
+                              <span>ดูข้อมูลเพิ่มเติม</span>
+                            </button>
+                          )}
                           {watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
@@ -1216,12 +1253,21 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         <Input
                           type="text"
                           className="w-32 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.requestAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`advanceExpenseItems.${index}.requestAmount`))}
                         />
                         <input
                           type="hidden"
@@ -1319,59 +1365,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
           
 
-          {/* แนบไฟล์ */}
-          <div className="space-y-4">
-            <label className="form-label">แนบไฟล์เอกสาร</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <div className="text-center">
-                <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-sm font-medium text-gray-900">
-                      คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
-                    </span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    ใบแจ้งหนี้ Statment เอกสารอื่น (ขนาดไม่เกิน 5 mb)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* แสดงรายการไฟล์ที่อัพโหลด */}
-            {files.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">ไฟล์ที่แนบ:</h4>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600 truncate">
-                        ไฟล์ที่ {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          
 
           {/* ปุ่มส่งคำร้อง */}
           <div className="flex justify-end space-x-4">
@@ -1449,6 +1443,47 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 variant="outline"
               >
                 ปิด
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lottery Prize Info Modal */}
+      {showLotteryInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
+              </div>
+              <button
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-gray-700 leading-relaxed">
+                <strong>ของรางวัลชิงโชค</strong> คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ <strong className="text-red-600">1,000 บาท</strong> ขึ้นไป
+              </p>
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                <p className="text-red-700 text-sm">
+                  <strong>คำเตือน:</strong> ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                รับทราบ
               </Button>
             </div>
           </div>

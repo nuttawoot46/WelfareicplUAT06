@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,14 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { generateExpenseClearingPDF } from '../pdf/ExpenseClearingPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
-import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
+import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
 
 interface GeneralExpenseClearingFormProps {
   onBack: () => void;
@@ -51,7 +50,21 @@ interface GeneralExpenseClearingFormValues {
     other?: boolean;
     otherText?: string;
   };
+  documentFiles?: {
+    receiptSubstitute: string[];
+    receipt: string[];
+    transferSlip: string[];
+    photo: string[];
+    idCardCopySelf: string[];
+    idCardCopyContractor: string[];
+    withholdingTaxCert: string[];
+    taxInvoice: string[];
+    invoice: string[];
+  };
 }
+
+// Document type definition for attachment checkboxes
+type DocumentType = 'receiptSubstitute' | 'receipt' | 'transferSlip' | 'photo' | 'idCardCopySelf' | 'idCardCopyContractor' | 'withholdingTaxCert' | 'taxInvoice' | 'invoice';
 
 const GENERAL_EXPENSE_CATEGORIES = [
   { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
@@ -64,12 +77,22 @@ const GENERAL_EXPENSE_CATEGORIES = [
   { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 },
 ];
 
-export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseClearingFormProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+// Document types for attachment checkboxes (same as ExpenseClearingForm + invoice)
+const DOCUMENT_TYPES: { key: DocumentType; label: string }[] = [
+  { key: 'receiptSubstitute', label: 'ใบแทนใบเสร็จรับเงิน' },
+  { key: 'receipt', label: 'ใบเสร็จรับเงิน' },
+  { key: 'transferSlip', label: 'สลิปโอนเงิน' },
+  { key: 'photo', label: 'รูปภาพ' },
+  { key: 'idCardCopySelf', label: 'สำเนาบัตร (ตนเอง)' },
+  { key: 'idCardCopyContractor', label: 'สำเนาบัตร (ผู้รับจ้าง)' },
+  { key: 'withholdingTaxCert', label: 'หนังสือรับรองการหัก ณ ที่จ่าย' },
+  { key: 'taxInvoice', label: 'ใบกำกับภาษี' },
+  { key: 'invoice', label: 'ใบแจ้งหนี้' },
+];
+
+export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFormProps) {
   const { user, profile } = useAuth();
   const { submitRequest, refreshRequests } = useWelfare();
-  const [files, setFiles] = useState<string[]>([]);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
@@ -77,6 +100,52 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [availableAdvanceRequests, setAvailableAdvanceRequests] = useState<any[]>([]);
+
+  // Document type files state
+  const [documentFiles, setDocumentFiles] = useState<{
+    receiptSubstitute: string[];
+    receipt: string[];
+    transferSlip: string[];
+    photo: string[];
+    idCardCopySelf: string[];
+    idCardCopyContractor: string[];
+    withholdingTaxCert: string[];
+    taxInvoice: string[];
+    invoice: string[];
+  }>({
+    receiptSubstitute: [],
+    receipt: [],
+    transferSlip: [],
+    photo: [],
+    idCardCopySelf: [],
+    idCardCopyContractor: [],
+    withholdingTaxCert: [],
+    taxInvoice: [],
+    invoice: [],
+  });
+
+  // Document type checkboxes state
+  const [documentSelections, setDocumentSelections] = useState<{
+    receiptSubstitute: boolean;
+    receipt: boolean;
+    transferSlip: boolean;
+    photo: boolean;
+    idCardCopySelf: boolean;
+    idCardCopyContractor: boolean;
+    withholdingTaxCert: boolean;
+    taxInvoice: boolean;
+    invoice: boolean;
+  }>({
+    receiptSubstitute: false,
+    receipt: false,
+    transferSlip: false,
+    photo: false,
+    idCardCopySelf: false,
+    idCardCopyContractor: false,
+    withholdingTaxCert: false,
+    taxInvoice: false,
+    invoice: false,
+  });
 
   const {
     register,
@@ -277,25 +346,52 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
     return () => clearTimeout(timeoutId);
   }, [calculateTotalRefund, setValue, watchedExpenseItems, watchedUsedAmounts]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle checkbox toggle for document type
+  const handleDocumentCheckboxChange = (docType: DocumentType) => {
+    setDocumentSelections(prev => ({
+      ...prev,
+      [docType]: !prev[docType]
+    }));
+    // Clear files if unchecked
+    if (documentSelections[docType]) {
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: []
+      }));
+    }
+  };
+
+  // File handling functions for document types
+  const handleDocumentFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: DocumentType) => {
     const fileInput = e.target;
+
     if (!fileInput.files || fileInput.files.length === 0) return;
+
     try {
       const uploadPromises = Array.from(fileInput.files).map(async (file) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `${user?.id || 'anonymous'}/${fileName}`;
+        const filePath = `${user?.id || 'anonymous'}/${docType}/${fileName}`;
+
         const { data, error } = await supabase.storage
           .from('welfare-attachments')
           .upload(filePath, file);
+
         if (error) throw error;
+
         const { data: { publicUrl } } = supabase.storage
           .from('welfare-attachments')
           .getPublicUrl(data.path);
+
         return publicUrl;
       });
+
       const uploadedUrls = await Promise.all(uploadPromises);
-      setFiles(prevFiles => [...prevFiles, ...uploadedUrls]);
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: [...prev[docType], ...uploadedUrls]
+      }));
+
       toast({
         title: "อัพโหลดสำเร็จ",
         description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
@@ -312,15 +408,22 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
     }
   };
 
-  const handleRemoveFile = async (index: number) => {
+  const handleRemoveDocumentFile = async (docType: DocumentType, index: number) => {
     try {
-      const fileUrl = files[index];
-      const filePath = fileUrl.split('/').slice(-2).join('/');
+      const fileUrl = documentFiles[docType][index];
+      const filePath = fileUrl.split('/').slice(-3).join('/');
+
       const { error } = await supabase.storage
         .from('welfare-attachments')
         .remove([filePath]);
+
       if (error) throw error;
-      setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: prev[docType].filter((_, i) => i !== index)
+      }));
+
       toast({
         title: "ลบไฟล์สำเร็จ",
         description: "ลบไฟล์เรียบร้อยแล้ว",
@@ -422,6 +525,10 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
       if (!user) {
         throw new Error('User not authenticated');
       }
+
+      // Combine all document files into a single attachments array
+      const allAttachments = Object.values(documentFiles).flat();
+
       const requestData = {
         userId: profile.employee_id.toString(),
         userName: employeeData?.Name || user?.email || 'Unknown User',
@@ -432,7 +539,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         amount: Number(data.amount || 0),
         date: data.startDate || new Date().toISOString(),
         details: data.details || '',
-        attachments: files,
+        attachments: allAttachments,
         notes: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -440,13 +547,14 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
         start_date: data.startDate,
         end_date: data.endDate,
         userSignature: signature || userSignature,
-        attachmentSelections: data.attachmentSelections,
+        attachmentSelections: documentSelections,
         originalAdvanceRequestId: data.originalAdvanceRequestId,
         expenseClearingItems: data.expenseClearingItems,
         advanceDepartment: data.advanceDepartment,
         advanceDepartmentOther: data.advanceDepartmentOther,
         advanceActivityType: data.advanceActivityType,
         advanceParticipants: data.advanceParticipants,
+        documentFiles: documentFiles,
       };
 
       let result: any;
@@ -660,7 +768,7 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รวมจำนวนเงินทั้งสิ้น</th>
                     <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"></th>
+                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -726,12 +834,21 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.requestAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.requestAmount`))}
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.requestAmount` as const, { valueAsNumber: true })} />
                       </td>
@@ -740,12 +857,21 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.usedAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.usedAmount`))}
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.usedAmount` as const, { valueAsNumber: true })} />
                       </td>
@@ -754,12 +880,21 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
                         <Input
                           type="text"
                           className="w-28 text-right"
-                          placeholder="0.00"
-                          value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.vatAmount`))}
+                          placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            const formatted = formatInputWhileTyping(e.target.value);
+                            e.target.value = formatted;
+                            const numValue = parseFormattedNumber(formatted);
                             setValue(`expenseClearingItems.${index}.vatAmount`, numValue);
                           }}
+                          onBlur={(e) => {
+                            const numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 0) {
+                              e.target.value = formatNumberOnBlur(numValue);
+                              setValue(`expenseClearingItems.${index}.vatAmount`, numValue);
+                            }
+                          }}
+                          defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.vatAmount`))}
                         />
                         <input type="hidden" {...register(`expenseClearingItems.${index}.vatAmount` as const, { valueAsNumber: true })} />
                       </td>
@@ -943,51 +1078,90 @@ export function GeneralExpenseClearingForm({ onBack, editId }: GeneralExpenseCle
             />
           </div>
 
+          {/* แนบไฟล์เอกสาร - Checkbox Based */}
           <div className="space-y-4">
-            <label className="form-label">แนบไฟล์เอกสาร (ใบเสร็จ, หลักฐานการจ่าย)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <div className="text-center">
-                <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-sm font-medium text-gray-900">
-                      คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
-                    </span>
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {DOCUMENT_TYPES.map((docType) => (
+                <div key={docType.key} className="border rounded-lg p-4 bg-white">
+                  {/* Checkbox for document type */}
+                  <div className="flex items-center space-x-3 mb-3">
                     <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileChange}
+                      type="checkbox"
+                      id={`doc-${docType.key}`}
+                      checked={documentSelections[docType.key]}
+                      onChange={() => handleDocumentCheckboxChange(docType.key)}
+                      className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
                     />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    รองรับไฟล์: PDF, JPG, PNG, DOC, DOCX (ขนาดไม่เกิน 10MB)
-                  </p>
+                    <label
+                      htmlFor={`doc-${docType.key}`}
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      {docType.label}
+                    </label>
+                  </div>
+
+                  {/* File upload area - shown when checkbox is checked */}
+                  {documentSelections[docType.key] && (
+                    <div className="mt-2 space-y-2">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                        <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
+                          <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
+                          <span className="mt-1 block text-xs text-gray-600">
+                            คลิกเพื่อเลือกไฟล์
+                          </span>
+                          <input
+                            id={`file-${docType.key}`}
+                            type="file"
+                            className="sr-only"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            onChange={(e) => handleDocumentFileChange(e, docType.key)}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Show uploaded files for this document type */}
+                      {documentFiles[docType.key].length > 0 && (
+                        <div className="space-y-1">
+                          {documentFiles[docType.key].map((fileUrl, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                              <div className="flex items-center space-x-2">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="text-xs text-green-700 truncate max-w-[150px]">
+                                  ไฟล์ {index + 1}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
             </div>
 
-            {files.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">ไฟล์ที่แนบ:</h4>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600 truncate">
-                        ไฟล์ที่ {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+            {/* Summary of uploaded documents */}
+            {Object.values(documentFiles).some(files => files.length > 0) && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <div className="space-y-1">
+                  {DOCUMENT_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
+                    <div key={dt.key} className="flex items-center text-xs text-blue-700">
+                      <Check className="h-3 w-3 mr-2" />
+                      {dt.label}: {documentFiles[dt.key].length} ไฟล์
                     </div>
                   ))}
                 </div>

@@ -5,7 +5,9 @@
       "Bash(psql:*)",
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npx supabase db push)"
+      "Bash(npx supabase db push)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

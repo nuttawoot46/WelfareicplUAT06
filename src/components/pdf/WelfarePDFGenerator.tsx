@@ -55,35 +55,16 @@ const createWelfareFormHTML = (
   // Attachment checkbox selections - use from welfareData if available
   const att = welfareData.attachmentSelections || {};
 
-  const checkbox = (checked: boolean) => `
-    <div style="
-      border: 1px solid black;
-      width: 12px;
-      height: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 8px;
-      flex-shrink: 0;
-      background: ${checked ? 'black' : 'white'};
-      position: relative;
-    ">
-      ${checked ? `
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-        </svg>
-      ` : ''}
-    </div>
-  `;
+  const checkbox = (checked: boolean) => checked ? '☑' : '☐';
 
   return `
     <div style="
       width: 210mm;
       min-height: 297mm;
       padding: 15mm;
-      font-family: Arial, sans-serif;
+      font-family: 'Cordia New', 'TH Sarabun New', 'Sarabun', Arial, sans-serif;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.1;
       background: white;
       color: black;
       box-sizing: border-box;
@@ -117,11 +98,11 @@ const createWelfareFormHTML = (
 
         <!-- Employee Information -->
         <div style="margin-bottom: 25px; font-size: 13px; line-height: 1.8;">
-          <div style="margin-bottom: 10px;">ชื่อ - สกุล.....................................${employeeName}.....................................</div>
-          <div style="margin-bottom: 10px;">สังกัดฝ่าย.....................................${employeeTeam}.....................................</div>
+          <div style="margin-bottom: 10px;">ชื่อ - สกุล............................${employeeName}............................</div>
+          <div style="margin-bottom: 10px;">สังกัดฝ่าย............................${employeeTeam}............................</div>
           <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-            <span>ตำแหน่ง.....................................${employeePosition}</span>
-            <span>วันที่เริ่มงาน.....................................${formattedStartDate}</span>
+            <span>ตำแหน่ง............................${employeePosition}............................</span>
+            <span>วันที่เริ่มงาน..............${formattedStartDate}.................</span>
           </div>
         </div>
 
@@ -132,25 +113,7 @@ const createWelfareFormHTML = (
           <!-- Row 1 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'wedding' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'wedding' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'wedding' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานสมรส 3,000 บาท</span>
             </div>
           </div>
@@ -158,95 +121,20 @@ const createWelfareFormHTML = (
           <!-- Row 2 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 50%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'childbirth' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'childbirth' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการคลอดบุตร คลอดปกติ 4,000 บาท</span>
             </div>
             <div style="width: 50%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'childbirth' && welfareData.birth_type === 'cesarean' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'childbirth' && welfareData.birth_type === 'cesarean' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' && welfareData.birth_type === 'cesarean' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">ผ่าคลอด 6,000 บาท</span>
             </div>
           </div>
 
           <!-- Row 3 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
+            
             <div style="width: 50%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'medical' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'medical' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
-              <span style="line-height: 1.4;">ขอเยี่ยมกรณีเจ็บป่วย 1,000 บาท</span>
-            </div>
-            <div style="width: 50%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'fitness' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'fitness' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'fitness' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">เงินสนับสนุนค่าออกกำลังกาย (ตามจริงไม่เกิน 300 บาท/เดือน)</span>
             </div>
           </div>
@@ -254,25 +142,7 @@ const createWelfareFormHTML = (
           <!-- Row 4 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'dental' || welfareData.type === 'glasses' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'dental' || welfareData.type === 'glasses' ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'dental' || welfareData.type === 'glasses' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการค่ารักษาทัตกรรมหรือ/และค่าตัดแว่นสายตา (ตามจริง ไม่เกิน 2,000 บาท)</span>
             </div>
           </div>
@@ -280,25 +150,7 @@ const createWelfareFormHTML = (
           <!-- Row 5 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'funeral' && welfareData.details?.includes('พนักงาน') ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'funeral' && welfareData.details?.includes('พนักงาน') ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.details?.includes('พนักงาน') ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานศพ พนักงาน/สามีหรือภรรยาของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 6,000 บาท + พวงหรีด 1 พวง</span>
             </div>
           </div>
@@ -306,25 +158,7 @@ const createWelfareFormHTML = (
           <!-- Row 6 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'funeral' && welfareData.details?.includes('บุตร') ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'funeral' && welfareData.details?.includes('บุตร') ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.details?.includes('บุตร') ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานศพ บุตร ของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 4,000 + พวงหรีด 1 พวง</span>
             </div>
           </div>
@@ -332,25 +166,7 @@ const createWelfareFormHTML = (
           <!-- Row 7 -->
           <div style="display: flex; margin-bottom: 15px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <div style="
-                border: 3px solid black; 
-                width: 18px; 
-                height: 18px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                flex-shrink: 0; 
-                margin-top: 2px; 
-                background: ${welfareData.type === 'funeral' && (welfareData.details?.includes('บิดา') || welfareData.details?.includes('มารดา')) ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.type === 'funeral' && (welfareData.details?.includes('บิดา') || welfareData.details?.includes('มารดา')) ? `
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && (welfareData.details?.includes('บิดา') || welfareData.details?.includes('มารดา')) ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 2,000 บาท + พวงหรีด 1 พวง</span>
             </div>
           </div>
@@ -483,43 +299,11 @@ const createWelfareFormHTML = (
           <div style="font-weight: bold; margin-bottom: 12px; font-size: 12px;">สำหรับผู้บังคับบัญชา</div>
           <div style="display: flex; margin-bottom: 15px; font-size: 12px;">
             <div style="display: flex; align-items: center; margin-right: 40px;">
-              <div style="
-                border: 3px solid black; 
-                width: 16px; 
-                height: 16px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                background: ${welfareData.status === 'completed' || welfareData.status === 'pending_hr' || welfareData.status === 'pending_accounting' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.status === 'completed' || welfareData.status === 'pending_hr' || welfareData.status === 'pending_accounting' ? `
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.status === 'completed' || welfareData.status === 'pending_hr' || welfareData.status === 'pending_accounting' ? '☑' : '☐'}</span>
               <span>เห็นควรอนุมัติ</span>
             </div>
             <div style="display: flex; align-items: center;">
-              <div style="
-                border: 3px solid black; 
-                width: 16px; 
-                height: 16px; 
-                display: inline-flex; 
-                align-items: center; 
-                justify-content: center; 
-                margin-right: 10px; 
-                background: ${welfareData.status === 'rejected_manager' ? 'black' : 'white'};
-                position: relative;
-              ">
-                ${welfareData.status === 'rejected_manager' ? `
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                  </svg>
-                ` : ''}
-              </div>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.status === 'rejected_manager' ? '☑' : '☐'}</span>
               <span>ไม่ควรอนุมัติ</span>
             </div>
           </div>
@@ -554,7 +338,7 @@ const createWelfareFormHTML = (
           </div>
           <div style="display: flex; justify-content: flex-start; align-items: center; margin-top: 5px;">
             <span style="font-size: 12px; width: 50px;"></span> <!-- Spacer for "ลงชื่อ" -->
-            <div style="width: 200px; text-align: center; margin-left: -10mm; margin-right: 15px;">
+            <div style="width: 200px; text-align: center; margin-left: -15mm; margin-right: 15px;">
               <span style="font-size: 11px;">(${welfareData.managerApproverName || ''})</span>
             </div>
           </div>
@@ -566,43 +350,11 @@ const createWelfareFormHTML = (
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 12px;">
             <div style="display: flex; align-items: center;">
               <div style="display: flex; align-items: center; margin-right: 40px;">
-                <div style="
-                  border: 3px solid black; 
-                  width: 16px; 
-                  height: 16px; 
-                  display: inline-flex; 
-                  align-items: center; 
-                  justify-content: center; 
-                  margin-right: 10px; 
-                  background: ${welfareData.status === 'completed' || welfareData.status === 'pending_accounting' ? 'black' : 'white'};
-                  position: relative;
-                ">
-                  ${welfareData.status === 'completed' || welfareData.status === 'pending_accounting' ? `
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                    </svg>
-                  ` : ''}
-                </div>
+                <span style="margin-right: 10px; font-size: 16px;">${welfareData.status === 'completed' || welfareData.status === 'pending_accounting' ? '☑' : '☐'}</span>
                 <span>เห็นควรอนุมัติ</span>
               </div>
               <div style="display: flex; align-items: center;">
-                <div style="
-                  border: 3px solid black; 
-                  width: 16px; 
-                  height: 16px; 
-                  display: inline-flex; 
-                  align-items: center; 
-                  justify-content: center; 
-                  margin-right: 10px; 
-                  background: ${welfareData.status === 'rejected_hr' ? 'black' : 'white'};
-                  position: relative;
-                ">
-                  ${welfareData.status === 'rejected_hr' ? `
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="position: absolute;">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white" stroke="white" stroke-width="2"/>
-                    </svg>
-                  ` : ''}
-                </div>
+                <span style="margin-right: 10px; font-size: 16px;">${welfareData.status === 'rejected_hr' ? '☑' : '☐'}</span>
                 <span>ไม่ควรอนุมัติ</span>
               </div>
             </div>
@@ -679,9 +431,9 @@ export const generateWelfarePDF = async (
   document.body.appendChild(tempDiv);
 
   try {
-    // Convert HTML to canvas with optimized settings for smaller file size
+    // Convert HTML to canvas with higher quality
     const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
-      scale: 1, // Reduced scale for smaller file size
+      scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
@@ -693,8 +445,8 @@ export const generateWelfarePDF = async (
     // Create PDF
     const pdf = new jsPDF('p', 'mm', 'a4');
 
-    // Use JPEG with compression for smaller file size
-    const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
+    // Use JPEG with full quality
+    const imgData = canvas.toDataURL('image/jpeg', 1.0); // 100% quality
 
     // Calculate dimensions to fit A4
     const pdfWidth = pdf.internal.pageSize.getWidth();
