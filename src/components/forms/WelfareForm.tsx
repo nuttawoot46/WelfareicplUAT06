@@ -1079,7 +1079,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       try {
         const { data: fetchedEmployeeData, error } = await supabase
           .from('Employee')
-          .select('id, Name, Position, Team, start_date')
+          .select('id, Name, Position, Team, start_date, Original_Budget_Training, Budget_Training, manager_name')
           .eq('email_user', user!.email)
           .single();
 
@@ -1367,10 +1367,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
     } else {
       // --- กรณีไม่เกินงบประมาณ ---
-      netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
+      // บริษัทจ่ายทั้งหมด ไม่มีส่วนที่พนักงานต้องจ่าย
+      netNum = grossAmount - withholding; // จำนวนสุทธิหลังหักภาษี ณ ที่จ่าย
       excessAmountValue = 0;
       companyPaymentValue = 0;
-      employeePaymentValue = withholding; // พนักงานจ่ายเฉพาะภาษี ณ ที่จ่าย
+      employeePaymentValue = 0; // พนักงานไม่ต้องจ่ายเพราะบริษัทจ่ายให้หมด
     }
 
     // --- อัปเดตค่าทั้งหมดไปยังฟอร์ม ---
