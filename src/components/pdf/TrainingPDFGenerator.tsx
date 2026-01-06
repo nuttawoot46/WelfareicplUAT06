@@ -325,7 +325,7 @@ const createTrainingFormHTML = (
         <!-- Cost Information -->
         <div style="margin-bottom: 8px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">
-            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2568 เป็นจำนวนเงิน ..............${originalBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
+            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2569 เป็นจำนวนเงิน ..............${originalBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
           </div>
           <div style="margin-bottom: 5px;">
             รายละเอียดค่าใช้จ่ายในการฝึกอบรม ในครั้งนี้ มีดังนี้
@@ -565,12 +565,7 @@ const createTrainingFormHTML = (
           </table>
         </div>
         
-        <!-- Note Section -->
-        <div style="margin-top: 8px; font-size: 9pt; line-height: 1.3; color: #2117afff;">
-          <div style="margin-bottom: 5px;">
-            หมายเหตุ : กรณีค่าใช้จ่ายในการอบรม มีจำนวนเงิน 10,000 บาทขึ้นไป ให้พิจารณาอนุมัติโดย กรรมการผู้จัดการเท่านั้น
-          </div>
-        </div>
+        
       </div>
     </div>
   `;

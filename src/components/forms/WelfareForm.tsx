@@ -915,7 +915,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       // First, fetch the employee data to get the correct department and name
       const { data: employeeData, error: employeeError } = await supabase
         .from('Employee')
-        .select('id, Name, Position, Team, start_date')
+        .select('id, Name, Position, Team, start_date, Original_Budget_Training, Budget_Training, manager_name')
         .eq('email_user', user.email)
         .single();
 
@@ -1073,22 +1073,24 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
   // Process form submission with PDF (for all types including training)
   const processFormSubmission = async (data: any, employeeData: any, signature?: string) => {
-    // If employeeData is not provided, fetch it
+    // Always fetch full employee data with budget fields for PDF generation
     let finalEmployeeData = employeeData;
-    if (!finalEmployeeData) {
-      try {
-        const { data: fetchedEmployeeData, error } = await supabase
-          .from('Employee')
-          .select('id, Name, Position, Team, start_date, Original_Budget_Training, Budget_Training, manager_name')
-          .eq('email_user', user!.email)
-          .single();
+    try {
+      const { data: fetchedEmployeeData, error } = await supabase
+        .from('Employee')
+        .select('id, Name, Position, Team, start_date, Original_Budget_Training, Budget_Training, manager_name')
+        .eq('email_user', user!.email)
+        .single();
 
-        if (!error && fetchedEmployeeData) {
-          finalEmployeeData = fetchedEmployeeData;
-        } else {
-          throw new Error('ไม่พบข้อมูลพนักงาน');
-        }
-      } catch (error) {
+      if (!error && fetchedEmployeeData) {
+        finalEmployeeData = fetchedEmployeeData;
+        console.log('=== processFormSubmission: Fetched fresh employeeData ===');
+        console.log('fetchedEmployeeData:', fetchedEmployeeData);
+      } else if (!finalEmployeeData) {
+        throw new Error('ไม่พบข้อมูลพนักงาน');
+      }
+    } catch (error) {
+      if (!finalEmployeeData) {
         throw new Error('ไม่สามารถดึงข้อมูลพนักงานได้');
       }
     }
@@ -1268,6 +1270,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
 
       if (type === 'training') {
         // Use Training PDF Generator for training type
+        console.log('=== WelfareForm: Before generateTrainingPDF ===');
+        console.log('finalEmployeeData:', finalEmployeeData);
+        console.log('finalEmployeeData.Original_Budget_Training:', finalEmployeeData?.Original_Budget_Training);
+        console.log('finalEmployeeData.Budget_Training:', finalEmployeeData?.Budget_Training);
         blob = await generateTrainingPDF(
           {
             ...requestData,
