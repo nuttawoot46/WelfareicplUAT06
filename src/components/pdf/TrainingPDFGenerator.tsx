@@ -198,7 +198,7 @@ const getImageAsBase64 = async (imagePath: string): Promise<string> => {
 const createTrainingFormHTML = (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string },
+  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string; Original_Budget_Training?: number; Budget_Training?: number },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string,
@@ -230,7 +230,10 @@ const createTrainingFormHTML = (
 
   // Get financials from welfareData
   const financials = calculateFinancials(welfareData);
-  const remainingBudgetAmount = remainingBudget || userData.training_budget || 0;
+
+  // Get budget from employeeData: Original_Budget_Training for total budget, Budget_Training for remaining
+  const originalBudget = employeeData?.Original_Budget_Training || remainingBudget || userData.training_budget || 0;
+  const remainingBudgetAmount = employeeData?.Budget_Training || remainingBudget || 0;
 
   return `
     <div style="
@@ -312,7 +315,7 @@ const createTrainingFormHTML = (
         <!-- Cost Information -->
         <div style="margin-bottom: 8px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">
-            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2568 เป็นจำนวนเงิน ..............${financials.grossAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
+            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2568 เป็นจำนวนเงิน ..............${originalBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
           </div>
           <div style="margin-bottom: 5px;">
             รายละเอียดค่าใช้จ่ายในการฝึกอบรม ในครั้งนี้ มีดังนี้
