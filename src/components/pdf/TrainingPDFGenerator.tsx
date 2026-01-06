@@ -232,8 +232,9 @@ const createTrainingFormHTML = (
   const financials = calculateFinancials(welfareData);
 
   // Get budget from employeeData: Original_Budget_Training for total budget, Budget_Training for remaining
-  const originalBudget = employeeData?.Original_Budget_Training || remainingBudget || userData.training_budget || 0;
-  const remainingBudgetAmount = employeeData?.Budget_Training || remainingBudget || 0;
+  // Note: These values may come as strings from database, so we need to convert them
+  const originalBudget = Number(employeeData?.Original_Budget_Training) || remainingBudget || userData.training_budget || 0;
+  const remainingBudgetAmount = Number(employeeData?.Budget_Training) || remainingBudget || 0;
 
   return `
     <div style="
