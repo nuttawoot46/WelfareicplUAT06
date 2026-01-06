@@ -233,8 +233,17 @@ const createTrainingFormHTML = (
 
   // Get budget from employeeData: Original_Budget_Training for total budget, Budget_Training for remaining
   // Note: These values may come as strings from database, so we need to convert them
+  console.log('=== Budget Debug ===');
+  console.log('employeeData:', employeeData);
+  console.log('employeeData.Original_Budget_Training:', employeeData?.Original_Budget_Training);
+  console.log('employeeData.Budget_Training:', employeeData?.Budget_Training);
+  console.log('remainingBudget param:', remainingBudget);
+
   const originalBudget = Number(employeeData?.Original_Budget_Training) || remainingBudget || userData.training_budget || 0;
   const remainingBudgetAmount = Number(employeeData?.Budget_Training) || remainingBudget || 0;
+
+  console.log('Final originalBudget:', originalBudget);
+  console.log('Final remainingBudgetAmount:', remainingBudgetAmount);
 
   return `
     <div style="
