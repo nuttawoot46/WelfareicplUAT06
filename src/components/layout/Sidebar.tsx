@@ -22,7 +22,9 @@ import {
   Shield,
   Activity,
   HelpCircle,
-  Layout
+  Layout,
+  Calendar,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -492,7 +494,61 @@ export function Sidebar() {
             )}
           </Link>
 
-          
+          {/* Leave Calendar Menu with Dropdown */}
+          <div className="relative">
+            <div
+              className={cn(
+                "nav-link group cursor-pointer",
+                isSubmenuActive(['/leave-calendar', '/leave-approve']) ? "nav-link-active" : "text-white/90 hover:text-white"
+              )}
+              onClick={() => isOpen && toggleSubmenu('leave')}
+              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, leave: true }))}
+              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, leave: false }))}
+            >
+              <Calendar className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <>
+                  <span className="transition-all duration-300 text-white font-medium">ระบบลา</span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 ml-auto transition-transform duration-200",
+                    openSubmenus.leave && "rotate-180"
+                  )} />
+                </>
+              )}
+            </div>
+
+            {/* Leave Submenu */}
+            {(openSubmenus.leave || !isOpen) && (
+              <div className={cn(
+                isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+              )}>
+                <Link to="/leave-calendar" className={cn(
+                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}>
+                  <Calendar className="h-4 w-4" />
+                  <span>ปฏิทินการลา</span>
+                </Link>
+                {(userRole === 'manager' || userRole === 'hr' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'accountingandmanager') && (
+                  <Link to="/leave-approve" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <CheckSquare className="h-4 w-4" />
+                    <span>อนุมัติการลา</span>
+                  </Link>
+                )}
+                <Link to="/leave-report" className={cn(
+                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}>
+                  <ClipboardList className="h-4 w-4" />
+                  <span>รายงานการลา</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
         </nav>
 
         {/* User profile & logout */}

@@ -7,9 +7,25 @@
       "Bash(npm uninstall:*)",
       "Bash(npx supabase db push)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx shadcn@latest mcp init:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(shadcn mcp init:*)",
+      "Bash(dir \"%APPDATA%\\\\Claude\")",
+      "Bash(dir /a \"%USERPROFILE%\\\\.claude*\")",
+      "Bash(cd:*)",
+      "Bash(npm update:*)",
+      "Bash(uipro init:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
 }

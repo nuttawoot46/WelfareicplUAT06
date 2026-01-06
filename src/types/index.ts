@@ -131,6 +131,10 @@ export interface WelfareRequest {
   specialSignature?: string; // Special approver's digital signature (Deputy Managing Director)
   // PDF file storage
   pdfRequest?: string; // Base64 encoded PDF file that gets updated with signatures
+  pdfUrl?: string; // PDF URL from storage
+  pdf_url?: string; // PDF URL (snake_case alias)
+  pdf_request_manager?: string; // PDF URL after manager approval
+  pdf_request_hr?: string; // PDF URL after HR approval
   // Internal training specific fields
   branch?: string;
   courseName?: string;
@@ -341,4 +345,144 @@ export interface CreateCommentData {
   ticket_id: string;
   comment: string;
   is_internal?: boolean;
+}
+
+// Leave System Types
+export type LeaveStatusType =
+  | 'pending_manager'
+  | 'pending_hr'
+  | 'completed'
+  | 'rejected_manager'
+  | 'rejected_hr'
+  | 'cancelled';
+
+export interface LeaveType {
+  id: number;
+  name_en: string;
+  name_th: string;
+  color: string;
+  max_days_per_year: number | null;
+  is_paid: boolean;
+  requires_attachment: boolean;
+  min_days_in_advance: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Holiday {
+  id: number;
+  date: string;
+  name_en: string;
+  name_th: string;
+  year: number;
+  location: 'All' | 'Office' | 'Factory';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveBalance {
+  id: number;
+  employee_id: number;
+  leave_type_id: number;
+  leave_type?: LeaveType;
+  year: number;
+  total_days: number;
+  used_days: number;
+  used_hours: number;
+  used_minutes: number;
+  remaining_days: number;
+  carry_over_days: number;
+  carry_over_expiry: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveRequest {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_email: string;
+  employee_position?: string;
+  employee_team?: string;
+  leave_type_id: number;
+  leave_type_name: string;
+  leave_type?: LeaveType;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  is_half_day: boolean;
+  half_day_period?: 'morning' | 'afternoon';
+  total_days: number;
+  total_hours: number;
+  total_minutes: number;
+  reason?: string;
+  attachment_urls: string[];
+
+  status: LeaveStatusType;
+
+  // Manager approval
+  manager_id?: number;
+  manager_name?: string;
+  manager_approval_status?: string;
+  manager_approval_date?: string;
+  manager_signature?: string;
+  manager_comment?: string;
+
+  // HR approval
+  hr_approver_id?: number;
+  hr_approver_name?: string;
+  hr_approval_status?: string;
+  hr_approval_date?: string;
+  hr_signature?: string;
+  hr_comment?: string;
+
+  // User signature
+  user_signature?: string;
+
+  // PDF storage
+  pdf_url?: string;
+  pdf_request_manager?: string;
+  pdf_request_hr?: string;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveCalendarEvent {
+  id: number;
+  title: string;
+  start: Date;
+  end: Date;
+  color: string;
+  type: 'leave' | 'holiday';
+  employee_name?: string;
+  leave_type?: string;
+  status?: LeaveStatusType;
+}
+
+export interface LeaveFormData {
+  leave_type_id: number;
+  start_date: string;
+  end_date: string;
+  start_time?: string;
+  end_time?: string;
+  is_half_day: boolean;
+  half_day_period?: 'morning' | 'afternoon';
+  reason?: string;
+  attachments?: FileList;
+  user_signature?: string;
+}
+
+export interface EmployeeLeaveDetail {
+  employee: {
+    id: number;
+    name: string;
+    position: string;
+    email: string;
+    gmail?: string;
+  };
+  balances: LeaveBalance[];
 }

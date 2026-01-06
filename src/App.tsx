@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { WelfareProvider } from "@/context/WelfareContext";
 import { InternalTrainingProvider } from "@/context/InternalTrainingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { LeaveProvider } from "@/context/LeaveContext";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { Toaster as HotToast } from 'react-hot-toast';
 import MainLayout from "@/components/layout/MainLayout";
@@ -33,6 +34,9 @@ import { GeneralAccountingReviewPage } from "./pages/GeneralAccountingReviewPage
 
 import { SupportPage } from "./pages/SupportPage";
 import SpecialApprovalPage from "./pages/SpecialApprovalPage";
+import LeaveCalendarPage from "./pages/LeaveCalendarPage";
+import LeaveApprovalPage from "./pages/LeaveApprovalPage";
+import LeaveReportPage from "./pages/LeaveReportPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -82,6 +86,7 @@ const App = () => (
           <AuthProvider>
             <WelfareProvider>
               <InternalTrainingProvider>
+                <LeaveProvider>
                 <NotificationProvider>
                 <Toaster />
                 <Sonner />
@@ -241,11 +246,37 @@ const App = () => (
                       </MainLayout>
                     </ProtectedRoute>
                   } />
-                  
+
+                  {/* Leave Calendar Routes */}
+                  <Route path="/leave-calendar" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <LeaveCalendarPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/leave-approve" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <LeaveApprovalPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/leave-report" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <LeaveReportPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
                   {/* Catch-all Route สำหรับหน้า 404 */}
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
                 </NotificationProvider>
+                </LeaveProvider>
               </InternalTrainingProvider>
             </WelfareProvider>
           </AuthProvider>

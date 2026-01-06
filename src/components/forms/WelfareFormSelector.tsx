@@ -445,7 +445,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">เลือกประเภทสวัสดิการและอบรม</h1>
+      <h1 className="text-2xl font-bold mb-6">เลือกประเภท</h1>
       
       <Tabs defaultValue="welfare" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1">

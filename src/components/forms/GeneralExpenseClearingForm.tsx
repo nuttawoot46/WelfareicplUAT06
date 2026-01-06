@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Trash2, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,14 +67,15 @@ interface GeneralExpenseClearingFormValues {
 type DocumentType = 'receiptSubstitute' | 'receipt' | 'transferSlip' | 'photo' | 'idCardCopySelf' | 'idCardCopyContractor' | 'withholdingTaxCert' | 'taxInvoice' | 'invoice';
 
 const GENERAL_EXPENSE_CATEGORIES = [
-  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0 },
-  { name: 'ค่าเช่าสถานที่', taxRate: 5 },
-  { name: 'งบสนับสนุนร้านค้า', taxRate: 3 },
-  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3 },
-  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3 },
-  { name: 'ค่าของรางวัลเพื่อการชิงโชค *', taxRate: 5 },
-  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2 },
-  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0 },
+  { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
+  { name: 'ค่าที่พัก', taxRate: 0, hasInfo: false },
+  { name: 'ค่าเช่าสถานที่', taxRate: 5, hasInfo: false },
+  { name: 'งบสนับสนุนร้านค้า', taxRate: 3, hasInfo: false },
+  { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3, hasInfo: false },
+  { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3, hasInfo: false },
+  { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
+  { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
+  { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false },
 ];
 
 // Document types for attachment checkboxes (same as ExpenseClearingForm + invoice)
@@ -100,6 +101,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
   const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [availableAdvanceRequests, setAvailableAdvanceRequests] = useState<any[]>([]);
+  const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
 
   // Document type files state
   const [documentFiles, setDocumentFiles] = useState<{
@@ -623,14 +625,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           <h1 className="text-2xl font-bold">แบบฟอร์มเคลียร์ค่าใช้จ่าย (ทั่วไป)</h1>
         </div>
 
-        <div className="mb-6">
-          <Alert className="border-purple-200 bg-purple-50">
-            <AlertCircle className="h-4 w-4 mr-2 text-purple-600" />
-            <AlertDescription className="text-purple-800">
-              <strong>เคลียร์ค่าใช้จ่าย (ทั่วไป):</strong> สำหรับการรายงานการใช้เงินจากการเบิกล่วงหน้าทั่วไป คุณสามารถเลือกคำขอเบิกเงินล่วงหน้าที่เคยทำไว้ หรือกรอกข้อมูลใหม่ทั้งหมด
-            </AlertDescription>
-          </Alert>
-        </div>
+        
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <input type="hidden" {...register('amount', { valueAsNumber: true })} />
@@ -799,7 +794,20 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                             </SelectTrigger>
                             <SelectContent>
                               {GENERAL_EXPENSE_CATEGORIES.map((category) => (
-                                <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
+                                <SelectItem key={category.name} value={category.name}>
+                                  <div className="flex items-center gap-2">
+                                    {category.name}
+                                    {category.hasInfo && (
+                                      <Info
+                                        className="h-4 w-4 text-yellow-500 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowLotteryInfoModal(true);
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -812,6 +820,16 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                                 required: watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
                             />
+                          )}
+                          {watch(`expenseClearingItems.${index}.name`) === 'ค่าของรางวัลเพื่อการชิงโชค' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowLotteryInfoModal(true)}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mt-1"
+                            >
+                              <Info className="h-4 w-4" />
+                              ดูข้อมูลเพิ่มเติม
+                            </button>
                           )}
                         </div>
                       </td>
@@ -1203,6 +1221,47 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
         onConfirm={handleSignatureConfirm}
         userName={employeeData?.Name || user?.email || ''}
       />
+
+      {/* Lottery Prize Info Modal */}
+      {showLotteryInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
+              </div>
+              <button
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-gray-700 leading-relaxed">
+                <strong>ของรางวัลชิงโชค</strong> คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ <strong className="text-red-600">1,000 บาท</strong> ขึ้นไป
+              </p>
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                <p className="text-red-700 text-sm">
+                  <strong>คำเตือน:</strong> ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowLotteryInfoModal(false)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                รับทราบ
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

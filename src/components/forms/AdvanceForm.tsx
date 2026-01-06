@@ -52,6 +52,11 @@ interface AdvanceFormValues {
   advanceDealerName?: string; // ระบุชื่อร้าน
   advanceSubdealerName?: string; //ระบุชื่อร้าน
 
+  // Bank account for external transfer
+  bankAccountName?: string; // ชื่อบัญชี
+  bankName?: string; // ธนาคาร
+  bankAccountNumber?: string; // เลขที่บัญชี
+
   // Advance expense items
   advanceExpenseItems: {
     name: string;
@@ -86,12 +91,14 @@ const generateAdvanceRunNumber = () => {
 // รายการค่าใช้จ่ายเบิกเงินล่วงหน้า
 const ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
+  { name: 'ค่าที่พัก', taxRate: 0, hasInfo: false },
   { name: 'ค่าเช่าสถานที่', taxRate: 5, hasInfo: false },
   { name: 'งบสนับสนุนร้านค้า', taxRate: 3, hasInfo: false },
   { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3, hasInfo: false },
   { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3, hasInfo: false },
   { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
   { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
+  { name: 'ค่าขนส่ง', taxRate: 1, hasInfo: true, infoText: 'กรณีจดทะเบียนประเภทธุรกิจขนส่ง' },
   { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false }
 ];
 
@@ -123,8 +130,37 @@ const ACTIVITY_TYPES = [
   },
   {
     name: 'ค่าน้ำมันรถทดแทน ',
-    
+
   },
+  {
+    name: 'อื่นๆ',
+    description: 'กรุณาระบุรายละเอียดเพิ่มเติม'
+  },
+];
+
+// รายชื่อธนาคารในประเทศไทย
+const THAI_BANKS = [
+  'ธนาคารกรุงเทพ (Bangkok Bank)',
+  'ธนาคารกสิกรไทย (Kasikornbank)',
+  'ธนาคารกรุงไทย (Krungthai Bank)',
+  'ธนาคารทหารไทยธนชาต (TTB Bank)',
+  'ธนาคารไทยพาณิชย์ (Siam Commercial Bank)',
+  'ธนาคารกรุงศรีอยุธยา (Bank of Ayudhya)',
+  'ธนาคารเกียรตินาคินภัทร (Kiatnakin Phatra Bank)',
+  'ธนาคารซีไอเอ็มบีไทย (CIMB Thai Bank)',
+  'ธนาคารทิสโก้ (TISCO Bank)',
+  'ธนาคารธนชาต (Thanachart Bank)',
+  'ธนาคารยูโอบี (United Overseas Bank)',
+  'ธนาคารแลนด์ แอนด์ เฮ้าส์ (Land and Houses Bank)',
+  'ธนาคารไอซีบีซี (ไทย) (ICBC Thai)',
+  'ธนาคารเอชเอสบีซี (HSBC)',
+  'ธนาคารพัฒนาวิสาหกิจขนาดกลางและขนาดย่อมแห่งประเทศไทย (SME Bank)',
+  'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร (BAAC)',
+  'ธนาคารเพื่อการส่งออกและนำเข้าแห่งประเทศไทย (EXIM Bank)',
+  'ธนาคารออมสิน (Government Savings Bank)',
+  'ธนาคารอาคารสงเคราะห์ (Government Housing Bank)',
+  'ธนาคารอิสลามแห่งประเทศไทย (Islamic Bank of Thailand)',
+  'ธนาคารสแตนดาร์ดชาร์เตอร์ด (ไทย) (Standard Chartered Thailand)'
 ];
 
 export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
@@ -153,9 +189,28 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [showActivityInfoModal, setShowActivityInfoModal] = useState(false);
   const [selectedActivityInfo, setSelectedActivityInfo] = useState<string>('');
   const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
+  const [showTransportInfoModal, setShowTransportInfoModal] = useState(false);
   const [dealerSearchTerm, setDealerSearchTerm] = useState<string>('');
   const [showDealerDropdown, setShowDealerDropdown] = useState<boolean>(false);
   const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
+
+  // Document type files state for advance form
+  const [documentFiles, setDocumentFiles] = useState<{
+    bankbookCustomer: string[];
+    budgetRequestLetter: string[];
+  }>({
+    bankbookCustomer: [],
+    budgetRequestLetter: [],
+  });
+
+  // Document type checkboxes state
+  const [documentSelections, setDocumentSelections] = useState<{
+    bankbookCustomer: boolean;
+    budgetRequestLetter: boolean;
+  }>({
+    bankbookCustomer: false,
+    budgetRequestLetter: false,
+  });
 
   const {
     register,
@@ -602,6 +657,106 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     setShowSignatureModal(true);
   };
 
+  // Document types configuration for advance form
+  type AdvanceDocumentType = 'bankbookCustomer' | 'budgetRequestLetter';
+
+  const ADVANCE_DOCUMENT_TYPES: { key: AdvanceDocumentType; label: string }[] = [
+    { key: 'bankbookCustomer', label: 'หน้าบุ๊คแบงค์ลูกค้า' },
+    { key: 'budgetRequestLetter', label: 'หนังสือของบ' },
+  ];
+
+  // Handle checkbox toggle for document type
+  const handleDocumentCheckboxChange = (docType: AdvanceDocumentType) => {
+    setDocumentSelections(prev => ({
+      ...prev,
+      [docType]: !prev[docType]
+    }));
+    // Clear files if unchecked
+    if (documentSelections[docType]) {
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: []
+      }));
+    }
+  };
+
+  // File handling functions for document types
+  const handleDocumentFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: AdvanceDocumentType) => {
+    const fileInput = e.target;
+
+    if (!fileInput.files || fileInput.files.length === 0) return;
+
+    try {
+      const uploadPromises = Array.from(fileInput.files).map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${user?.id || 'anonymous'}/${docType}/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('welfare-attachments')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('welfare-attachments')
+          .getPublicUrl(data.path);
+
+        return publicUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: [...prev[docType], ...uploadedUrls]
+      }));
+
+      toast({
+        title: "อัพโหลดสำเร็จ",
+        description: `อัพโหลดไฟล์เรียบร้อยแล้ว`,
+      });
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถอัปโหลดไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      fileInput.value = '';
+    }
+  };
+
+  const handleRemoveDocumentFile = async (docType: AdvanceDocumentType, index: number) => {
+    try {
+      const fileUrl = documentFiles[docType][index];
+      const filePath = fileUrl.split('/').slice(-3).join('/');
+
+      const { error } = await supabase.storage
+        .from('welfare-attachments')
+        .remove([filePath]);
+
+      if (error) throw error;
+
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: prev[docType].filter((_, i) => i !== index)
+      }));
+
+      toast({
+        title: "ลบไฟล์สำเร็จ",
+        description: "ลบไฟล์เรียบร้อยแล้ว",
+      });
+    } catch (error: any) {
+      console.error('Error removing file:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถลบไฟล์ได้: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle signature confirmation
   const handleSignatureConfirm = async (signatureData: string) => {
     setUserSignature(signatureData);
@@ -834,15 +989,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           <h1 className="text-2xl font-bold">แบบฟอร์มขออนุมัติเบิกเงินล่วงหน้า (ฝ่ายขาย)</h1>
         </div>
 
-        {/* Special info for advance payment */}
-        <div className="mb-6">
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 mr-2 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              <strong>เบิกเงินทดลอง:</strong> สามารถขออนุมัติได้ตลอดเวลา ไม่มีข้อจำกัดเรื่องวงเงินหรืองบประมาณ ระบบจะคำนวณจำนวนเงินให้อัตโนมัติตามรายละเอียดที่กรอก
-            </AlertDescription>
-          </Alert>
-        </div>
+
 
         <form onSubmit={handleSubmit(onSubmit, (errors) => {
           console.log('❌ Form validation errors:', errors);
@@ -1003,7 +1150,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   type="number"
                   min="1"
-                  placeholder="80"
+                  placeholder=""
                   className="form-input"
                   {...register('advanceParticipants', {
                     required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
@@ -1113,17 +1260,29 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               
 
               <div className="space-y-2">
-                <label className="form-label">อำเภอ <span className="text-red-500">*</span></label>
+                <label className="form-label">
+                  อำเภอ
+                  {watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
-                  placeholder="ระบุอำเภอ"
-                  className="form-input"
-                  value={watch('advanceAmphur') || ''}
+                  placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
+                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
                 />
                 <input
                   type="hidden"
                   {...register('advanceAmphur', {
-                    required: 'กรุณาระบุอำเภอ'
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      if (activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุอำเภอ';
+                    }
                   })}
                 />
                 {errors.advanceAmphur && (
@@ -1132,17 +1291,29 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">จังหวัด <span className="text-red-500">*</span></label>
+                <label className="form-label">
+                  จังหวัด
+                  {watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
-                  placeholder="ระบุจังหวัด"
-                  className="form-input"
-                  value={watch('advanceProvince') || ''}
+                  placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
+                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
                 />
                 <input
                   type="hidden"
                   {...register('advanceProvince', {
-                    required: 'กรุณาระบุจังหวัด'
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      if (activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุจังหวัด';
+                    }
                   })}
                 />
                 {errors.advanceProvince && (
@@ -1227,6 +1398,17 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             <button
                               type="button"
                               onClick={() => setShowLotteryInfoModal(true)}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
+                            >
+                              <Info className="h-4 w-4" />
+                              <span>ดูข้อมูลเพิ่มเติม</span>
+                            </button>
+                          )}
+                          {/* Info button for transport category */}
+                          {watch(`advanceExpenseItems.${index}.name`) === 'ค่าขนส่ง' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowTransportInfoModal(true)}
                               className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
                             >
                               <Info className="h-4 w-4" />
@@ -1363,9 +1545,152 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             </div>
           </div>
 
-          
+          {/* ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก</h3>
 
-          
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <label className="form-label">ชื่อบัญชี</label>
+                <Input
+                  placeholder="ระบุชื่อบัญชีธนาคาร"
+                  className="form-input"
+                  {...register('bankAccountName')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">ธนาคาร</label>
+                <Select
+                  onValueChange={(value) => setValue('bankName', value)}
+                  value={watch('bankName')}
+                >
+                  <SelectTrigger className="form-input">
+                    <SelectValue placeholder="เลือกธนาคาร" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THAI_BANKS.map((bank) => (
+                      <SelectItem key={bank} value={bank}>
+                        {bank}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  {...register('bankName')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">เลขที่บัญชี</label>
+                <Input
+                  placeholder="ระบุเลขที่บัญชีธนาคาร"
+                  className="form-input"
+                  {...register('bankAccountNumber', {
+                    pattern: {
+                      value: /^[0-9-]+$/,
+                      message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
+                    }
+                  })}
+                />
+                {errors.bankAccountNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bankAccountNumber.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* แนบเอกสารประกอบ */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+
+            <div className="grid grid-cols-1 gap-4">
+              {ADVANCE_DOCUMENT_TYPES.map((docType) => (
+                <div key={docType.key} className="border rounded-lg p-4 bg-white">
+                  {/* Checkbox for document type */}
+                  <div className="flex items-center space-x-3 mb-3">
+                    <input
+                      type="checkbox"
+                      id={`doc-${docType.key}`}
+                      checked={documentSelections[docType.key]}
+                      onChange={() => handleDocumentCheckboxChange(docType.key)}
+                      className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    <label
+                      htmlFor={`doc-${docType.key}`}
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      {docType.label}
+                    </label>
+                  </div>
+
+                  {/* File upload area - shown when checkbox is checked */}
+                  {documentSelections[docType.key] && (
+                    <div className="mt-2 space-y-2">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                        <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
+                          <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
+                          <span className="mt-1 block text-xs text-gray-600">
+                            คลิกเพื่อเลือกไฟล์
+                          </span>
+                          <input
+                            id={`file-${docType.key}`}
+                            type="file"
+                            className="sr-only"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            onChange={(e) => handleDocumentFileChange(e, docType.key)}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Show uploaded files for this document type */}
+                      {documentFiles[docType.key].length > 0 && (
+                        <div className="space-y-1">
+                          {documentFiles[docType.key].map((fileUrl, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
+                              <div className="flex items-center space-x-2">
+                                <Check className="h-4 w-4 text-blue-600" />
+                                <span className="text-xs text-blue-700 truncate max-w-[150px]">
+                                  ไฟล์ {index + 1}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Summary of uploaded documents */}
+            {Object.values(documentFiles).some(files => files.length > 0) && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <div className="space-y-1">
+                  {ADVANCE_DOCUMENT_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
+                    <div key={dt.key} className="flex items-center text-xs text-blue-700">
+                      <Check className="h-3 w-3 mr-2" />
+                      {dt.label}: {documentFiles[dt.key].length} ไฟล์
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* ปุ่มส่งคำร้อง */}
           <div className="flex justify-end space-x-4">
@@ -1481,6 +1806,47 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               <Button
                 type="button"
                 onClick={() => setShowLotteryInfoModal(false)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                รับทราบ
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transport Info Modal */}
+      {showTransportInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <Info className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าขนส่ง</h3>
+              </div>
+              <button
+                onClick={() => setShowTransportInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-gray-700 leading-relaxed">
+                <strong>ค่าขนส่ง (ภาษี 1%)</strong>
+              </p>
+              <div className="mt-3 p-3 bg-blue-100 border border-blue-300 rounded">
+                <p className="text-blue-800 text-sm">
+                  กรณีจดทะเบียนประเภทธุรกิจขนส่ง
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setShowTransportInfoModal(false)}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 รับทราบ

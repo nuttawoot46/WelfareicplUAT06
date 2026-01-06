@@ -117,12 +117,17 @@ const ACTIVITY_TYPES = [
   {
     name: 'ค่าน้ำมันรถทดแทน ',
     description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
+  },
+  {
+    name: 'อื่นๆ',
+    description: 'กรุณาระบุรายละเอียดเพิ่มเติม'
   }
 ];
 
 // รายการค่าใช้จ่ายเคลียร์
 const EXPENSE_CLEARING_CATEGORIES = [
   { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
+  { name: 'ค่าที่พัก', taxRate: 0, hasInfo: false },
   { name: 'ค่าเช่าสถานที่', taxRate: 5, hasInfo: false },
   { name: 'งบสนับสนุนร้านค้า', taxRate: 3, hasInfo: false },
   { name: 'ค่าบริการ /ค่าจ้างทำป้าย /ค่าจ้างอื่น ๆ', taxRate: 3, hasInfo: false },
@@ -582,9 +587,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     { key: 'receiptSubstitute', label: 'ใบแทนใบเสร็จรับเงิน' },
     { key: 'receipt', label: 'ใบเสร็จรับเงิน' },
     { key: 'transferSlip', label: 'สลิปโอนเงิน' },
-    { key: 'photo', label: 'รูปภาพ' },
-    { key: 'idCardCopySelf', label: 'สำเนาบัตร (ตนเอง)' },
-    { key: 'idCardCopyContractor', label: 'สำเนาบัตร (ผู้รับจ้าง)' },
+    { key: 'photo', label: 'รูปภาพ (กิจกรรม)' },
+    { key: 'idCardCopySelf', label: 'สำเนาบัตรประชาชน (ตนเอง)' },
+    { key: 'idCardCopyContractor', label: 'สำเนาบัตรประชาชน (ผู้รับจ้าง)' },
     { key: 'withholdingTaxCert', label: 'หนังสือรับรองการหัก ณ ที่จ่าย' },
     { key: 'taxInvoice', label: 'ใบกำกับภาษี' },
   ];
@@ -1007,15 +1012,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           <h1 className="text-2xl font-bold">แบบฟอร์มเคลียร์ค่าใช้จ่าย (ฝ่ายขาย)</h1>
         </div>
 
-        {/* Info for expense clearing */}
-        <div className="mb-6">
-          <Alert className="border-green-200 bg-green-50">
-            <AlertCircle className="h-4 w-4 mr-2 text-green-600" />
-            <AlertDescription className="text-green-800">
-              <strong>เคลียร์ค่าใช้จ่าย:</strong> สำหรับการรายงานการใช้เงินจากการเบิกล่วงหน้า คุณสามารถเลือกคำขอเบิกเงินล่วงหน้าที่เคยทำไว้ หรือกรอกข้อมูลใหม่ทั้งหมด
-            </AlertDescription>
-          </Alert>
-        </div>
+        
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Hidden amount field for form submission */}
@@ -1185,7 +1182,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   type="number"
                   min="1"
-                  placeholder="80"
+                  placeholder=""
                   className="form-input"
                   {...register('advanceParticipants', {
                     required: 'กรุณาระบุจำนวนผู้เข้าร่วม',
@@ -1289,17 +1286,29 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               
 
               <div className="space-y-2">
-                <label className="form-label">อำเภอ <span className="text-red-500">*</span></label>
+                <label className="form-label">
+                  อำเภอ
+                  {watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
-                  placeholder="ระบุอำเภอ"
-                  className="form-input"
-                  value={watch('advanceAmphur') || ''}
+                  placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
+                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
                 />
                 <input
                   type="hidden"
                   {...register('advanceAmphur', {
-                    required: 'กรุณาระบุอำเภอ'
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      if (activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุอำเภอ';
+                    }
                   })}
                 />
                 {errors.advanceAmphur && (
@@ -1308,17 +1317,29 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">จังหวัด <span className="text-red-500">*</span></label>
+                <label className="form-label">
+                  จังหวัด
+                  {watch('advanceActivityType') !== 'ค่าน้ำมันรถทดแทน ' && (
+                    <span className="text-red-500"> *</span>
+                  )}
+                </label>
                 <Input
-                  placeholder="ระบุจังหวัด"
-                  className="form-input"
-                  value={watch('advanceProvince') || ''}
+                  placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
+                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
                 />
                 <input
                   type="hidden"
                   {...register('advanceProvince', {
-                    required: 'กรุณาระบุจังหวัด'
+                    validate: (value) => {
+                      const activityType = watch('advanceActivityType');
+                      if (activityType === 'ค่าน้ำมันรถทดแทน ') {
+                        return true;
+                      }
+                      return value && value.trim() !== '' ? true : 'กรุณาระบุจังหวัด';
+                    }
                   })}
                 />
                 {errors.advanceProvince && (
@@ -1747,7 +1768,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
             <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {DOCUMENT_TYPES.map((docType) => (
                 <div key={docType.key} className="border rounded-lg p-4 bg-white">
                   {/* Checkbox for document type */}

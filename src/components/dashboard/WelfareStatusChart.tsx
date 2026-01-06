@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { RefreshCw, FileText, Download } from 'lucide-react';
+import { RefreshCw, FileText, Download, Heart, Briefcase, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import { WelfareEditModal } from '@/components/forms/WelfareEditModal';
 
@@ -165,6 +166,13 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
   URL.revokeObjectURL(url);
 };
 
+// ประเภทสวัสดิการ (ไม่รวมค่าอบรม)
+const WELFARE_TYPES = ['wedding', 'childbirth', 'funeral', 'glasses', 'dental', 'fitness', 'medical'];
+// ประเภทค่าอบรม
+const TRAINING_TYPES = ['training', 'internal_training'];
+// ประเภทขออนุมัติงาน
+const EMPLOYMENT_TYPES = ['employment-approval'];
+
 const WelfareStatusChart: React.FC = React.memo(() => {
   // state เดิมที่มีอยู่แล้ว
   const { profile } = useAuth();
@@ -178,6 +186,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('welfare');
   // Double click handler for editing - เฉพาะสถานะ pending_manager เท่านั้น
   const handleDoubleClick = (request: WelfareRequestItem) => {
     if (request.status === 'pending_manager') {
@@ -335,6 +344,15 @@ const WelfareStatusChart: React.FC = React.memo(() => {
 
     let result = [...requests];
 
+    // Filter by tab type (สวัสดิการ vs ค่าอบรม vs ขออนุมัติงาน)
+    if (activeTab === 'welfare') {
+      result = result.filter(request => WELFARE_TYPES.includes(request.request_type));
+    } else if (activeTab === 'training') {
+      result = result.filter(request => TRAINING_TYPES.includes(request.request_type));
+    } else if (activeTab === 'employment') {
+      result = result.filter(request => EMPLOYMENT_TYPES.includes(request.request_type));
+    }
+
     // Filter by status
     if (selectedStatus !== 'all') {
       result = result.filter(request =>
@@ -369,7 +387,145 @@ const WelfareStatusChart: React.FC = React.memo(() => {
     }
 
     return result;
-  }, [requests, selectedStatus, selectedYear, selectedMonth]);
+  }, [requests, selectedStatus, selectedYear, selectedMonth, activeTab]);
+
+  // Function to render table content
+  const renderTableContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-8 text-red-500">
+          <p>{error}</p>
+          <Button onClick={handleRefresh} variant="outline" className="mt-4">
+            ลองใหม่
+          </Button>
+        </div>
+      );
+    }
+
+    if (filteredRequests.length === 0) {
+      const tabName = activeTab === 'welfare' ? 'สวัสดิการ' : activeTab === 'training' ? 'ค่าอบรม' : 'อนุมัติจ้างงาน';
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <p>ไม่พบรายการคำร้องขอ{tabName}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">วันที่ยื่น</TableHead>
+              <TableHead>ประเภท</TableHead>
+              <TableHead className="text-right">จำนวนเงิน</TableHead>
+              <TableHead>สถานะ</TableHead>
+              <TableHead>เอกสารแนบ</TableHead>
+              <TableHead>PDF</TableHead>
+              <TableHead className="w-[80px]">การดำเนินการ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRequests.map((request) => {
+              // Determine which PDF URL to show based on status
+              let pdfUrl = null;
+              if (request.status === 'pending_manager' && request.pdf_url) {
+                pdfUrl = request.pdf_url;
+              } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
+                pdfUrl = request.pdf_request_manager;
+              } else if ((request.status === 'pending_accounting' || request.status === 'completed') && (request.pdf_request_hr || request.pdf_request_manager)) {
+                pdfUrl = request.pdf_request_hr || request.pdf_request_manager;
+              }
+
+              return (
+                <TableRow
+                  key={request.id}
+                  className={request.status === 'pending_manager' ? 'cursor-pointer hover:bg-gray-50' : ''}
+                  onDoubleClick={() => handleDoubleClick(request)}
+                >
+                  <TableCell className="font-medium">
+                    {formatDate(request.created_at)}
+                  </TableCell>
+                  <TableCell>{getRequestTypeText(request.request_type)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(request.amount)}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(request.status)}`}>
+                      {getStatusText(request.status)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {request.attachments && request.attachments.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {request.attachments.map((url, index) => (
+                          <a
+                            key={index}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm"
+                          >
+                            ไฟล์ {index + 1}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {pdfUrl ? (
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm">ดู PDF</span>
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {request.status === 'pending_manager' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(request)}
+                      >
+                        แก้ไข
+                      </Button>
+                    )}
+                    {(request.status === 'pending_accounting' || request.status === 'completed') && pdfUrl && (
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                          <Download className="h-3 w-3" />
+                          พิมพ์
+                        </Button>
+                      </a>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
 
 
 
@@ -380,7 +536,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกสวัสดิการ</CardTitle>
+              <CardTitle className="text-xl font-bold">ประวัติการยื่นคำร้อง</CardTitle>
               <CardDescription className="mt-1">
                 เมื่อสถานะ รอตรวจสอบโดยบัญชี กรุณาปริ้นเอกสาร PDF ส่งให้ทางฝ่ายบัญชี
               </CardDescription>
@@ -448,180 +604,44 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center p-8 min-h-[200px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-              <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
-              <p className="text-sm text-gray-500 mt-1">กรุณารอสักครู่</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center p-6 text-center text-red-600 bg-red-50 rounded-lg min-h-[200px]">
-              <p className="font-medium text-lg mb-2">เกิดข้อผิดพลาด</p>
-              <p className="text-sm mb-4 max-w-md">{error}</p>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleRefresh}
-                  variant="default"
-                  size="sm"
-                  disabled={isRefreshing}
-                >
-                  {isRefreshing ? 'กำลังลองใหม่...' : 'ลองใหม่'}
-                </Button>
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  size="sm"
-                >
-                  โหลดหน้าใหม่
-                </Button>
-              </div>
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-lg font-medium mb-2">
-                {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
-                  ? 'ไม่พบข้อมูลที่ตรงกับการค้นหา'
-                  : 'ไม่พบข้อมูลการยื่นเบิกสวัสดิการ'}
-              </div>
-              <p className="text-sm">
-                {selectedStatus !== 'all' || selectedYear !== 'all' || selectedMonth !== 'all'
-                  ? 'ลองเปลี่ยนตัวกรองหรือเพิ่มข้อมูลใหม่'
-                  : 'เริ่มต้นโดยการยื่นคำร้องขอสวัสดิการใหม่'}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
-                  <TableRow>
-                    <TableHead className="w-[120px]">วันที่ยื่น</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead className="text-right">จำนวนเงิน</TableHead>
-                    <TableHead className="text-center">สถานะ</TableHead>
-                    <TableHead className="text-center">เอกสารแนบ</TableHead>
-                    <TableHead className="text-center">PDF</TableHead>
-                    <TableHead className="w-[200px]">หมายเหตุ</TableHead>
-                    <TableHead className="w-[100px] text-center">รายละเอียด</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow
-                      key={request.id}
-                      className={`hover:bg-gray-50 ${request.status === 'pending_manager' ? 'cursor-pointer' : 'cursor-default'}`}
-                      onDoubleClick={() => handleDoubleClick(request)}
-                    >
-                      <TableCell className="whitespace-nowrap">
-                        {formatDate(request.created_at)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {getRequestTypeText(request.request_type)}
-                      </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        {formatCurrency(request.amount || 0)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(request.status)}`}>
-                          {getStatusText(request.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-wrap gap-1 justify-center items-center">
-                          {/* เอกสารแนบต้นฉบับ */}
-                          {request.attachments && request.attachments.length > 0 && (
-                            <>
-                              {request.attachments.map((file, idx) => (
-                                <div key={`attachment-${idx}`} className="flex flex-col items-center">
-                                  <Button asChild variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
-                                    <a
-                                      href={file}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      aria-label={`View attachment ${idx + 1}`}
-                                      className="text-blue-600 hover:text-blue-800"
-                                      title="เอกสารแนบต้นฉบับ"
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                    </a>
-                                  </Button>
-                                  <span className="text-xs text-gray-500">เอกสารแนบ</span>
-                                </div>
-                              ))}
-                            </>
-                          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger
+                value="welfare"
+                className="flex items-center gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white"
+              >
+                <Heart className="h-4 w-4" />
+                สวัสดิการ
+              </TabsTrigger>
+              <TabsTrigger
+                value="training"
+                className="flex items-center gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white"
+              >
+                <GraduationCap className="h-4 w-4" />
+                ค่าอบรม
+              </TabsTrigger>
+              <TabsTrigger
+                value="employment"
+                className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+              >
+                <Briefcase className="h-4 w-4" />
+                ขออนุมัติจ้างงาน
+              </TabsTrigger>
+            </TabsList>
 
-                          {/* แสดง - เมื่อไม่มีเอกสารแนบ */}
-                          {(!request.attachments || request.attachments.length === 0) && (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-wrap gap-1 justify-center items-center">
-                          {/* PDF ลิงก์จาก database - เลือกตามสถานะ */}
-                          {(() => {
-                            // เลือก PDF URL ตามสถานะ
-                            let pdfUrl = null;
-                            let pdfTitle = "ดู PDF เอกสาร";
+            {/* Shared content for all tabs */}
+            <TabsContent value="welfare" className="mt-0">
+              {renderTableContent()}
+            </TabsContent>
 
-                            if (request.status === 'pending_manager' && request.pdf_url) {
-                              pdfUrl = request.pdf_url;
-                              pdfTitle = "ดู PDF เอกสาร";
-                            } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
-                              pdfUrl = request.pdf_request_manager;
-                              pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
-                            } else if ((request.status === 'pending_accounting' || request.status === 'completed') && request.pdf_request_hr) {
-                              pdfUrl = request.pdf_request_hr;
-                              pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
-                            }
+            <TabsContent value="training" className="mt-0">
+              {renderTableContent()}
+            </TabsContent>
 
-                            return pdfUrl ? (
-                              <Button asChild variant="ghost" size="icon">
-                                <a
-                                  href={pdfUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-green-600 hover:text-green-800"
-                                  title={pdfTitle}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  <FileText className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            );
-                          })()}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <div className="text-sm text-gray-700 truncate" title={request.manager_notes || ''}>
-                          {request.manager_notes || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {request.status === 'pending_manager' ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={e => {
-                              e.stopPropagation();
-                              handleEdit(request);
-                            }}
-                          >
-                            <span className="sr-only">แก้ไข</span>
-                            แก้ไข
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+            <TabsContent value="employment" className="mt-0">
+              {renderTableContent()}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

@@ -7,43 +7,45 @@
 
 @layer base {
   :root {
-    --background: 226 100% 99%;
-    --foreground: 224 71% 4%;
+    --background: 210 30% 98%;
+    --foreground: 210 50% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 210 50% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 210 50% 10%;
 
-    --primary: 225 96% 59%;
-    --primary-foreground: 210 40% 98%;
+    /* ICP Ladda CI Blue: #004F9F = RGB(0, 79, 159) */
+    --primary: 210 100% 31%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 292 75% 38%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 60% 45%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 8% 46%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 15% 46%;
 
-    --accent: 199 90% 62%;
-    --accent-foreground: 220 100% 10%;
+    --accent: 210 80% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 225 96% 59%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 210 100% 31%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 225 96% 59%;
+    /* Sidebar - ICP Blue */
+    --sidebar-background: 210 100% 31%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 225 96% 59%;
-    --sidebar-accent: 225 70% 65%;
+    --sidebar-primary-foreground: 210 100% 31%;
+    --sidebar-accent: 210 80% 40%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 225 70% 65%;
+    --sidebar-border: 210 80% 40%;
     --sidebar-ring: 0 0% 100%;
   }
 
@@ -141,7 +143,7 @@
   }
 
   .java-effect {
-    @apply relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-conic before:from-welfare-purple/20 before:via-welfare-blue/20 before:to-welfare-teal/20 before:animate-spin-slow;
+    @apply relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-conic before:from-icp-blue-dark/20 before:via-icp-blue/20 before:to-icp-blue-light/20 before:animate-spin-slow;
   }
   
   /* Modern Dark Mode Classes */
@@ -154,7 +156,7 @@
   }
   
   .dark-gradient-border {
-    @apply dark:border dark:border-transparent dark:bg-gradient-to-r dark:from-dark-purple/30 dark:to-dark-blue/30 dark:p-[1px];
+    @apply dark:border dark:border-transparent dark:bg-gradient-to-r dark:from-icp-blue-dark/30 dark:to-dark-blue/30 dark:p-[1px];
   }
   
   .dark-gradient-border > * {
@@ -174,7 +176,7 @@
   }
   
   .dark-glow {
-    @apply dark:shadow-[0_0_15px_rgba(139,92,246,0.15)];
+    @apply dark:shadow-[0_0_15px_rgba(0,79,159,0.2)];
   }
   
   .dark-aurora {
@@ -284,9 +286,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: radial-gradient(at 40% 40%, rgba(139, 92, 246, 0.05) 0px, transparent 50%), 
-                    radial-gradient(at 80% 10%, rgba(124, 58, 237, 0.05) 0px, transparent 50%), 
-                    radial-gradient(at 10% 90%, rgba(192, 132, 252, 0.05) 0px, transparent 50%);
+  background-image: radial-gradient(at 40% 40%, rgba(0, 79, 159, 0.08) 0px, transparent 50%),
+                    radial-gradient(at 80% 10%, rgba(0, 102, 204, 0.08) 0px, transparent 50%),
+                    radial-gradient(at 10% 90%, rgba(102, 163, 219, 0.08) 0px, transparent 50%);
   opacity: 0.8;
   z-index: 0;
   pointer-events: none;
@@ -325,12 +327,12 @@
 }
 
 .dark .glow-effect {
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 15px rgba(0, 79, 159, 0.25);
   transition: box-shadow 0.3s ease;
 }
 
 .dark .glow-effect:hover {
-  box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 25px rgba(0, 79, 159, 0.45);
 }
 
 .dark .noise-bg {

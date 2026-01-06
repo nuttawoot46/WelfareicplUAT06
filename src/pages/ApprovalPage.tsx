@@ -905,14 +905,15 @@ export const ApprovalPage = () => {
                       <TableHead>Submission Date</TableHead>
                       <TableHead>Approved by Manager</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Attachment</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
+                      <TableHead className="text-center">PDF</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องสวัสดิการที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
@@ -970,19 +971,74 @@ export const ApprovalPage = () => {
                                request.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {request.pdfUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(request.pdfUrl, '_blank')}
-                                className="h-8 w-8 p-0"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
+                          <TableCell className="text-center">
+                            {request.attachments && request.attachments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {request.attachments.map((file, idx) => (
+                                  <Button asChild variant="ghost" size="icon" key={idx}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                ))}
+                              </div>
                             ) : (
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              // เลือก PDF URL ตามสถานะ
+                              let pdfUrl = null;
+                              let pdfTitle = "ดู PDF เอกสาร";
+
+                              if (request.status === 'pending_manager' && (request.pdfUrl || request.pdf_url)) {
+                                pdfUrl = request.pdfUrl || request.pdf_url;
+                                pdfTitle = "ดู PDF เอกสาร";
+                              } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
+                                pdfUrl = request.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if ((request.status === 'pending_accounting' || request.status === 'approved') && (request.pdf_request_hr || request.pdf_request_manager)) {
+                                pdfUrl = request.pdf_request_hr || request.pdf_request_manager;
+                                pdfTitle = request.pdf_request_hr ? "ดู PDF ที่ HR อนุมัติแล้ว" : "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if (request.managerSignature || request.hrSignature) {
+                                // ถ้ามีลายเซ็นให้ใช้ downloadPDF
+                                return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadPDF(request.id)}
+                                    disabled={isPDFLoading}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    PDF
+                                  </Button>
+                                );
+                              }
+
+                              return pdfUrl ? (
+                                <Button asChild variant="ghost" size="icon">
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-600 hover:text-green-800"
+                                    title={pdfTitle}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1012,7 +1068,7 @@ export const ApprovalPage = () => {
                 </Table>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="pending-accounting" className="space-y-4">
               <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h3 className="font-semibold text-green-800 mb-2">คำร้องบัญชี</h3>
@@ -1099,14 +1155,15 @@ export const ApprovalPage = () => {
                       <TableHead>Submission Date</TableHead>
                       <TableHead>Approved by Manager</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Attachment</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
+                      <TableHead className="text-center">PDF</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องบัญชีที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
@@ -1164,19 +1221,74 @@ export const ApprovalPage = () => {
                                request.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {request.pdfUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(request.pdfUrl, '_blank')}
-                                className="h-8 w-8 p-0"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
+                          <TableCell className="text-center">
+                            {request.attachments && request.attachments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {request.attachments.map((file, idx) => (
+                                  <Button asChild variant="ghost" size="icon" key={idx}>
+                                    <a
+                                      href={file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`View attachment ${idx + 1}`}
+                                      className="text-muted-foreground hover:text-foreground"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                ))}
+                              </div>
                             ) : (
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              // เลือก PDF URL ตามสถานะ
+                              let pdfUrl = null;
+                              let pdfTitle = "ดู PDF เอกสาร";
+
+                              if (request.status === 'pending_manager' && (request.pdfUrl || request.pdf_url)) {
+                                pdfUrl = request.pdfUrl || request.pdf_url;
+                                pdfTitle = "ดู PDF เอกสาร";
+                              } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
+                                pdfUrl = request.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if ((request.status === 'pending_accounting' || request.status === 'approved') && (request.pdf_request_hr || request.pdf_request_manager)) {
+                                pdfUrl = request.pdf_request_hr || request.pdf_request_manager;
+                                pdfTitle = request.pdf_request_hr ? "ดู PDF ที่ HR อนุมัติแล้ว" : "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if (request.managerSignature || request.hrSignature) {
+                                // ถ้ามีลายเซ็นให้ใช้ downloadPDF
+                                return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadPDF(request.id)}
+                                    disabled={isPDFLoading}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    PDF
+                                  </Button>
+                                );
+                              }
+
+                              return pdfUrl ? (
+                                <Button asChild variant="ghost" size="icon">
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-600 hover:text-green-800"
+                                    title={pdfTitle}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1206,7 +1318,7 @@ export const ApprovalPage = () => {
                 </Table>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="history" className="space-y-4">
               <div className="flex items-center space-x-2">
                 <div className="relative">

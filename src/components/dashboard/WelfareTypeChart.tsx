@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWelfare } from '@/context/WelfareContext';
 import { WelfareType } from '@/types';
 
+// ICP Ladda CI Blue Color Palette
 const COLORS = [
-  '#4361EE', // wedding
-  '#4CC9F0', // training
-  '#F72585', // childbirth
-  '#3A0CA3', // funeral
-  '#4CC9F0', // glasses
-  '#FB8500', // dental
-  '#06D6A0', // fitness
+  '#004F9F', // wedding - ICP Blue Primary
+  '#0066CC', // training - ICP Blue Light
+  '#3385CF', // childbirth - ICP Blue 400
+  '#003D7A', // funeral - ICP Blue Dark
+  '#66A3DB', // glasses - ICP Blue 300
+  '#FB8500', // dental - Orange accent
+  '#06D6A0', // fitness - Green accent
 ];
 
 export function WelfareTypeChart() {

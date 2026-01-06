@@ -66,16 +66,32 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				/* ICP Ladda CI Colors */
+				icp: {
+					blue: '#004F9F',        /* Primary CI color */
+					'blue-light': '#0066CC',
+					'blue-dark': '#003D7A',
+					'blue-50': '#E6F0F9',
+					'blue-100': '#CCE0F3',
+					'blue-200': '#99C2E7',
+					'blue-300': '#66A3DB',
+					'blue-400': '#3385CF',
+					'blue-500': '#004F9F',
+					'blue-600': '#00478F',
+					'blue-700': '#003F7F',
+					'blue-800': '#00376F',
+					'blue-900': '#002F5F',
+				},
 				welfare: {
-					blue: '#4361EE',
-					purple: '#7209B7',
-					pink: '#F72585',
+					blue: '#004F9F',        /* Updated to ICP Blue */
+					purple: '#3D5A80',      /* Complementary dark blue-gray */
+					pink: '#98C1D9',        /* Light blue accent */
 					orange: '#FB8500',
 					teal: '#4CC9F0',
 					green: '#06D6A0',
 					yellow: '#FFCA3A',
 					red: '#D90429',
-					indigo: '#6366F1',
+					indigo: '#293241',      /* Dark navy */
 					white: '#FFFFFF',
 				},
 				dark: {
@@ -84,10 +100,10 @@ export default {
 					'300': '#11111B', // Darkest elements
 					'accent-1': '#313244', // Subtle accent
 					'accent-2': '#45475A', // Stronger accent
-					'blue': '#89B4FA',
-					'lavender': '#B4BEFE',
-					'purple': '#CBA6F7',
-					'pink': '#F5C2E7',
+					'blue': '#66A3DB',      // ICP Blue light for dark mode
+					'lavender': '#99C2E7',  // ICP Blue 200
+					'purple': '#3D5A80',    // Complementary blue-gray
+					'pink': '#98C1D9',      // Light blue accent
 					'teal': '#94E2D5',
 					'green': '#A6E3A1',
 					'yellow': '#F9E2AF',
@@ -203,17 +219,18 @@ export default {
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-				'gradient-primary': 'linear-gradient(90deg, #4361EE 0%, #7209B7 100%)',
-				'gradient-secondary': 'linear-gradient(90deg, #F72585 0%, #7209B7 100%)',
-				'gradient-accent': 'linear-gradient(90deg, #4CC9F0 0%, #4361EE 100%)',
+				/* ICP Ladda CI Gradients */
+				'gradient-primary': 'linear-gradient(90deg, #004F9F 0%, #0066CC 100%)',
+				'gradient-secondary': 'linear-gradient(90deg, #003D7A 0%, #004F9F 100%)',
+				'gradient-accent': 'linear-gradient(90deg, #66A3DB 0%, #004F9F 100%)',
 				'dark-gradient': 'linear-gradient(to bottom, #1E1E2E, #181825)',
 				'dark-radial': 'radial-gradient(circle at center, #1E1E2E 0%, #11111B 100%)',
-				'dark-mesh': 'radial-gradient(at 40% 40%, rgba(139, 92, 246, 0.05) 0px, transparent 50%), radial-gradient(at 80% 10%, rgba(124, 58, 237, 0.05) 0px, transparent 50%), radial-gradient(at 10% 90%, rgba(192, 132, 252, 0.05) 0px, transparent 50%)',
-				'dark-glow': 'linear-gradient(to right, #1E1E2E, #1E1E2E), radial-gradient(circle at top left, rgba(139, 92, 246, 0.12), transparent 25%), radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.12), transparent 25%)',
+				'dark-mesh': 'radial-gradient(at 40% 40%, rgba(0, 79, 159, 0.08) 0px, transparent 50%), radial-gradient(at 80% 10%, rgba(0, 102, 204, 0.08) 0px, transparent 50%), radial-gradient(at 10% 90%, rgba(102, 163, 219, 0.08) 0px, transparent 50%)',
+				'dark-glow': 'linear-gradient(to right, #1E1E2E, #1E1E2E), radial-gradient(circle at top left, rgba(0, 79, 159, 0.15), transparent 25%), radial-gradient(circle at bottom right, rgba(0, 79, 159, 0.15), transparent 25%)',
 				'dark-noise': 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
 				'dark-grid': 'linear-gradient(to right, rgba(75, 85, 99, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(75, 85, 99, 0.05) 1px, transparent 1px)',
 				'dark-dots': 'radial-gradient(rgba(75, 85, 99, 0.1) 1px, transparent 1px)',
-				'aurora-bg': 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.15) 25%, rgba(192, 132, 252, 0.15) 50%, rgba(139, 92, 246, 0.15) 75%, rgba(124, 58, 237, 0.15) 100%)',
+				'aurora-bg': 'linear-gradient(135deg, rgba(0, 79, 159, 0.15) 0%, rgba(0, 102, 204, 0.15) 25%, rgba(102, 163, 219, 0.15) 50%, rgba(0, 79, 159, 0.15) 75%, rgba(0, 102, 204, 0.15) 100%)',
 				'glass-effect': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
 			}
 		}

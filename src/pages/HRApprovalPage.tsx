@@ -766,6 +766,37 @@ export const HRApprovalPage = () => {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              // เลือก PDF URL ตามสถานะ - สำหรับ HR ที่รอ pending_hr จะใช้ pdf_request_manager
+                              let pdfUrl = null;
+                              let pdfTitle = "ดู PDF เอกสาร";
+
+                              if (req.pdf_request_manager) {
+                                pdfUrl = req.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if (req.pdfUrl || req.pdf_url) {
+                                pdfUrl = req.pdfUrl || req.pdf_url;
+                                pdfTitle = "ดู PDF เอกสาร";
+                              }
+
+                              return pdfUrl ? (
+                                <Button asChild variant="ghost" size="icon">
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-600 hover:text-green-800"
+                                    title={pdfTitle}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
@@ -938,6 +969,37 @@ export const HRApprovalPage = () => {
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              // เลือก PDF URL ตามสถานะ - สำหรับ HR ที่รอ pending_hr จะใช้ pdf_request_manager
+                              let pdfUrl = null;
+                              let pdfTitle = "ดู PDF เอกสาร";
+
+                              if (req.pdf_request_manager) {
+                                pdfUrl = req.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if (req.pdfUrl || req.pdf_url) {
+                                pdfUrl = req.pdfUrl || req.pdf_url;
+                                pdfTitle = "ดู PDF เอกสาร";
+                              }
+
+                              return pdfUrl ? (
+                                <Button asChild variant="ghost" size="icon">
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-600 hover:text-green-800"
+                                    title={pdfTitle}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1134,24 +1196,38 @@ export const HRApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {(req.managerSignature || req.hrSignature) ? (
-                              <div className="flex gap-1 justify-center">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={async () => {
-                                    const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
-                                    await downloadPDFFromDatabase(req.id);
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800"
-                                >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  PDF
+                            {(() => {
+                              // เลือก PDF URL ตามสถานะ
+                              let pdfUrl = null;
+                              let pdfTitle = "ดู PDF เอกสาร";
+
+                              if (req.pdf_request_hr) {
+                                pdfUrl = req.pdf_request_hr;
+                                pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
+                              } else if (req.pdf_request_manager) {
+                                pdfUrl = req.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              } else if (req.pdfUrl || req.pdf_url) {
+                                pdfUrl = req.pdfUrl || req.pdf_url;
+                                pdfTitle = "ดู PDF เอกสาร";
+                              }
+
+                              return pdfUrl ? (
+                                <Button asChild variant="ghost" size="icon">
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-600 hover:text-green-800"
+                                    title={pdfTitle}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
                                 </Button>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">ยังไม่อนุมัติ</span>
-                            )}
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>

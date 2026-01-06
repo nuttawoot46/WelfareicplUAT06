@@ -168,6 +168,11 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               expenseClearingItems: row.expense_clearing_items,
               // Run number
               runNumber: row.run_number,
+              // PDF fields
+              pdfUrl: row.pdf_url,
+              pdf_url: row.pdf_url,
+              pdf_request_manager: row.pdf_request_manager,
+              pdf_request_hr: row.pdf_request_hr,
             };
           })
         );
