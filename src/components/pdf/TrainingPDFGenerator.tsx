@@ -110,21 +110,24 @@ const formatThaiDate = (dateString?: string) => {
   };
 };
 
-// Financial calculations utility matching the form structure
-const calculateFinancials = (baseAmount: number) => {
-  const vatAmount = baseAmount * 0.07;
-  const withholdingTax = baseAmount * 0.03;
-  const totalAmount = baseAmount + vatAmount;
-  const netAmount = totalAmount - withholdingTax;
-  const companyPayment = baseAmount * 0.5;
-  const employeePayment = baseAmount * 0.5;
+// Financial calculations utility - use values from welfareData instead of calculating
+const calculateFinancials = (welfareData: WelfareRequest) => {
+  const baseCost = welfareData.total_amount || welfareData.amount || 0;
+  const vatAmount = welfareData.tax7_percent || 0;
+  const withholdingTax = welfareData.withholding_tax3_percent || 0;
+  const grossAmount = baseCost + vatAmount;
+  const netAmount = welfareData.net_amount || (grossAmount - withholdingTax);
+  const excessAmount = welfareData.excess_amount || 0;
+  const companyPayment = welfareData.company_payment || 0;
+  const employeePayment = welfareData.employee_payment || 0;
 
   return {
-    baseCost: baseAmount,
+    baseCost,
     vatAmount,
     withholdingTax,
-    totalAmount,
+    grossAmount,
     netAmount,
+    excessAmount,
     companyPayment,
     employeePayment,
     netAmountText: numberToThaiText(Math.round(netAmount))
@@ -225,9 +228,8 @@ const createTrainingFormHTML = (
   // Parse training objectives
   const objectives = parseTrainingObjectives(welfareData.training_topics || welfareData.details);
 
-  // Calculate financials
-  const baseAmount = welfareData.amount || 0;
-  const financials = calculateFinancials(baseAmount);
+  // Get financials from welfareData
+  const financials = calculateFinancials(welfareData);
   const remainingBudgetAmount = remainingBudget || userData.training_budget || 0;
 
   return `
@@ -310,7 +312,7 @@ const createTrainingFormHTML = (
         <!-- Cost Information -->
         <div style="margin-bottom: 8px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">
-            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2568 เป็นจำนวนเงิน ..............${financials.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
+            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2568 เป็นจำนวนเงิน ..............${financials.grossAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
           </div>
           <div style="margin-bottom: 5px;">
             รายละเอียดค่าใช้จ่ายในการฝึกอบรม ในครั้งนี้ มีดังนี้
@@ -356,7 +358,7 @@ const createTrainingFormHTML = (
               คิดเป็นส่วนเกินงบ (d-1)
             </td>
             <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท 
+              ${financials.excessAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             </td>
           </tr>
           <tr>
