@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -1316,7 +1316,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       netNum = grossAmount - withholding; // เนเธเนเนเธ: เธฅเธเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
       excessAmountValue = 0;
       companyPaymentValue = 0;
-      employeePaymentValue = withholding; // เธเธเธฑเธเธเธฒเธเธเนเธฒเธขเน€เธเธเธฒเธฐเธ เธฒเธฉเธต เธ“ เธ—เธตเนเธเนเธฒเธข
+      employeePaymentValue = 0; // no payment when under budget
     }
 
     // --- เธญเธฑเธเน€เธ”เธ•เธเนเธฒเธ—เธฑเนเธเธซเธกเธ”เนเธเธขเธฑเธเธเธญเธฃเนเธก ---
@@ -2816,3 +2816,4 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     </div>
   );
 }
+
