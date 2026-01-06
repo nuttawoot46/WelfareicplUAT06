@@ -198,7 +198,7 @@ const getImageAsBase64 = async (imagePath: string): Promise<string> => {
 const createTrainingFormHTML = (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string; Original_Budget_Training?: number; Budget_Training?: number },
+  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string; Original_Budget_Training?: number | string; Budget_Training?: number | string },
   userSignature?: string,
   managerSignature?: string,
   hrSignature?: string,
@@ -571,7 +571,7 @@ const createTrainingFormHTML = (
 export const generateTrainingPDF = async (
   welfareData: WelfareRequest,
   userData: User,
-  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string },
+  employeeData?: { Name: string; Position: string; Team: string; manager_name?: string; Original_Budget_Training?: number | string; Budget_Training?: number | string },
   userSignature?: string,
   remainingBudget?: number,
   managerSignature?: string,
