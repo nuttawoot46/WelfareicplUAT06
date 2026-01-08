@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { generateSalesExpenseClearingPDF } from '../pdf/SalesExpenseClearingPDFGenerator';
+import { generatePhotoGridPDF } from '../pdf/PhotoGridPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
@@ -993,6 +994,56 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
         if (result.id && pdfUrl) {
           await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', result.id);
+        }
+
+        // Generate Photo Grid PDF if there are photos
+        if (documentFiles.photo.length > 0) {
+          try {
+            const photosWithDescriptions = documentFiles.photo.map((url, index) => ({
+              url,
+              description: photoDescriptions[index] || ''
+            }));
+
+            const photoBlob = await generatePhotoGridPDF(
+              photosWithDescriptions,
+              `รูปภาพกิจกรรม - ${employeeData?.Name || user?.email}`
+            );
+
+            const photoFilename = `expense_clearing_photos_emp${employeeId}_${timestamp}.pdf`;
+            const photoPdfUrl = await uploadPDFToSupabase(photoBlob, photoFilename, user?.id);
+
+            if (result.id && photoPdfUrl) {
+              // Append photo PDF URL to attachment_url (stored as JSON array)
+              const { data: currentData } = await supabase
+                .from('welfare_requests')
+                .select('attachment_url')
+                .eq('id', result.id)
+                .single();
+
+              // Parse existing attachment_url as JSON array
+              let existingUrls: string[] = [];
+              if (currentData?.attachment_url) {
+                try {
+                  const parsed = JSON.parse(currentData.attachment_url);
+                  existingUrls = Array.isArray(parsed) ? parsed : [parsed];
+                } catch {
+                  // If not valid JSON, treat as single URL string
+                  existingUrls = currentData.attachment_url ? [currentData.attachment_url] : [];
+                }
+              }
+
+              // Add the photo PDF URL to the array
+              existingUrls.push(photoPdfUrl);
+
+              await supabase.from('welfare_requests').update({
+                attachment_url: JSON.stringify(existingUrls)
+              }).eq('id', result.id);
+            }
+            console.log('✅ Photo Grid PDF generated and uploaded:', photoPdfUrl);
+          } catch (photoError) {
+            console.error('Photo Grid PDF generation error:', photoError);
+            // Don't throw - main form submission was successful
+          }
         }
 
         toast({

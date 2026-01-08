@@ -1234,15 +1234,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 <div>
                   <b>ไฟล์แนบ:</b>
                   <div className="mt-1 space-y-2">
-                    {selectedRequest.attachment_url && (
-                      <div>
-                        <a href={selectedRequest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          View Attachment
-                        </a>
-                      </div>
-                    )}
-                    {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                    {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
                       <div className="space-y-1">
                         {selectedRequest.attachments.map((url, i) => (
                           <div key={i}>
@@ -1253,6 +1245,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
                           </div>
                         ))}
                       </div>
+                    ) : (
+                      <span className="text-gray-500">ไม่มีไฟล์แนบ</span>
                     )}
 
                     {selectedRequest.pdf_request_hr && (
