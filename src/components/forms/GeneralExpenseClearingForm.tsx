@@ -28,6 +28,7 @@ interface GeneralExpenseClearingFormValues {
   title?: string;
   attachments?: FileList;
   originalAdvanceRequestId?: number;
+  originalAdvanceRunNumber?: string;
   advanceDepartment?: string;
   advanceDepartmentOther?: string;
   advanceActivityType?: string;
@@ -65,6 +66,15 @@ interface GeneralExpenseClearingFormValues {
 
 // Document type definition for attachment checkboxes
 type DocumentType = 'receiptSubstitute' | 'receipt' | 'transferSlip' | 'photo' | 'idCardCopySelf' | 'idCardCopyContractor' | 'withholdingTaxCert' | 'taxInvoice' | 'invoice';
+
+// Generate run number for general expense clearing requests (ทั่วไป)
+const generateGeneralExpenseClearingRunNumber = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp for uniqueness
+  return `GEXP${year}${month}${timestamp}`;
+};
 
 const GENERAL_EXPENSE_CATEGORIES = [
   { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
@@ -233,6 +243,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
         .single();
       if (!error && data) {
         setValue('originalAdvanceRequestId', data.id);
+        setValue('originalAdvanceRunNumber', (data as any).run_number || '');
         setValue('startDate', data.start_date || '');
         setValue('endDate', data.end_date || '');
         setValue('advanceDepartment', (data as any).advance_department || '');
@@ -531,6 +542,9 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
       // Combine all document files into a single attachments array
       const allAttachments = Object.values(documentFiles).flat();
 
+      // Generate run number for general expense clearing
+      const runNumber = generateGeneralExpenseClearingRunNumber();
+
       const requestData = {
         userId: profile.employee_id.toString(),
         userName: employeeData?.Name || user?.email || 'Unknown User',
@@ -551,12 +565,15 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
         userSignature: signature || userSignature,
         attachmentSelections: documentSelections,
         originalAdvanceRequestId: data.originalAdvanceRequestId,
+        originalAdvanceRunNumber: data.originalAdvanceRunNumber,
         expenseClearingItems: data.expenseClearingItems,
         advanceDepartment: data.advanceDepartment,
         advanceDepartmentOther: data.advanceDepartmentOther,
         advanceActivityType: data.advanceActivityType,
         advanceParticipants: data.advanceParticipants,
         documentFiles: documentFiles,
+        // Run number for general expense clearing
+        runNumber: runNumber,
       };
 
       let result: any;
@@ -604,7 +621,17 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
         });
       }
       reset();
-      setFiles([]);
+      setDocumentFiles({
+        receiptSubstitute: [],
+        receipt: [],
+        transferSlip: [],
+        photo: [],
+        idCardCopySelf: [],
+        idCardCopyContractor: [],
+        withholdingTaxCert: [],
+        taxInvoice: [],
+        invoice: [],
+      });
       setUserSignature('');
       setTimeout(onBack, 2000);
     } catch (error: any) {

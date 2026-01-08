@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { WelfareRequest, User } from '@/types';
 
-interface ExpenseClearingPDFGeneratorProps {
+interface SalesExpenseClearingPDFGeneratorProps {
   expenseClearingData: WelfareRequest;
   userData: User;
   employeeData?: {
@@ -14,7 +14,7 @@ interface ExpenseClearingPDFGeneratorProps {
   };
 }
 
-const createExpenseClearingFormHTML = (
+const createSalesExpenseClearingFormHTML = (
   expenseClearingData: WelfareRequest,
   userData: User,
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
@@ -70,6 +70,12 @@ const createExpenseClearingFormHTML = (
   const totalUsed = expenseItems.reduce((sum, item) => sum + (Number(item.usedAmount) || 0), 0);
   const totalRefund = expenseItems.reduce((sum, item) => sum + (Number(item.refund) || 0), 0);
 
+  // Get sales-specific information
+  const salesDealerName = expenseClearingData.advanceDealerName || '';
+  const salesSubdealerName = expenseClearingData.advanceSubdealerName || '';
+  const salesProvince = expenseClearingData.advanceProvince || '';
+  const salesAmphur = expenseClearingData.advanceAmphur || '';
+
   return `
     <div style="
       width: 210mm;
@@ -95,9 +101,9 @@ const createExpenseClearingFormHTML = (
         </div>
 
         <!-- Center Title -->
-        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -2.5cm;">
+        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -3cm;">
           <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">ใบเคลียร์ค่าใช้จ่าย</div>
-          <div style="font-size: 14px; margin-bottom: 10px;">รายงานการใช้เงินเบิกล่วงหน้า</div>
+          <div style="font-size: 14px; margin-bottom: 10px; color: #1565c0;">(ฝ่ายขาย)</div>
           <div style="font-size: 12px;">วันที่ ${currentDate}</div>
         </div>
 
@@ -119,7 +125,7 @@ const createExpenseClearingFormHTML = (
 
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${expenseClearingData.advanceDepartment || employeeTeam}</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeTeam}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
@@ -142,10 +148,18 @@ const createExpenseClearingFormHTML = (
       <!-- Activity Type Section -->
       <div style="margin-bottom: 20px;">
         <div style="display: flex; margin-bottom: 10px;">
-          <span style="font-weight: bold;">ประเภท:</span>
+          <span style="font-weight: bold;">ประเภทกิจกรรม:</span>
           <span style="border-bottom: 1px dotted black; flex: 1; margin-left: 10px; padding-bottom: 2px;">
             ${expenseClearingData.advanceActivityType || '-'}
           </span>
+        </div>
+
+        <!-- Details Section -->
+        <div style="margin-bottom: 10px;">
+          <span style="font-weight: bold;">รายละเอียด ( โปรดระบุ )</span>
+          <div style="margin-top: 5px; line-height: 1.6;">
+            ${expenseClearingData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
+          </div>
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
@@ -168,13 +182,33 @@ const createExpenseClearingFormHTML = (
         </div>
       </div>
 
+      <!-- Sales Information Section -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="width: 120px; font-weight: bold;">ชื่อดิลเลอร์:</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${salesDealerName}</span>
+        </div>
+
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="width: 120px; font-weight: bold;">ชื่อซับดิลเลอร์:</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${salesSubdealerName}</span>
+        </div>
+
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="width: 120px; font-weight: bold;">อำเภอ:</span>
+          <span style="border-bottom: 1px dotted black; width: 150px; padding-bottom: 2px;">${salesAmphur}</span>
+          <span style="margin-left: 20px; font-weight: bold;">จังหวัด:</span>
+          <span style="border-bottom: 1px dotted black; flex: 1; margin-left: 10px; padding-bottom: 2px;">${salesProvince}</span>
+        </div>
+      </div>
+
       <!-- Expense Clearing Summary -->
       <div style="margin-bottom: 20px;">
         <div style="font-weight: bold; margin-bottom: 10px;">สรุปการใช้จ่ายและเคลียร์ค่าใช้จ่าย</div>
 
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
-            <tr style="background: #f0f0f0;">
+            <tr style="background: #e3f2fd;">
               <th style="border: 1px solid black; padding: 4px; text-align: center; width: 30px;">ลำดับ</th>
               <th style="border: 1px solid black; padding: 4px; text-align: left;">ชื่อรายการ</th>
               <th style="border: 1px solid black; padding: 4px; text-align: center; width: 50px;">อัตราภาษี</th>
@@ -217,12 +251,12 @@ const createExpenseClearingFormHTML = (
                 <td style="border: 1px solid black; padding: 6px;" colspan="9">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
-            <tr style="background: #e6f3ff; font-weight: bold;">
+            <tr style="background: #bbdefb; font-weight: bold;">
               <td style="border: 1px solid black; padding: 6px; text-align: center;" colspan="3">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: blue;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; color: #1565c0;">
                 ${formatCurrency(totalRequested)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: orange;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; color: #fd7e14;">
                 ${formatCurrency(totalUsed)}
               </td>
               <td style="border: 1px solid black; padding: 6px; text-align: right;">
@@ -234,22 +268,12 @@ const createExpenseClearingFormHTML = (
               <td style="border: 1px solid black; padding: 6px; text-align: right;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.netAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: ${totalRefund >= 0 ? 'green' : 'red'}; font-size: 11px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; color: ${totalRefund >= 0 ? '#16a34a' : '#dc2626'}; font-size: 11px;">
                 ${formatCurrency(totalRefund)}
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- Details Section -->
-      <div style="margin-bottom: 20px; font-size: 11px;">
-        <div style="margin-bottom: 8px;">
-          <span style="font-weight: bold;">รายละเอียด ( โปรดระบุ )</span>
-        </div>
-        <div style="margin-bottom: 6px; line-height: 1.6;">
-          ${expenseClearingData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
-        </div>
       </div>
 
       <!-- Signature Section -->
@@ -264,7 +288,7 @@ const createExpenseClearingFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${employeeName} )</div>
-            <div>แผนก: ${employeeTeam || 'ไม่ระบุ'}</div>
+            <div>ผู้เคลียร์ค่าใช้จ่าย</div>
             <div>ตำแหน่ง: ${employeePosition}</div>
             <div>วันที่: ${formatThaiDate(expenseClearingData.createdAt || '')}</div>
           </div>
@@ -290,7 +314,7 @@ const createExpenseClearingFormHTML = (
   `;
 };
 
-export const generateExpenseClearingPDF = async (
+export const generateSalesExpenseClearingPDF = async (
   expenseClearingData: WelfareRequest,
   userData: User,
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
@@ -300,7 +324,7 @@ export const generateExpenseClearingPDF = async (
 ): Promise<Blob> => {
   // Create a temporary div to hold the HTML content
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = createExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+  tempDiv.innerHTML = createSalesExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';
@@ -333,7 +357,7 @@ export const generateExpenseClearingPDF = async (
   }
 };
 
-export const generateAndDownloadExpenseClearingPDF = async (
+export const generateAndDownloadSalesExpenseClearingPDF = async (
   expenseClearingData: WelfareRequest,
   userData: User,
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
@@ -342,10 +366,10 @@ export const generateAndDownloadExpenseClearingPDF = async (
   accountingSignature?: string
 ) => {
   try {
-    const pdfBlob = await generateExpenseClearingPDF(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+    const pdfBlob = await generateSalesExpenseClearingPDF(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
 
     const employeeName = employeeData?.Name || userData.name || '';
-    const filename = `expense_clearing_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+    const filename = `sales_expense_clearing_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
 
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
@@ -363,14 +387,14 @@ export const generateAndDownloadExpenseClearingPDF = async (
   }
 };
 
-export const ExpenseClearingPDFGenerator: React.FC<ExpenseClearingPDFGeneratorProps> = ({
+export const SalesExpenseClearingPDFGenerator: React.FC<SalesExpenseClearingPDFGeneratorProps> = ({
   expenseClearingData,
   userData,
   employeeData
 }) => {
   const handleGeneratePDF = async () => {
     try {
-      await generateAndDownloadExpenseClearingPDF(expenseClearingData, userData, employeeData);
+      await generateAndDownloadSalesExpenseClearingPDF(expenseClearingData, userData, employeeData);
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
@@ -379,9 +403,9 @@ export const ExpenseClearingPDFGenerator: React.FC<ExpenseClearingPDFGeneratorPr
   return (
     <button
       onClick={handleGeneratePDF}
-      className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
     >
-      ดาวน์โหลด PDF เคลียร์ค่าใช้จ่าย
+      ดาวน์โหลด PDF เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)
     </button>
   );
 };

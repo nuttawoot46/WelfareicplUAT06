@@ -98,7 +98,9 @@ const getRequestTypeText = (requestType: string) => {
     case 'general-advance':
       return 'เบิกเงินล่วงหน้า (ทั่วไป)';
     case 'expense-clearing':
-      return 'เคลียร์ค่าใช้จ่าย';
+      return 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)';
+    case 'general-expense-clearing':
+      return 'เคลียร์ค่าใช้จ่าย (ทั่วไป)';
     default:
       return requestType;
   }
@@ -198,7 +200,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .in('request_type', ['advance', 'general-advance', 'expense-clearing']) // Only accounting requests
+        .in('request_type', ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing']) // Only accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

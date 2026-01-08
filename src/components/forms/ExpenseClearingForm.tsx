@@ -11,7 +11,7 @@ import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { generateExpenseClearingPDF } from '../pdf/ExpenseClearingPDFGenerator';
+import { generateSalesExpenseClearingPDF } from '../pdf/SalesExpenseClearingPDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
@@ -32,6 +32,7 @@ interface ExpenseClearingFormValues {
 
   // Reference to original advance request
   originalAdvanceRequestId?: number;
+  originalAdvanceRunNumber?: string;
 
   // Expense clearing fields (similar to advance but with actual usage)
   advanceDepartment: string;
@@ -124,6 +125,15 @@ const ACTIVITY_TYPES = [
   }
 ];
 
+// Generate run number for expense clearing requests (ฝ่ายขาย)
+const generateExpenseClearingRunNumber = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp for uniqueness
+  return `EXP${year}${month}${timestamp}`;
+};
+
 // รายการค่าใช้จ่ายเคลียร์
 const EXPENSE_CLEARING_CATEGORIES = [
   { name: 'ค่าอาหาร และ เครื่องดื่ม', taxRate: 0, hasInfo: false },
@@ -184,6 +194,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     withholdingTaxCert: [],
     taxInvoice: [],
   });
+
+  // Photo descriptions state (max 4 photos)
+  const [photoDescriptions, setPhotoDescriptions] = useState<string[]>(['', '', '', '']);
 
   // Document type checkboxes state
   const [documentSelections, setDocumentSelections] = useState<{
@@ -401,6 +414,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
         // Populate form with data from original advance request
         setValue('originalAdvanceRequestId', data.id);
+        setValue('originalAdvanceRunNumber', (data as any).run_number || '');
         setValue('advanceDepartment', (data as any).advance_department || '');
         setValue('advanceDistrict', (data as any).advance_district || '');
         const activityType = (data as any).advance_activity_type || '';
@@ -868,6 +882,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       // Collect all document file URLs into a single attachments array
       const allAttachments = Object.values(documentFiles).flat();
 
+      // Generate run number for expense clearing
+      const runNumber = generateExpenseClearingRunNumber();
+
       // CREATE NEW EXPENSE CLEARING REQUEST
       const requestData = {
         userId: profile.employee_id.toString(),
@@ -891,8 +908,11 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         attachmentSelections: documentSelections,
         // Document files by type
         documentFiles: documentFiles,
+        // Photo descriptions for PDF generation
+        photoDescriptions: photoDescriptions,
         // Expense clearing fields
         originalAdvanceRequestId: data.originalAdvanceRequestId,
+        originalAdvanceRunNumber: data.originalAdvanceRunNumber,
         advanceDepartment: data.advanceDepartment,
         advanceDistrict: data.advanceDistrict,
         advanceActivityType: data.advanceActivityType,
@@ -906,6 +926,8 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         advanceParticipants: data.advanceParticipants,
         advanceLocation: data.venue,
         expenseClearingItems: data.expenseClearingItems,
+        // Run number for expense clearing
+        runNumber: runNumber,
       };
 
       // Debug: Log the exact data being sent
@@ -950,7 +972,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
       // Generate PDF and upload to Supabase
       try {
-        const blob = await generateExpenseClearingPDF(
+        const blob = await generateSalesExpenseClearingPDF(
           {
             ...requestData,
             id: result.id || Date.now(),
@@ -1752,16 +1774,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             </div>
           </div>
 
-          {/* รายละเอียดเพิ่มเติม */}
-          <div className="space-y-2">
-            <label className="form-label">รายละเอียดเพิ่มเติม</label>
-            <Textarea
-              placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
-              className="form-input"
-              rows={3}
-              {...register('details')}
-            />
-          </div>
+          
 
           {/* แนบไฟล์เอกสาร - Checkbox Based */}
           <div className="space-y-4">
@@ -1791,46 +1804,162 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   {/* File upload area - shown when checkbox is checked */}
                   {documentSelections[docType.key] && (
                     <div className="mt-2 space-y-2">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
-                        <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
-                          <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
-                          <span className="mt-1 block text-xs text-gray-600">
-                            คลิกเพื่อเลือกไฟล์
-                          </span>
-                          <input
-                            id={`file-${docType.key}`}
-                            type="file"
-                            className="sr-only"
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                            onChange={(e) => handleDocumentFileChange(e, docType.key)}
-                          />
-                        </label>
-                      </div>
+                      {/* Special handling for photo type - max 4 photos with descriptions */}
+                      {docType.key === 'photo' ? (
+                        <div className="space-y-4">
+                          <p className="text-xs text-gray-500">อัพโหลดได้สูงสุด 4 รูป พร้อมรายละเอียดแต่ละรูป</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {[0, 1, 2, 3].map((photoIndex) => (
+                              <div key={photoIndex} className="border rounded-lg p-3 bg-gray-50">
+                                <div className="text-xs font-medium text-gray-700 mb-2">รูปที่ {photoIndex + 1}</div>
 
-                      {/* Show uploaded files for this document type */}
-                      {documentFiles[docType.key].length > 0 && (
-                        <div className="space-y-1">
-                          {documentFiles[docType.key].map((fileUrl, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
-                              <div className="flex items-center space-x-2">
-                                <Check className="h-4 w-4 text-green-600" />
-                                <span className="text-xs text-green-700 truncate max-w-[150px]">
-                                  ไฟล์ {index + 1}
-                                </span>
+                                {/* Photo upload or preview */}
+                                {documentFiles.photo[photoIndex] ? (
+                                  <div className="space-y-2">
+                                    <div className="relative">
+                                      <img
+                                        src={documentFiles.photo[photoIndex]}
+                                        alt={`รูปที่ ${photoIndex + 1}`}
+                                        className="w-full h-32 object-cover rounded border"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          // Remove photo at this index
+                                          const newPhotos = [...documentFiles.photo];
+                                          newPhotos.splice(photoIndex, 1);
+                                          setDocumentFiles(prev => ({ ...prev, photo: newPhotos }));
+                                          // Also shift descriptions
+                                          const newDescs = [...photoDescriptions];
+                                          newDescs.splice(photoIndex, 1);
+                                          newDescs.push('');
+                                          setPhotoDescriptions(newDescs);
+                                        }}
+                                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white h-6 w-6 p-0 rounded-full"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    {/* Description input */}
+                                    <Input
+                                      type="text"
+                                      placeholder="รายละเอียดรูปภาพ..."
+                                      value={photoDescriptions[photoIndex] || ''}
+                                      onChange={(e) => {
+                                        const newDescs = [...photoDescriptions];
+                                        newDescs[photoIndex] = e.target.value;
+                                        setPhotoDescriptions(newDescs);
+                                      }}
+                                      className="text-xs"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-white">
+                                    <label htmlFor={`photo-${photoIndex}`} className="cursor-pointer block text-center">
+                                      <Paperclip className="mx-auto h-5 w-5 text-gray-400" />
+                                      <span className="mt-1 block text-xs text-gray-500">
+                                        คลิกเพื่อเลือกรูป
+                                      </span>
+                                      <input
+                                        id={`photo-${photoIndex}`}
+                                        type="file"
+                                        className="sr-only"
+                                        accept=".jpg,.jpeg,.png"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file) return;
+
+                                          try {
+                                            const fileExt = file.name.split('.').pop();
+                                            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                                            const filePath = `${user?.id || 'anonymous'}/photos/${fileName}`;
+
+                                            const { data, error } = await supabase.storage
+                                              .from('welfare-attachments')
+                                              .upload(filePath, file);
+
+                                            if (error) throw error;
+
+                                            const { data: { publicUrl } } = supabase.storage
+                                              .from('welfare-attachments')
+                                              .getPublicUrl(data.path);
+
+                                            // Insert photo at the correct index
+                                            const newPhotos = [...documentFiles.photo];
+                                            newPhotos[photoIndex] = publicUrl;
+                                            // Remove undefined gaps
+                                            const filteredPhotos = newPhotos.filter(Boolean);
+                                            setDocumentFiles(prev => ({ ...prev, photo: filteredPhotos }));
+
+                                            toast({
+                                              title: "อัพโหลดสำเร็จ",
+                                              description: `อัพโหลดรูปที่ ${photoIndex + 1} เรียบร้อยแล้ว`,
+                                            });
+                                          } catch (error: any) {
+                                            console.error('Error uploading photo:', error);
+                                            toast({
+                                              title: "เกิดข้อผิดพลาด",
+                                              description: `ไม่สามารถอัปโหลดรูปได้: ${error.message}`,
+                                              variant: "destructive",
+                                            });
+                                          }
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
-                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
+                      ) : (
+                        /* Standard file upload for other document types */
+                        <>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                            <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
+                              <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
+                              <span className="mt-1 block text-xs text-gray-600">
+                                คลิกเพื่อเลือกไฟล์
+                              </span>
+                              <input
+                                id={`file-${docType.key}`}
+                                type="file"
+                                className="sr-only"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                onChange={(e) => handleDocumentFileChange(e, docType.key)}
+                              />
+                            </label>
+                          </div>
+
+                          {/* Show uploaded files for this document type */}
+                          {documentFiles[docType.key].length > 0 && (
+                            <div className="space-y-1">
+                              {documentFiles[docType.key].map((fileUrl, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                                  <div className="flex items-center space-x-2">
+                                    <Check className="h-4 w-4 text-green-600" />
+                                    <span className="text-xs text-green-700 truncate max-w-[150px]">
+                                      ไฟล์ {index + 1}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

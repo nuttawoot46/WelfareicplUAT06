@@ -165,6 +165,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               advanceExpenseItems: row.advance_expense_items,
               // Expense clearing specific fields
               originalAdvanceRequestId: row.original_advance_request_id,
+              originalAdvanceRunNumber: row.original_advance_run_number,
               expenseClearingItems: row.expense_clearing_items,
               // Run number
               runNumber: row.run_number,
@@ -396,6 +397,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         attachment_selections: requestData.attachmentSelections
           ? JSON.stringify(requestData.attachmentSelections)
           : JSON.stringify({}),
+        // Store photo descriptions for photo grid PDF
+        photo_descriptions: (requestData as any).photoDescriptions
+          ? JSON.stringify((requestData as any).photoDescriptions)
+          : null,
         title: requestData.title,
         manager_id: managerId,
         start_date: requestData.start_date || null,
@@ -442,8 +447,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         total_participants: (requestData as any).advanceParticipants,
         advance_dealer_name: (requestData as any).advanceDealerName,
         advance_subdealer_name: (requestData as any).advanceSubdealerName,
-        // Add run number for advance and general-advance types
-        run_number: (requestData.type === 'advance' || requestData.type === 'general-advance') ? (requestData as any).runNumber : null,
+        // Add run number for advance, general-advance, expense-clearing, and general-expense-clearing types
+        run_number: (requestData.type === 'advance' || requestData.type === 'general-advance' || requestData.type === 'expense-clearing' || requestData.type === 'general-expense-clearing') ? (requestData as any).runNumber : null,
         
         // Bank account information for general-advance
         bank_account_name: (requestData as any).bankAccountName,
@@ -452,6 +457,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         // Expense clearing specific fields
         original_advance_request_id: (requestData as any).originalAdvanceRequestId,
+        original_advance_run_number: (requestData as any).originalAdvanceRunNumber,
         expense_clearing_items: (() => {
           const items = (requestData as any).expenseClearingItems;
           if (!items) return null;

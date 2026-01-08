@@ -972,7 +972,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-blue-50 font-semibold text-right"
+                          className="w-32 bg-welfare-blue/10 font-semibold text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly
@@ -1006,7 +1006,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-purple-50 font-semibold">
+                  <tr className="bg-welfare-blue/10 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
@@ -1046,9 +1046,9 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
 
           {/* Total Amount Display */}
             <div className="flex justify-end">
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 min-w-[200px]">
-                <div className="text-sm text-purple-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
-                <div className="text-2xl font-bold text-purple-800">
+              <div className="bg-welfare-blue/10 border border-welfare-blue/30 rounded-lg p-4 min-w-[200px]">
+                <div className="text-sm text-welfare-blue font-medium">จำนวนเงินรวมทั้งสิ้น</div>
+                <div className="text-2xl font-bold text-welfare-blue">
                   {formatNumberWithCommas(calculateTotalAmount())} บาท
                 </div>
               </div>
@@ -1199,7 +1199,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-welfare-blue hover:bg-welfare-blue/90"
               onClick={() => {
                 console.log('🔘 Submit button clicked');
                 console.log('🔘 Current form values:', watch());

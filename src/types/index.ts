@@ -196,6 +196,7 @@ export interface WelfareRequest {
 
   // Expense clearing specific fields
   originalAdvanceRequestId?: number;
+  originalAdvanceRunNumber?: string;
   expenseClearingItems?: any[] | string;
 
   // Run number for tracking requests

@@ -11,7 +11,7 @@ import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { generateAdvancePDF } from '../pdf/AdvancePDFGenerator';
+import { generateSalesAdvancePDF } from '../pdf/SalesAdvancePDFGenerator';
 import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 import { formatNumberWithCommas, parseFormattedNumber, formatNumberForInput, formatNumberOnBlur, formatInputWhileTyping } from '@/utils/numberFormat';
@@ -920,7 +920,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
       // Generate PDF and upload to Supabase
       try {
-        const blob = await generateAdvancePDF(
+        const blob = await generateSalesAdvancePDF(
           {
             ...requestData,
             id: result.id || Date.now(),
@@ -1462,7 +1462,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-blue-50 font-semibold text-right"
+                          className="w-32 bg-welfare-blue/10 font-semibold text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly
@@ -1496,7 +1496,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-blue-50 font-semibold">
+                  <tr className="bg-welfare-blue/10 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2 text-center">
                       {(() => {
@@ -1536,9 +1536,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
             {/* Total Amount Display */}
             <div className="flex justify-end">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-[200px]">
-                <div className="text-sm text-blue-600 font-medium">จำนวนเงินรวมทั้งสิ้น</div>
-                <div className="text-2xl font-bold text-blue-800">
+              <div className="bg-welfare-blue/10 border border-welfare-blue/30 rounded-lg p-4 min-w-[200px]">
+                <div className="text-sm text-welfare-blue font-medium">จำนวนเงินรวมทั้งสิ้น</div>
+                <div className="text-2xl font-bold text-welfare-blue">
                   {formatNumberWithCommas(calculateTotalAmount())} บาท
                 </div>
               </div>
