@@ -92,7 +92,7 @@ const createSalesExpenseClearingFormHTML = (
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
         <!-- Company Logo -->
         <div style="display: flex; align-items: center;">
-          <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
+          <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 120px;
             height: 90px;
             object-fit: contain;

@@ -86,7 +86,7 @@ const createExpenseClearingFormHTML = (
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
         <!-- Company Logo -->
         <div style="display: flex; align-items: center;">
-          <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
+          <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 120px;
             height: 90px;
             object-fit: contain;
@@ -96,8 +96,8 @@ const createExpenseClearingFormHTML = (
 
         <!-- Center Title -->
         <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -2.5cm;">
-          <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">ใบเคลียร์ค่าใช้จ่าย</div>
-          <div style="font-size: 14px; margin-bottom: 10px;">รายงานการใช้เงินเบิกล่วงหน้า</div>
+          <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">ใบขออนุมัติ</div>
+          <div style="font-size: 14px; margin-bottom: 10px;">ใบเคลียร์ค่าใช้จ่าย (ทั่วไป)</div>
           <div style="font-size: 12px;">วันที่ ${currentDate}</div>
         </div>
 

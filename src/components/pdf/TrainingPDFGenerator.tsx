@@ -266,7 +266,7 @@ const createTrainingFormHTML = (
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: -8mm; margin-bottom: 5px; margin-left: -8mm; margin-right: -8mm; padding: 0 8mm 5px 0; border-bottom: 1px solid #000;">
         <!-- Company Logo -->
         <div style="display: flex; align-items: flex-start;">
-          <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
+          <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 110px;
             height: 80px;
             object-fit: contain;
