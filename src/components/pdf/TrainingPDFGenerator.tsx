@@ -415,7 +415,7 @@ const createTrainingFormHTML = (
           </div>
         </div>
         <!-- Signature Sections -->
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; margin-left: -8mm; margin-right: -8mm;">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; margin-left: -8mm; margin-right: -8mm; margin-bottom: -10mm;">
           <table style="width: 100%; border-collapse: collapse; font-size: 9pt; color: #000;">
             <tr>
               <!-- Employee Signature -->
