@@ -177,7 +177,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     }
     
     // ประเภทที่ต้องตรวจสอบอายุงาน 180 วัน
-    const workDurationRestrictedTypes: WelfareType[] = ['glasses', 'dental', 'fitness', 'wedding', 'childbirth'];
+    const workDurationRestrictedTypes: WelfareType[] = ['glasses', 'dental', 'wedding', 'childbirth'];
     
     if (workDurationRestrictedTypes.includes(type)) {
       const workDays = getWorkDuration();

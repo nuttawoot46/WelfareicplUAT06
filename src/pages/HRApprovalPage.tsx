@@ -306,6 +306,7 @@ export const HRApprovalPage = () => {
           status: nextStatus,
           hr_approver_id: user.id,
           hr_approver_name: profile?.display_name || user.email,
+          hr_approver_position: profile?.position || '',
           hr_approved_at: currentDateTime,
           hr_signature: signature,
           requires_special_approval: requiresSpecialApproval,

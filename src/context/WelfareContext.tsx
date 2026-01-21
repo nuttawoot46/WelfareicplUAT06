@@ -108,9 +108,11 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               managerId: row.manager_id?.toString(),
               // เพิ่มข้อมูล approval
               managerApproverName: row.manager_approver_name,
+              managerApproverPosition: row.manager_approver_position,
               managerApprovedAt: row.manager_approved_at,
               hrApproverId: row.hr_approver_id,
               hrApproverName: row.hr_approver_name,
+              hrApproverPosition: row.hr_approver_position,
               hrApprovedAt: row.hr_approved_at,
               // ลายเซ็นดิจิทัล - แก้ไข JSON parse error
               userSignature: (() => {
@@ -573,7 +575,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Fetch employee data from Employee table
         const { data: employeeData } = await supabase
           .from('Employee')
-          .select('id, Name')
+          .select('id, Name, Position')
           .eq('auth_uid', user.id)
           .single();
 
@@ -585,6 +587,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // New Manager approval fields
           updateObj.manager_approver_id = employeeData.id; // Employee ID (integer)
           updateObj.manager_approver_name = employeeData.Name;
+          updateObj.manager_approver_position = employeeData.Position;
           updateObj.manager_approved_at = currentDateTime;
         }
       }

@@ -95,10 +95,12 @@ export interface WelfareRequest {
   // HR approval fields
   hrApproverId?: string; // ID of HR who approved
   hrApproverName?: string; // Name of HR who approved
+  hrApproverPosition?: string; // Position of HR who approved
   hrApprovedAt?: string; // Date and time when HR approved
   // Manager approval fields
   managerApproverId?: string; // ID of manager who approved
   managerApproverName?: string; // Name of manager who approved
+  managerApproverPosition?: string; // Position of manager who approved
   managerApprovedAt?: string; // Date and time when manager approved
   // Special approval fields (for Internal Training > 10,000 บาท)
   specialApproverId?: string; // ID of special approver (kanin.s@icpladda.com)

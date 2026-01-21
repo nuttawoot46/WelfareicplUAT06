@@ -352,6 +352,7 @@ export const ApprovalPage = () => {
               status: nextStatus,
               manager_approver_id: user.id,
               manager_approver_name: profile?.display_name || user.email,
+              manager_approver_position: profile?.position || '',
               manager_approved_at: currentDateTime,
               manager_signature: signature,
               updated_at: currentDateTime
@@ -456,6 +457,7 @@ export const ApprovalPage = () => {
             status: nextStatus,
             manager_approver_id: user.id,
             manager_approver_name: profile?.display_name || user.email,
+            manager_approver_position: profile?.position || '',
             manager_approved_at: currentDateTime,
             manager_signature: signature,
             updated_at: currentDateTime

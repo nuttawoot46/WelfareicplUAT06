@@ -430,14 +430,17 @@ export const InternalTrainingProvider: React.FC<{ children: React.ReactNode }> =
         updateData.manager_approved_at = new Date().toISOString();
         updateData.manager_approver_id = approverInfo.id;
         updateData.manager_approver_name = approverInfo.name;
+        updateData.manager_approver_position = approverInfo.position || '';
       } else if (status === 'pending_accounting' && approverInfo) {
         updateData.hr_approved_at = new Date().toISOString();
         updateData.hr_approver_id = approverInfo.id;
         updateData.hr_approver_name = approverInfo.name;
+        updateData.hr_approver_position = approverInfo.position || '';
       } else if (status === 'completed' && approverInfo) {
         updateData.accounting_approved_at = new Date().toISOString();
         updateData.accounting_approver_id = approverInfo.id;
         updateData.accounting_approver_name = approverInfo.name;
+        updateData.accounting_approver_position = approverInfo.position || '';
       }
 
       const { data, error } = await supabase

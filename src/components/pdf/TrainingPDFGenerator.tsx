@@ -415,7 +415,7 @@ const createTrainingFormHTML = (
           </div>
         </div>
         <!-- Signature Sections -->
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; margin-left: -8mm; margin-right: -8mm; margin-bottom: -10mm;">
+        <div style="margin-top: 20mm; margin-left: -8mm; margin-right: -8mm;">
           <table style="width: 100%; border-collapse: collapse; font-size: 9pt; color: #000;">
             <tr>
               <!-- Employee Signature -->
@@ -454,6 +454,9 @@ const createTrainingFormHTML = (
                     <div style="text-align: center; margin-top: 3px;">
                       <span style="font-size: 8px;">(${employeeName})</span>
                     </div>
+                    <div style="text-align: center; margin-top: 2px;">
+                      <span style="font-size: 8px;">ตำแหน่ง ${employeeData?.Position || ''}</span>
+                    </div>
                   ` : ''}
                 </div>
                 <div style="text-align: center; font-size: 8pt;">
@@ -489,7 +492,10 @@ const createTrainingFormHTML = (
                   </div>
                   ${managerSignature ? `
                     <div style="text-align: center; margin-top: 3px;">
-                      <span style="font-size: 8px;">(${employeeName})</span>
+                      <span style="font-size: 8px;">(${welfareData.managerApproverName || managerName})</span>
+                    </div>
+                    <div style="text-align: center; margin-top: 2px;">
+                      <span style="font-size: 8px;">ตำแหน่ง ${welfareData.managerApproverPosition || 'ผู้จัดการ'}</span>
                     </div>
                   ` : ''}
                 </div>
@@ -529,7 +535,10 @@ const createTrainingFormHTML = (
                   </div>
                   ${hrSignature ? `
                     <div style="text-align: center; margin-top: 3px;">
-                      <span style="font-size: 8px;">(ฝ่ายทรัพยากรบุคคล)</span>
+                      <span style="font-size: 8px;">(${welfareData.hrApproverName || 'ฝ่ายทรัพยากรบุคคล'})</span>
+                    </div>
+                    <div style="text-align: center; margin-top: 2px;">
+                      <span style="font-size: 8px;">ตำแหน่ง ${welfareData.hrApproverPosition || 'ฝ่ายทรัพยากรบุคคล'}</span>
                     </div>
                   ` : ''}
                 </div>
