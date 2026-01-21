@@ -14,7 +14,7 @@ import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download } 
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { formatNumberWithCommas, parseFormattedNumber } from '@/utils/numberFormat';
+import { formatNumberWithCommas, parseFormattedNumber, formatInputWhileTyping, formatNumberOnBlur, formatNumberForInput } from '@/utils/numberFormat';
 
 import LoadingPopup from './LoadingPopup';
 import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
@@ -1504,28 +1504,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">จัดขึ้นโดย</label>
+                  <label className="form-label">จัดขึ้นโดย (ถ้ามี)</label>
                   <Input
                     placeholder="ระบุชื่อผู้จัด"
                     className="form-input"
-                    {...register('organizer', {
-                      required: 'กรุณาระบุผู้จัด'
-                    })}
+                    {...register('organizer')}
                   />
-                  {errors.organizer && (
-                    <p className="text-red-500 text-sm mt-1">{errors.organizer.message}</p>
-                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ตั้งแต่วันที่</label>
+                  <label className="form-label">ตั้งแต่วันที่ (ถ้ามี)</label>
                   <Input
                     type="date"
                     className="form-input"
                     {...register('startDate', {
-                      required: 'กรุณาระบุวันที่เริ่ม',
                       onChange: (e) => {
                         const endDate = watch('endDate');
                         if (endDate && e.target.value > endDate) {
@@ -1534,18 +1528,14 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                       }
                     })}
                   />
-                  {errors.startDate && (
-                    <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="form-label">ถึงวันที่</label>
+                  <label className="form-label">ถึงวันที่ (ถ้ามี)</label>
                   <Input
                     type="date"
                     className="form-input"
                     {...register('endDate', {
-                      required: 'กรุณาระบุวันที่สิ้นสุด',
                       validate: value => {
                         const startDate = watch('startDate');
                         return !value || !startDate || value >= startDate || 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม';
@@ -1613,14 +1603,22 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                   type="text"
                   className="form-input text-right"
                   placeholder="ระบุจำนวนเงิน"
-                  value={formatNumberWithCommas(watch('amount'))}
                   onChange={(e) => {
-                    const numValue = parseFormattedNumber(e.target.value);
+                    const formatted = formatInputWhileTyping(e.target.value);
+                    e.target.value = formatted;
+                    const numValue = parseFormattedNumber(formatted);
                     setValue('amount', numValue);
                     const vatAmount = Number(watch('tax7Percent')) || 0;
                     const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
                     calculateTrainingAmounts(numValue, remainingBudget, vatAmount, withholdingAmount);
                   }}
+                  onBlur={(e) => {
+                    const numValue = parseFormattedNumber(e.target.value);
+                    if (numValue > 0) {
+                      e.target.value = formatNumberOnBlur(numValue);
+                    }
+                  }}
+                  defaultValue={formatNumberForInput(watch('amount'))}
                 />
                 <input type="hidden" {...register('amount', {
                   required: 'กรุณาระบุจำนวนเงิน',
@@ -1644,9 +1642,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     type="text"
                     className="form-input text-right"
                     placeholder="0.00"
-                    value={formatNumberWithCommas(watch('tax7Percent'))}
                     onChange={(e) => {
-                      const numValue = parseFormattedNumber(e.target.value);
+                      const formatted = formatInputWhileTyping(e.target.value);
+                      e.target.value = formatted;
+                      const numValue = parseFormattedNumber(formatted);
                       setValue('tax7Percent', numValue);
                       const amount = watch('amount');
                       const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
@@ -1654,6 +1653,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         calculateTrainingAmounts(Number(amount), remainingBudget, numValue, withholdingAmount);
                       }
                     }}
+                    onBlur={(e) => {
+                      const numValue = parseFormattedNumber(e.target.value);
+                      if (numValue > 0) {
+                        e.target.value = formatNumberOnBlur(numValue);
+                      }
+                    }}
+                    defaultValue={formatNumberForInput(watch('tax7Percent'))}
                   />
                   <input type="hidden" {...register('tax7Percent', {
                     min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -1669,9 +1675,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                     type="text"
                     className="form-input text-right"
                     placeholder="0.00"
-                    value={formatNumberWithCommas(watch('withholdingTax3Percent'))}
                     onChange={(e) => {
-                      const numValue = parseFormattedNumber(e.target.value);
+                      const formatted = formatInputWhileTyping(e.target.value);
+                      e.target.value = formatted;
+                      const numValue = parseFormattedNumber(formatted);
                       setValue('withholdingTax3Percent', numValue);
                       const amount = watch('amount');
                       const vatAmount = Number(watch('tax7Percent')) || 0;
@@ -1679,6 +1686,13 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
                         calculateTrainingAmounts(Number(amount), remainingBudget, vatAmount, numValue);
                       }
                     }}
+                    onBlur={(e) => {
+                      const numValue = parseFormattedNumber(e.target.value);
+                      if (numValue > 0) {
+                        e.target.value = formatNumberOnBlur(numValue);
+                      }
+                    }}
+                    defaultValue={formatNumberForInput(watch('withholdingTax3Percent'))}
                   />
                   <input type="hidden" {...register('withholdingTax3Percent', {
                     min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
