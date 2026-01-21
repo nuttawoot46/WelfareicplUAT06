@@ -335,58 +335,58 @@ const createTrainingFormHTML = (
         <!-- Financial Table -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 7px; font-size: 9pt; color: #000;">
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               ค่าใช้จ่ายต่อหลักสูตร(ก่อน Vat)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.baseCost.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (a)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               ภาษีมูลค่าเพิ่ม 7% (a*0.07)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (b)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               หัก ภาษี ณ ที่จ่าย 3% (a*3.00%)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.withholdingTax.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (c)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: bold;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: bold;">
               ยอดสุทธิ (a+b+c)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: bold;">
               ${financials.netAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (d)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               คิดเป็นส่วนเกินงบ (d-1)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.excessAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               บริษัทจ่าย (งบคงเหลือก่อนเบิก+ส่วนเกิน 50%)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.companyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
               พนักงานจ่ายส่วนเกินที่เหลือ
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.employeePayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             </td>
           </tr>
