@@ -314,11 +314,13 @@ const createTrainingFormHTML = (
         <!-- Training Objectives -->
         <div style="margin-bottom: 12px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">โดยมีวัตถุประสงค์ของจะเข้ารับอบรม ดังนี้</div>
-          <div style="margin-bottom: 4px;">
-            1. <span style="border-bottom: 1px dotted #000; padding-bottom: 2px;">${objectives?.[0]?.trim() || ''}............................................................................................................</span>
+          <div style="margin-bottom: 8px;">
+            <div>1. ${objectives?.[0]?.trim() || ''}</div>
+            <div style="color: #000;">..................................................................................................................</div>
           </div>
           <div style="margin-bottom: 8px;">
-            2. <span style="border-bottom: 1px dotted #000; padding-bottom: 2px;">${objectives?.[1]?.trim() || ''}............................................................................................................</span>
+            <div>2. ${objectives?.[1]?.trim() || ''}</div>
+            <div style="color: #000;">..................................................................................................................</div>
           </div>
         </div>
 
