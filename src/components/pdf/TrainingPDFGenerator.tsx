@@ -315,10 +315,12 @@ const createTrainingFormHTML = (
         <div style="margin-bottom: 12px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">โดยมีวัตถุประสงค์ของจะเข้ารับอบรม ดังนี้</div>
           <div style="margin-bottom: 4px;">
-            1. ${objectives?.[0]?.trim() || ''} 
+            1. ${objectives?.[0]?.trim() || ''}<br/>
+            <span style="color: #000;">..................................................................................................................</span>
           </div>
           <div style="margin-bottom: 8px;">
-            2. ${objectives?.[1]?.trim() || ''}
+            2. ${objectives?.[1]?.trim() || ''}<br/>
+            <span style="color: #000;">..................................................................................................................</span>
           </div>
         </div>
 
