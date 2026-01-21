@@ -201,6 +201,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [workDaysError, setWorkDaysError] = useState<string>('');
   const [childbirthLimit, setChildbirthLimit] = useState<{ total: number; remaining: number }>({ total: 0, remaining: 3 });
+  const [originalEditAmount, setOriginalEditAmount] = useState<number>(0); // เก็บจำนวนเงินเดิมตอน edit เพื่อบวกกลับไปใน remaining budget
 
   const {
     register,
@@ -326,6 +327,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         if (!error && data) {
           // Map only fields that exist in the schema
           const dbData = data as any; // Type assertion for database fields
+          // เก็บจำนวนเงินเดิมเพื่อบวกกลับไปใน remaining budget ตอน edit
+          setOriginalEditAmount(Number(dbData.amount) || 0);
           reset({
             amount: dbData.amount,
             details: dbData.details || '',
@@ -860,7 +863,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     fetchRemainingBudget();
   }, [user, type, profile?.budget_dentalglasses, getRemainingBudget]);
 
-  const remainingBudget = currentRemainingBudget;
+  // สำหรับ Edit mode: บวกจำนวนเงินเดิมกลับไปใน remaining budget
+  // เพื่อให้ผู้ใช้สามารถแก้ไขจำนวนเงินได้ถึงค่าเดิมหรือมากกว่า (ถ้างบพอ)
+  const remainingBudget = currentRemainingBudget + originalEditAmount;
 
   const onSubmit = async (data: any) => {
     // Store form data and show signature modal for all types (including training)
