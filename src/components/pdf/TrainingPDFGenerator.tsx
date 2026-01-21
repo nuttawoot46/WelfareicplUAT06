@@ -263,17 +263,17 @@ const createTrainingFormHTML = (
       <div style="border: 2px solid #000000; padding: 8mm; height: calc(100% - 16mm); background: #ffffff; display: flex; flex-direction: column;">
         
         <!-- Header Section -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #000;">
         <!-- Company Logo -->
         <div style="display: flex; align-items: center;">
           <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
-            width: 110px; 
-            height: 80px; 
+            width: 110px;
+            height: 80px;
             object-fit: contain;
             margin-right: 15px;
           " />
         </div>
-          
+
           <!-- Title Section -->
           <div style="flex: 1; text-align: center; margin: 0 15px;">
             <div style="font-size: 14pt; font-weight: bold; margin-bottom: 3px; color: #000;">
@@ -283,7 +283,7 @@ const createTrainingFormHTML = (
               (External Training Application)
             </div>
           </div>
-          
+
           <!-- Form Code and Workflow -->
           <div style="text-align: right; font-size: 8pt; color: #000; width: 100px;">
             <div style="margin-bottom: 5px; font-weight: bold;">F-TRA-01-06 Rev: 02 01/09/2023</div>
@@ -400,11 +400,11 @@ const createTrainingFormHTML = (
               <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
                 ${welfareData.status === 'completed' ? '<span style="position: absolute; top: -2px; left: 3px; font-size: 9pt; font-weight: bold; color: #000;">✓</span>' : ''}
               </span>
-              <span>ต้นสังกัด</span>
+              <span>เงินสด</span>
             </div>
             <div style="margin-right: 20px; display: flex; align-items: center; margin-bottom: 4px;">
               <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; background: #fff;"></span>
-              <span>ส่วนกลางในนาม .......................ลงวันที่................</span>
+              <span>เช็คจ่ายในนาม .......................ลงวันที่................</span>
             </div>
             <div style="display: flex; align-items: center; margin-bottom: 4px;">
               <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
