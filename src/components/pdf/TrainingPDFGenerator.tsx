@@ -208,17 +208,18 @@ const createTrainingFormHTML = (
 ) => {
   // Extract and process data
   const employeeName = employeeData?.Name || userData.name || '';
-  const managerName = employeeData?.manager_name || 'ผู้จัดการ';
+  const employeePosition = employeeData?.Position || '';
+  const managerName = employeeData?.manager_name || '';
 
-  const courseName = welfareData.course_name || welfareData.title || 'หลักสูตรการฝึกอบรม';
-  const organizer = welfareData.organizer || 'องค์กรจัดการฝึกอบรม';
+  const courseName = welfareData.course_name || welfareData.title || '';
+  const organizer = welfareData.organizer || '';
 
   const startDate = formatThaiDate(welfareData.start_date);
   const endDate = formatThaiDate(welfareData.end_date);
   const requestDate = formatThaiDate(welfareData.createdAt);
 
   // Calculate total days
-  let totalDays = welfareData.total_days || 1;
+  let totalDays = welfareData.total_days || 0;
   if (!totalDays && welfareData.start_date && welfareData.end_date) {
     const start = new Date(welfareData.start_date);
     const end = new Date(welfareData.end_date);
@@ -231,28 +232,21 @@ const createTrainingFormHTML = (
   // Get financials from welfareData
   const financials = calculateFinancials(welfareData);
 
-  // Get budget from employeeData: Original_Budget_Training for total budget, Budget_Training for remaining
-  // Note: These values may come as strings from database, so we need to convert them
-  console.log('=== Budget Debug ===');
-  console.log('employeeData:', employeeData);
-  console.log('employeeData.Original_Budget_Training:', employeeData?.Original_Budget_Training);
-  console.log('employeeData.Budget_Training:', employeeData?.Budget_Training);
-  console.log('remainingBudget param:', remainingBudget);
-
+  // Get budget from employeeData
   const originalBudget = Number(employeeData?.Original_Budget_Training) || remainingBudget || userData.training_budget || 0;
   const remainingBudgetAmount = Number(employeeData?.Budget_Training) || remainingBudget || 0;
 
-  console.log('Final originalBudget:', originalBudget);
-  console.log('Final remainingBudgetAmount:', remainingBudgetAmount);
+  // Get current Buddhist year
+  const currentYear = new Date().getFullYear() + 543;
 
   return `
     <div style="
       width: 210mm;
       height: 297mm;
-      padding: 12mm;
+      padding: 10mm;
       font-family: 'Sarabun', 'TH Sarabun New', 'Arial', sans-serif;
-      font-size: 12pt;
-      line-height: 1.2;
+      font-size: 11pt;
+      line-height: 1.3;
       background: #ffffff;
       color: #000000;
       box-sizing: border-box;
@@ -260,312 +254,309 @@ const createTrainingFormHTML = (
       margin: 0;
       overflow: hidden;
     ">
-      <div style="border: 2px solid #000000; padding: 8mm; height: calc(100% - 16mm); background: #ffffff; display: flex; flex-direction: column;">
-        
+      <div style="border: 1.5px solid #000000; padding: 6mm; height: calc(100% - 12mm); background: #ffffff; display: flex; flex-direction: column;">
+
         <!-- Header Section -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-        <!-- Company Logo -->
-        <div style="display: flex; align-items: center;">
-          <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
-            width: 110px; 
-            height: 80px; 
-            object-fit: contain;
-            margin-right: 15px;
-          " />
-        </div>
-          
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <!-- Company Logo -->
+          <div style="width: 80px;">
+            <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
+              width: 70px;
+              height: 50px;
+              object-fit: contain;
+            " />
+          </div>
+
           <!-- Title Section -->
-          <div style="flex: 1; text-align: center; margin: 0 15px;">
-            <div style="font-size: 14pt; font-weight: bold; margin-bottom: 3px; color: #000;">
+          <div style="flex: 1; text-align: center;">
+            <div style="font-size: 14pt; font-weight: bold; color: #000;">
               แบบขออนุมัติส่งพนักงานเข้ารับการฝึกอบรม
             </div>
             <div style="font-size: 10pt; color: #000;">
               (External Training Application)
             </div>
           </div>
-          
+
           <!-- Form Code and Workflow -->
-          <div style="text-align: right; font-size: 8pt; color: #000; width: 100px;">
-            <div style="margin-bottom: 5px; font-weight: bold;">F-TRA-01-06 Rev: 02 01/09/2023</div>
+          <div style="text-align: right; font-size: 8pt; color: #000; width: 140px;">
+            <div style="margin-bottom: 3px;">F-TRA-01-06 Rev: 02 01/09/2023</div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; font-size: 7pt;">
+              <span>ต้นสังกัด</span>
+              <span style="margin: 0 3px;">→</span>
+              <span>HR</span>
+              <span style="margin: 0 3px;">→</span>
+              <span>VP</span>
+            </div>
           </div>
         </div>
 
         <!-- Date Section -->
-        <div style="text-align: right; margin-bottom: 12px; font-size: 9pt; color: #000;">
-          วันที่.....${requestDate.day}.....เดือน.....${requestDate.month}.....พ.ศ.....${requestDate.year}.....
+        <div style="text-align: right; margin-bottom: 8px; font-size: 10pt; color: #000;">
+          วันที่ <u>&nbsp;${requestDate.day}&nbsp;</u> เดือน <u>&nbsp;${requestDate.month}&nbsp;</u> พ.ศ. <u>&nbsp;${requestDate.year}&nbsp;</u>
         </div>
 
         <!-- Content Section -->
-        <div style="margin-bottom: 12px; font-size: 9pt; line-height: 1.3; color: #000;">
-          <div style="margin-bottom: 5px;">
+        <div style="margin-bottom: 8px; font-size: 10pt; line-height: 1.5; color: #000;">
+          <div style="margin-bottom: 4px;">
             เรียน ผู้จัดการฝ่ายทรัพยากรบุคคล
           </div>
-          <div style="margin-bottom: 5px; text-indent: 30px;">
-            เนื่องด้วยข้าพเจ้า นาย/นาง/นางสาว.........${employeeName}......มีความประสงค์จะเข้ารับการอบรม
+          <div style="margin-bottom: 4px; text-indent: 40px;">
+            เนื่องด้วยข้าพเจ้า นาย/นาง/นางสาว <u>&nbsp;&nbsp;${employeeName}&nbsp;&nbsp;</u> มีความประสงค์จะเข้ารับการอบรม
           </div>
-          <div style="margin-bottom: 5px;">
-            หลักสูตร ..........${courseName}...........จัดโดย.......${organizer}
+          <div style="margin-bottom: 4px;">
+            หลักสูตร <u>&nbsp;&nbsp;${courseName || '........................................'}&nbsp;&nbsp;</u> ตั้งแต่วันที่ <u>&nbsp;${welfareData.start_date ? startDate.formatted : '............'}&nbsp;</u>
           </div>
-          <div style="margin-bottom: 5px;">
-            ตั้งแต่วันที่............${startDate.formatted}........ถึงวันที่........ ${endDate.formatted}..........รวมเป็นจำนวน.......${totalDays}.....วัน
+          <div style="margin-bottom: 4px;">
+            รวมเป็นจำนวน <u>&nbsp;${totalDays || '......'}&nbsp;</u> วัน
           </div>
         </div>
 
         <!-- Training Objectives -->
-        <div style="margin-bottom: 12px; font-size: 9pt; color: #000;">
-          <div style="margin-bottom: 5px;">โดยมีวัตถุประสงค์ของจะเข้ารับอบรม ดังนี้</div>
-          <div style="margin-bottom: 4px;">
-            1. ${objectives?.[0]?.trim() || ''} 
+        <div style="margin-bottom: 8px; font-size: 10pt; color: #000;">
+          <div style="margin-bottom: 4px;">โดยมีวัตถุประสงค์ที่จะเข้ารับอบรม ดังนี้</div>
+          <div style="margin-left: 20px; margin-bottom: 3px; display: flex; align-items: flex-start;">
+            <span style="border: 1.5px solid #000; width: 12px; height: 12px; display: inline-block; margin-right: 8px; margin-top: 2px; position: relative; background: #fff;">
+              ${objectives?.[0] ? '<span style="position: absolute; top: -3px; left: 1px; font-size: 11pt; font-weight: bold;">✓</span>' : ''}
+            </span>
+            <span>${objectives?.[0]?.trim() || 'เพิ่มพูนความรู้และทักษะในการปฏิบัติงาน'}</span>
           </div>
-          <div style="margin-bottom: 8px;">
-            2. ${objectives?.[1]?.trim() || ''}
+          <div style="margin-left: 20px; margin-bottom: 3px; display: flex; align-items: flex-start;">
+            <span style="border: 1.5px solid #000; width: 12px; height: 12px; display: inline-block; margin-right: 8px; margin-top: 2px; position: relative; background: #fff;">
+              ${objectives?.[1] ? '<span style="position: absolute; top: -3px; left: 1px; font-size: 11pt; font-weight: bold;">✓</span>' : ''}
+            </span>
+            <span>${objectives?.[1]?.trim() || 'พัฒนาประสิทธิภาพและคุณภาพการทำงาน'}</span>
           </div>
         </div>
 
         <!-- Cost Information -->
-        <div style="margin-bottom: 8px; font-size: 9pt; color: #000;">
-          <div style="margin-bottom: 5px;">
-            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี 2569 เป็นจำนวนเงิน ..............${originalBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })}................... บาท และคงเหลือก่อนเบิกจำนวน .....${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}.....บาท
+        <div style="margin-bottom: 6px; font-size: 10pt; color: #000;">
+          <div style="margin-bottom: 4px;">
+            ทั้งนี้ข้าพเจ้ามีงบการอบรม ในปี ${currentYear} เป็นจำนวนเงิน <u>&nbsp;${originalBudget.toLocaleString('th-TH', { minimumFractionDigits: 2 })}&nbsp;</u> บาท และคงเหลือก่อนเบิกจำนวน <u>&nbsp;${remainingBudgetAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}&nbsp;</u> บาท ส่วนต่าง
           </div>
-          <div style="margin-bottom: 5px;">
+          <div style="margin-bottom: 4px;">
             รายละเอียดค่าใช้จ่ายในการฝึกอบรม ในครั้งนี้ มีดังนี้
           </div>
         </div>
 
         <!-- Financial Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 7px; font-size: 9pt; color: #000;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 10pt; color: #000;">
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
               ค่าใช้จ่ายต่อหลักสูตร(ก่อน Vat)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.baseCost.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (a)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right; width: 150px;">
+              ${financials.baseCost.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center; width: 40px;">
+              (a)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
               ภาษีมูลค่าเพิ่ม 7% (a*0.07)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (b)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right;">
+              ${financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center;">
+              (b)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
-              หัก ภาษี ณ ที่จ่าย 3% (a*3.00%)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
+              <b>หัก</b> ภาษี ณ ที่จ่าย 3% (a*0.03)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.withholdingTax.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (c)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right;">
+              ${financials.withholdingTax.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
             </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: bold;">
-              ยอดสุทธิ (a+b+c)
-            </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
-              ${financials.netAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท (d)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center;">
+              (c)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
-              คิดเป็นส่วนเกินงบ (d-1)
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left; font-weight: bold;">
+              ยอดสุทธิ (a+b-c)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.excessAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right; font-weight: bold;">
+              ${financials.netAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center; font-weight: bold;">
+              (d)
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
+              คิดเป็นส่วนเกินงบ (d-งบคงเหลือ)
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right;">
+              ${financials.excessAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center;">
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
               บริษัทจ่าย (งบคงเหลือก่อนเบิก+ส่วนเกิน 50%)
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.companyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right;">
+              ${financials.companyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center;">
             </td>
           </tr>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: normal;">
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: left;">
               พนักงานจ่ายส่วนเกินที่เหลือ
             </td>
-            <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: normal;">
-              ${financials.employeePayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: right;">
+              ${financials.employeePayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </td>
+            <td style="border: 1px solid #000; padding: 3px 6px; text-align: center;">
             </td>
           </tr>
-          
         </table>
 
         <!-- Checkboxes Section -->
-        <div style="margin-bottom: 8px; font-size: 9pt; color: #000;">
-          <div style="display: flex; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
-            <div style="margin-right: 20px; display: flex; align-items: center; margin-bottom: 4px;">
-              <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
-                ${welfareData.status === 'completed' ? '<span style="position: absolute; top: -2px; left: 3px; font-size: 9pt; font-weight: bold; color: #000;">✓</span>' : ''}
+        <div style="margin-bottom: 6px; font-size: 10pt; color: #000;">
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div style="display: flex; align-items: center;">
+              <span style="border: 1.5px solid #000; width: 12px; height: 12px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
+                <span style="position: absolute; top: -3px; left: 1px; font-size: 11pt; font-weight: bold;">✓</span>
               </span>
               <span>ต้นสังกัด</span>
             </div>
-            <div style="margin-right: 20px; display: flex; align-items: center; margin-bottom: 4px;">
-              <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; background: #fff;"></span>
-              <span>ส่วนกลางในนาม .......................ลงวันที่................</span>
+            <div style="display: flex; align-items: center;">
+              <span style="border: 1.5px solid #000; width: 12px; height: 12px; display: inline-block; margin-right: 5px; background: #fff;"></span>
+              <span>ส่วนกลางในนาม ..................... ลงวันที่ ................</span>
             </div>
-            <div style="display: flex; align-items: center; margin-bottom: 4px;">
-              <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
-                ${welfareData.status === 'completed' ? '<span style="position: absolute; top: -2px; left: 3px; font-size: 9pt; font-weight: bold; color: #000;">✓</span>' : ''}
+            <div style="display: flex; align-items: center;">
+              <span style="border: 1.5px solid #000; width: 12px; height: 12px; display: inline-block; margin-right: 5px; position: relative; background: #fff;">
+                <span style="position: absolute; top: -3px; left: 1px; font-size: 11pt; font-weight: bold;">✓</span>
               </span>
               <span>ขอหนังสือรับรองจากการฝึก ณ ที่จ่าย</span>
             </div>
           </div>
         </div>
+
         <!-- Signature Sections -->
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
           <table style="width: 100%; border-collapse: collapse; font-size: 9pt; color: #000;">
             <tr>
               <!-- Employee Signature -->
-              <td style="border: 2px solid #000; padding: 8px; width: 50%; vertical-align: top;">
-                <div style="text-align: center; margin-bottom: 8px;">
-                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                    <span style="margin-right: 8px;">อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 12px; background: ${userSignature ? '#000' : '#fff'};"></span>
-                    <span style="margin-right: 8px;">ไม่อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; background: #fff;"></span>
-                  </div>
-                </div>
-                <div style="text-align: center; margin-bottom: 15px;">
-                  <div style="display: flex; align-items: flex-end; justify-content: center;">
-                    <span style="margin-right: 5px; font-size: 8pt;">ลงชื่อ</span>
-                    ${userSignature ? `
-                      <img src="${userSignature}" alt="Employee Signature" style="
-                        max-width: 80px; 
-                        max-height: 25px; 
-                        margin: 0 5px;
-                        border-bottom: 1px solid #000;
-                        display: inline-block;
-                      " />
-                    ` : `
-                      <span style="
-                        display: inline-block; 
-                        width: 80px; 
-                        border-bottom: 1px dotted #000; 
-                        margin: 0 5px;
-                        height: 15px;
-                      "></span>
-                    `}
-                    <span style="margin-left: 5px; font-size: 8pt;">พนักงาน</span>
-                  </div>
+              <td style="border: 1.5px solid #000; padding: 6px; width: 50%; vertical-align: top;">
+                <div style="text-align: center; margin-bottom: 20px;">
                   ${userSignature ? `
-                    <div style="text-align: center; margin-top: 3px;">
-                      <span style="font-size: 8px;">(${employeeName})</span>
-                    </div>
+                    <img src="${userSignature}" alt="Employee Signature" style="max-width: 100px; max-height: 35px;" />
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 9pt;">
+                  ลงชื่อ ..................................... พนักงาน
+                </div>
+                <div style="text-align: center; font-size: 9pt; margin-top: 3px;">
+                  ตำแหน่ง <u>&nbsp;${employeePosition || '...................................'}&nbsp;</u>
+                </div>
+                <div style="text-align: center; font-size: 9pt; margin-top: 3px;">
+                  วันที่ <u>&nbsp;${userSignature ? requestDate.day : '......'}&nbsp;</u> / <u>&nbsp;${userSignature ? requestDate.month : '......'}&nbsp;</u> / <u>&nbsp;${userSignature ? requestDate.year : '..........'}&nbsp;</u>
                 </div>
               </td>
-              
+
               <!-- Manager Signature -->
-              <td style="border: 2px solid #000; padding: 8px; width: 50%; vertical-align: top;">
-                <div style="text-align: center; margin-bottom: 8px;">
-                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                    <span style="margin-right: 8px;">อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 12px; background: ${managerSignature ? '#000' : '#fff'};"></span>
-                    <span style="margin-right: 8px;">ไม่อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; background: #fff;"></span>
+              <td style="border: 1.5px solid #000; padding: 6px; width: 50%; vertical-align: top;">
+                <div style="text-align: center; margin-bottom: 5px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 9pt;">
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; position: relative; background: ${managerSignature ? '#fff' : '#fff'};">
+                        ${managerSignature ? '<span style="position: absolute; top: -3px; left: 0px; font-size: 10pt; font-weight: bold;">✓</span>' : ''}
+                      </span>
+                      อนุมัติ
+                    </span>
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; background: #fff;"></span>
+                      ไม่อนุมัติ
+                    </span>
                   </div>
                 </div>
-                <div style="text-align: center; margin-bottom: 15px;">
-                  <div style="display: flex; align-items: flex-end; justify-content: center;">
-                    <span style="margin-right: 5px; font-size: 8pt;">ลงชื่อ</span>
-                    ${managerSignature ? `
-                      <img src="${managerSignature}" alt="Manager Signature" style="
-                        max-width: 80px; 
-                        max-height: 25px; 
-                        margin: 0 5px;
-                        border-bottom: 1px solid #000;
-                        display: inline-block;
-                      " />
-                    ` : `
-                      <span style="display: inline-block; width: 80px; border-bottom: 1px dotted #000; margin: 0 5px; height: 15px;"></span>
-                    `}
-                    <span style="margin-left: 5px; font-size: 8pt;">ผู้จัดการ</span>
-                  </div>
+                <div style="text-align: center; margin-bottom: 10px; min-height: 30px;">
                   ${managerSignature ? `
-                    <div style="text-align: center; margin-top: 3px;">
-                      <span style="font-size: 8px;">(${employeeName})</span>
-                    </div>
+                    <img src="${managerSignature}" alt="Manager Signature" style="max-width: 100px; max-height: 35px;" />
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 9pt;">
+                  ลงชื่อ ..................................... ผู้บังคับบัญชา
+                </div>
+                <div style="text-align: center; font-size: 9pt; margin-top: 3px;">
+                  วันที่ ........ / ........ / ..........
                 </div>
               </td>
             </tr>
-            
+
             <tr>
               <!-- HR Signature -->
-              <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
-                <div style="text-align: center; margin-bottom: 8px;">
-                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                    <span style="margin-right: 8px;">อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 12px; background: ${hrSignature ? '#000' : '#fff'};"></span>  
+              <td style="border: 1.5px solid #000; padding: 6px; vertical-align: top;">
+                <div style="text-align: center; margin-bottom: 5px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 9pt;">
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; position: relative; background: #fff;">
+                        ${hrSignature ? '<span style="position: absolute; top: -3px; left: 0px; font-size: 10pt; font-weight: bold;">✓</span>' : ''}
+                      </span>
+                      อนุมัติ
                     </span>
-                    <span style="margin-right: 8px;">ไม่อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; background: #fff;"></span>
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; background: #fff;"></span>
+                      ไม่อนุมัติ
+                    </span>
                   </div>
                 </div>
-                <div style="text-align: center; margin-bottom: 15px;">
-                  <div style="display: flex; align-items: flex-end; justify-content: center;">
-                    <span style="margin-right: 5px; font-size: 8pt;">ลงชื่อ</span>
-                    ${hrSignature ? `
-                      <img src="${hrSignature}" alt="HR Signature" style="
-                        max-width: 80px; 
-                        max-height: 25px; 
-                        margin: 0 5px;
-                        border-bottom: 1px solid #000;
-                        display: inline-block;
-                      " />
-                    ` : `
-                      <span style="display: inline-block; width: 80px; border-bottom: 1px dotted #000; margin: 0 5px; height: 15px;"></span>
-                    `}
-                    <span style="margin-left: 5px; font-size: 8pt;">ฝ่ายทรัพยากรบุคคล</span>
-                  </div>
+                <div style="text-align: center; margin-bottom: 10px; min-height: 30px;">
                   ${hrSignature ? `
-                    <div style="text-align: center; margin-top: 3px;">
-                      <span style="font-size: 8px;">(ฝ่ายทรัพยากรบุคคล)</span>
-                    </div>
+                    <img src="${hrSignature}" alt="HR Signature" style="max-width: 100px; max-height: 35px;" />
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 9pt;">
+                  ลงชื่อ ..................................... ฝ่ายทรัพยากรบุคคล
+                </div>
+                <div style="text-align: center; font-size: 9pt; margin-top: 3px;">
+                  วันที่ ........ / ........ / ..........
                 </div>
               </td>
-              
-              <!-- Deputy Managing Director Signature -->
-              <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
-                <div style="text-align: center; margin-bottom: 8px;">
-                  <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                    <span style="margin-right: 8px;">อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; margin-right: 12px; background: ${specialSignature ? '#000' : '#fff'};"></span>
-                    <span style="margin-right: 8px;">ไม่อนุมัติ</span>
-                    <span style="border: 2px solid #000; width: 14px; height: 14px; display: inline-block; background: #fff;"></span>
+
+              <!-- Managing Director Signature -->
+              <td style="border: 1.5px solid #000; padding: 6px; vertical-align: top;">
+                <div style="text-align: center; margin-bottom: 5px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 9pt;">
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; position: relative; background: #fff;">
+                        ${specialSignature ? '<span style="position: absolute; top: -3px; left: 0px; font-size: 10pt; font-weight: bold;">✓</span>' : ''}
+                      </span>
+                      อนุมัติ
+                    </span>
+                    <span style="display: flex; align-items: center;">
+                      <span style="border: 1.5px solid #000; width: 11px; height: 11px; display: inline-block; margin-right: 4px; background: #fff;"></span>
+                      ไม่อนุมัติ
+                    </span>
                   </div>
                 </div>
-                <div style="text-align: center; margin-bottom: 15px; font-size: 8pt;">
-                  ${specialSignature ?
-      `<div style="margin-bottom: 10px;">
-                       <img src="${specialSignature}" style="max-width: 120px; max-height: 40px;" />
-                     </div>
-                     <div>ลงชื่อ.......................กรรมการผู้จัดการ</div>` :
-      `<div>ลงชื่อ.......................รองกรรมการผู้จัดการ</div>`
-    }
+                <div style="text-align: center; margin-bottom: 10px; min-height: 30px;">
+                  ${specialSignature ? `
+                    <img src="${specialSignature}" alt="MD Signature" style="max-width: 100px; max-height: 35px;" />
+                  ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 9pt;">
+                  ลงชื่อ ..................................... กรรมการผู้จัดการ
+                </div>
+                <div style="text-align: center; font-size: 9pt; margin-top: 3px;">
+                  วันที่ ........ / ........ / ..........
                 </div>
               </td>
             </tr>
           </table>
         </div>
-        
-        
+
+        <!-- Footer Note -->
+        <div style="margin-top: 6px; font-size: 8pt; color: #000;">
+          <b>หมายเหตุ :</b> กรณีค่าใช้จ่ายในการอบรม มีจำนวนเงิน 10,000 บาทขึ้นไป ให้พิจารณาอนุมัติโดย กรรมการผู้จัดการ เท่านั้น *
+        </div>
+
       </div>
     </div>
   `;
