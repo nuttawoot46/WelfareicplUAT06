@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Edit, Trash2, MoreHorizontal, Download } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, MoreHorizontal, Download, RotateCcw, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tables } from '@/types/database.types';
 import { Link } from 'react-router-dom';
@@ -21,6 +21,8 @@ export const UserManagement = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -237,6 +239,56 @@ export const UserManagement = () => {
     }
   };
 
+  // Reset annual budget for all employees (except wedding, funeral, childbirth)
+  const handleResetAnnualBudget = async () => {
+    setIsResetting(true);
+    try {
+      // Get all employees to reset their budgets
+      const { data: allEmployees, error: fetchError } = await supabase
+        .from('Employee')
+        .select('id, Original_Budget_Training');
+
+      if (fetchError) throw fetchError;
+
+      // Reset budgets for each employee
+      // Fields to reset: budget_dentalglasses, budget_fitness, budget_medical, Budget_Training
+      // Fields NOT to reset: budget_wedding, budget_childbirth, budget_funeral_*
+      const updatePromises = (allEmployees || []).map(async (emp) => {
+        const { error } = await supabase
+          .from('Employee')
+          .update({
+            budget_dentalglasses: 2000,
+            budget_fitness: 300,
+            budget_medical: 1000,
+            Budget_Training: emp.Original_Budget_Training || 5000,
+          })
+          .eq('id', emp.id);
+
+        if (error) throw error;
+      });
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: 'รีเซ็ตยอดเงินสำเร็จ',
+        description: `รีเซ็ตยอดเงินประจำปีสำหรับพนักงาน ${allEmployees?.length || 0} คนเรียบร้อยแล้ว (ยกเว้นค่าแต่งงาน, ค่างานศพ, ค่าคลอดบุตร)`,
+      });
+
+      fetchEmployees(); // Refresh data
+      setIsResetDialogOpen(false);
+
+    } catch (error: any) {
+      console.error('Error resetting budgets:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: error.message || 'ไม่สามารถรีเซ็ตยอดเงินได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleDelete = async (employeeId: number, authUid: string | null) => {
     if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบพนักงานคนนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
 
@@ -342,9 +394,16 @@ export const UserManagement = () => {
             <PlusCircle className="h-4 w-4" />
             เพิ่มพนักงานใหม่
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsResetDialogOpen(true)}
+            className="flex items-center gap-2 border-orange-300 text-orange-600 hover:bg-orange-50"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset ยอดเงินประจำปี
+          </Button>
           <Link to="/admin/report">
             <Button variant="outline" className="flex items-center gap-2">
-
               Report ภาพรวม
             </Button>
           </Link>
@@ -439,6 +498,62 @@ export const UserManagement = () => {
           <DialogFooter>
             <Button variant="outline" onClick={handleModalClose}>ยกเลิก</Button>
             <Button onClick={handleSave}>บันทึก</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Annual Budget Confirmation Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-5 w-5" />
+              ยืนยันการรีเซ็ตยอดเงินประจำปี
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700 mb-4">
+              คุณต้องการรีเซ็ตยอดเงินสวัสดิการประจำปีสำหรับพนักงานทุกคนหรือไม่?
+            </p>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-orange-800 mb-2">รายการที่จะถูกรีเซ็ต:</p>
+              <ul className="text-sm text-orange-700 space-y-1 list-disc list-inside">
+                <li>ค่าแว่นตา/ทันตกรรม → 2,000 บาท</li>
+                <li>ค่าออกกำลังกาย → 300 บาท</li>
+                <li>ค่ารักษาพยาบาล → 1,000 บาท</li>
+                <li>ค่าอบรม → ค่าเริ่มต้นของแต่ละคน</li>
+              </ul>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-green-800 mb-2">รายการที่ไม่ถูกรีเซ็ต:</p>
+              <ul className="text-sm text-green-700 space-y-1 list-disc list-inside">
+                <li>ค่าแต่งงาน</li>
+                <li>ค่างานศพ (พนักงาน/ครอบครัว/บุตร)</li>
+                <li>ค่าคลอดบุตร</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetDialogOpen(false)} disabled={isResetting}>
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleResetAnnualBudget}
+              disabled={isResetting}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isResetting ? (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                  กำลังรีเซ็ต...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  ยืนยันรีเซ็ต
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
