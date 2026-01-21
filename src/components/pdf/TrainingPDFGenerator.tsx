@@ -263,7 +263,7 @@ const createTrainingFormHTML = (
       <div style="border: 2px solid #000000; padding: 8mm; height: calc(100% - 16mm); background: #ffffff; display: flex; flex-direction: column;">
         
         <!-- Header Section -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #000;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; margin-left: -8mm; margin-right: -8mm; padding: 0 8mm 5px 8mm; border-bottom: 1px solid #000;">
         <!-- Company Logo -->
         <div style="display: flex; align-items: center;">
           <img src="/dist/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
