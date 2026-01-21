@@ -405,7 +405,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         manager_id: managerId,
         start_date: requestData.start_date || null,
         end_date: requestData.end_date || null,
-        total_days: requestData.total_days,
+        total_days: requestData.total_days || null,
         birth_type: requestData.birth_type,
         childbirths: requestData.childbirths,
         training_topics: requestData.training_topics,
