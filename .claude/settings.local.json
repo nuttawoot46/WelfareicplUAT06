@@ -19,7 +19,11 @@
       "Bash(npm update:*)",
       "Bash(uipro init:*)",
       "Bash(wc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(del next.config.js)"
     ],
     "deny": [],
     "ask": []
