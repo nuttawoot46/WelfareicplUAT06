@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ interface WelfareFormProps {
   type: WelfareType;
   onBack: () => void;
   editId?: number | null;
+  onSuccess?: () => void; // callback เมื่อ submit/edit สำเร็จ
 }
 
 // 1. อัปเดต FormValues Interface
@@ -158,7 +159,7 @@ const getFormTitle = (type: WelfareType): string => {
   return titles[type] || 'แบบฟอร์มขอสวัสดิการ';
 };
 
-export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
+export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProps) {
   // If type is 'advance', render the separate AdvanceForm component
   if (type === 'advance') {
     return <AdvanceForm onBack={onBack} editId={editId} />;
@@ -166,14 +167,18 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
   // รองรับ editId จาก prop (modal edit) หรือจาก query string (หน้า /Forms)
   const location = useLocation();
   const navigate = useNavigate();
-  let editIdNum: number | undefined = undefined;
-  if (typeof editId === 'number') {
-    editIdNum = editId;
-  } else {
+
+  // ใช้ useMemo เพื่อให้ editIdNum stable และถูก capture ใน closure ถูกต้อง
+  const editIdNum = useMemo(() => {
+    // รองรับทั้ง number และ string (database อาจคืนเป็น string)
+    if (editId !== null && editId !== undefined) {
+      const num = Number(editId);
+      return isNaN(num) ? undefined : num;
+    }
     const searchParams = new URLSearchParams(location.search);
     const editIdStr = searchParams.get('editId');
-    editIdNum = editIdStr ? Number(editIdStr) : undefined;
-  }
+    return editIdStr ? Number(editIdStr) : undefined;
+  }, [editId, location.search]);
   const { user, profile } = useAuth();
   const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount } = useWelfare();
   const { submitRequest: submitInternalTrainingRequest, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
@@ -285,6 +290,9 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     return true;
   };
 
+  // Track if edit data has been fetched to prevent re-fetching
+  const [editDataFetched, setEditDataFetched] = useState(false);
+
   // 1. ตั้งค่าขีดจำกัดและเงื่อนไขของสวัสดิการตาม type ทุกครั้งที่ type หรือ user เปลี่ยน
   useEffect(() => {
     if (!user) return;
@@ -306,7 +314,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (type === 'training' && user && profile) {
       const budgetResult = getRemainingBudget(user.id, type);
       setEmployeeBudget(budgetResult);
-    } else if (type !== 'training' && limitAmount) {
+    } else if (type !== 'training' && limitAmount && !editIdNum) {
+      // ไม่ set amount ถ้าเป็น edit mode (จะใช้ค่าจาก database แทน)
       setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
 
@@ -315,78 +324,84 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       const childbirthInfo = getChildbirthCount(user.id);
       setChildbirthLimit(childbirthInfo);
     }
+  }, [type, user, profile, trainingBudget]);
 
-    // ถ้ามี editId ให้ดึงข้อมูลมา prefill
+  // 2. แยก useEffect สำหรับ fetch edit data - run ครั้งเดียวเมื่อ editIdNum มีค่า
+  useEffect(() => {
+    if (!editIdNum || editDataFetched) return;
+
     const fetchEditData = async () => {
-      if (editIdNum) {
-        const { data, error } = await supabase
-          .from('welfare_requests')
-          .select('*')
-          .eq('id', editIdNum)
-          .single();
-        if (!error && data) {
-          // Map only fields that exist in the schema
-          const dbData = data as any; // Type assertion for database fields
-          // เก็บจำนวนเงินเดิมเพื่อบวกกลับไปใน remaining budget ตอน edit
-          setOriginalEditAmount(Number(dbData.amount) || 0);
-          reset({
-            amount: dbData.amount,
-            details: dbData.details || '',
-            title: dbData.title || '',
-            startDate: dbData.start_date || '',
-            endDate: dbData.end_date || '',
-            totalDays: dbData.total_days || 0,
-            birthType: dbData.birth_type || '',
-            funeralType: (dbData.funeral_type as 'employee_spouse' | 'child' | 'parent') || undefined,
-            trainingTopics: dbData.training_topics ? JSON.parse(dbData.training_topics) : [],
-            totalAmount: dbData.total_amount || 0,
-            tax7Percent: dbData.tax7_percent || 0,
-            withholdingTax3Percent: dbData.withholding_tax3_percent || 0,
-            netAmount: dbData.net_amount || dbData.amount || 0,
-            excessAmount: dbData.excess_amount || 0,
-            companyPayment: dbData.company_payment || 0,
-            employeePayment: dbData.employee_payment || 0,
-            courseName: dbData.course_name || '',
-            organizer: dbData.organizer || '',
-            isVatIncluded: dbData.is_vat_included || false,
-            // Internal Training detailed tax fields
-            instructorFee: dbData.instructor_fee || 0,
-            instructorFeeWithholding: dbData.instructor_fee_withholding || 0,
-            instructorFeeVat: dbData.instructor_fee_vat || 0,
-            instructorFeeTotal: dbData.instructor_fee_total || 0,
-            roomFoodBeverage: dbData.room_food_beverage || 0,
-            roomFoodBeverageWithholding: dbData.room_food_beverage_withholding || 0,
-            roomFoodBeverageVat: dbData.room_food_beverage_vat || 0,
-            roomFoodBeverageTotal: dbData.room_food_beverage_total || 0,
-            otherExpenses: dbData.other_expenses || 0,
-            otherExpensesWithholding: dbData.other_expenses_withholding || 0,
-            otherExpensesVat: dbData.other_expenses_vat || 0,
-            otherExpensesTotal: dbData.other_expenses_total || 0,
-            withholdingTax: dbData.withholding_tax || 0,
-            vat: dbData.vat || 0,
-            // Document selections
-            attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
-          });
-          // Attachments
-          if (data.attachment_url) {
-            let attachments: string[] = [];
-            if (Array.isArray(data.attachment_url)) {
-              attachments = data.attachment_url;
-            } else if (typeof data.attachment_url === 'string') {
-              try {
-                const parsed = JSON.parse(data.attachment_url);
-                attachments = Array.isArray(parsed) ? parsed : [parsed];
-              } catch {
-                attachments = data.attachment_url ? [data.attachment_url] : [];
-              }
+      const { data, error } = await supabase
+        .from('welfare_requests')
+        .select('*')
+        .eq('id', editIdNum)
+        .single();
+
+      if (!error && data) {
+        // Map only fields that exist in the schema
+        const dbData = data as any; // Type assertion for database fields
+        // เก็บจำนวนเงินเดิมเพื่อบวกกลับไปใน remaining budget ตอน edit
+        setOriginalEditAmount(Number(dbData.amount) || 0);
+        reset({
+          amount: dbData.amount,
+          details: dbData.details || '',
+          title: dbData.title || '',
+          startDate: dbData.start_date || '',
+          endDate: dbData.end_date || '',
+          totalDays: dbData.total_days || 0,
+          birthType: dbData.birth_type || '',
+          funeralType: (dbData.funeral_type as 'employee_spouse' | 'child' | 'parent') || undefined,
+          trainingTopics: dbData.training_topics ? JSON.parse(dbData.training_topics) : [],
+          totalAmount: dbData.total_amount || 0,
+          tax7Percent: dbData.tax7_percent || 0,
+          withholdingTax3Percent: dbData.withholding_tax3_percent || 0,
+          netAmount: dbData.net_amount || dbData.amount || 0,
+          excessAmount: dbData.excess_amount || 0,
+          companyPayment: dbData.company_payment || 0,
+          employeePayment: dbData.employee_payment || 0,
+          courseName: dbData.course_name || '',
+          organizer: dbData.organizer || '',
+          isVatIncluded: dbData.is_vat_included || false,
+          // Internal Training detailed tax fields
+          instructorFee: dbData.instructor_fee || 0,
+          instructorFeeWithholding: dbData.instructor_fee_withholding || 0,
+          instructorFeeVat: dbData.instructor_fee_vat || 0,
+          instructorFeeTotal: dbData.instructor_fee_total || 0,
+          roomFoodBeverage: dbData.room_food_beverage || 0,
+          roomFoodBeverageWithholding: dbData.room_food_beverage_withholding || 0,
+          roomFoodBeverageVat: dbData.room_food_beverage_vat || 0,
+          roomFoodBeverageTotal: dbData.room_food_beverage_total || 0,
+          otherExpenses: dbData.other_expenses || 0,
+          otherExpensesWithholding: dbData.other_expenses_withholding || 0,
+          otherExpensesVat: dbData.other_expenses_vat || 0,
+          otherExpensesTotal: dbData.other_expenses_total || 0,
+          withholdingTax: dbData.withholding_tax || 0,
+          vat: dbData.vat || 0,
+          // Document selections
+          attachmentSelections: dbData.attachment_selections ? JSON.parse(dbData.attachment_selections) : {},
+        });
+        // Attachments
+        if (data.attachment_url) {
+          let attachments: string[] = [];
+          if (Array.isArray(data.attachment_url)) {
+            attachments = data.attachment_url;
+          } else if (typeof data.attachment_url === 'string') {
+            try {
+              const parsed = JSON.parse(data.attachment_url);
+              attachments = Array.isArray(parsed) ? parsed : [parsed];
+            } catch {
+              attachments = data.attachment_url ? [data.attachment_url] : [];
             }
-            setFiles(attachments);
           }
+          setFiles(attachments);
         }
+        setEditDataFetched(true);
       }
     };
+
     fetchEditData();
-  }, [type, user, getWelfareLimit, setValue, trainingBudget, editId, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editIdNum]); // ใช้เฉพาะ editIdNum เป็น dependency เพื่อป้องกัน infinite loop
 
   // Check training eligibility when employeeData changes
   useEffect(() => {
@@ -417,10 +432,10 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
 
     if (type === 'training') {
-      // สมมติว่า remainingBudget ใช้ trainingBudget
-      const remainingBudget = currentRemainingBudget ?? 0;
+      // สำหรับ Edit mode: บวก originalEditAmount กลับไปใน remaining budget
+      const effectiveBudget = (currentRemainingBudget ?? 0) + originalEditAmount;
       if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
-        calculateTrainingAmounts(Number(amount), Number(remainingBudget), vatAmount, withholdingAmount);
+        calculateTrainingAmounts(Number(amount), effectiveBudget, vatAmount, withholdingAmount);
       }
     } else if (type === 'wedding' || type === 'childbirth' || type === 'funeral' || type === 'glasses' || type === 'dental' || type === 'fitness' || type === 'medical') {
       // คำนวณสำหรับ welfare types อื่น ๆ
@@ -428,7 +443,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
       }
     }
-  }, [watch('amount'), watch('tax7Percent'), watch('withholdingTax3Percent'), type]);
+  }, [watch('amount'), watch('tax7Percent'), watch('withholdingTax3Percent'), type, originalEditAmount]);
 
   // Calculate total days when start or end date changes
   useEffect(() => {
@@ -827,9 +842,11 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       const amount = Number(watch('amount')) || 0;
       const vatAmount = Number(watch('tax7Percent')) || 0;
       const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
-      calculateTrainingAmounts(amount, Number(currentRemainingBudget) || 0, vatAmount, withholdingAmount);
+      // สำหรับ Edit mode: บวก originalEditAmount กลับไปใน remaining budget
+      const effectiveBudget = (Number(currentRemainingBudget) || 0) + originalEditAmount;
+      calculateTrainingAmounts(amount, effectiveBudget, vatAmount, withholdingAmount);
     }
-  }, [currentRemainingBudget, type]);
+  }, [currentRemainingBudget, type, originalEditAmount]);
 
 
   // Fetch remaining budget from getBenefitLimits API
@@ -889,6 +906,8 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
       return;
     }
 
+    console.log('onSubmit - form data:', data);
+    console.log('onSubmit - amount:', data.amount, 'netAmount:', data.netAmount);
     setPendingFormData({ data, employeeData });
     setShowSignatureModal(true);
   };
@@ -929,22 +948,7 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         throw new Error('Employee data not found. Please contact support.');
       }
 
-      // For training type, submit directly without PDF generation
-      if (type === 'training') {
-        await processFormSubmission(data, employeeData);
-        return;
-      }
-
-      // Store form data and employee data for later use
-      setPendingFormData({ data, employeeData });
-
-      // Show signature modal for wedding type
-      if (type === 'wedding') {
-        setShowSignatureModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-
+      // ===== EDIT MODE: ต้อง check ก่อน type-specific logic =====
       if (editIdNum) {
         // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
         const { data: currentRequest, error: fetchError } = await supabase
@@ -1030,10 +1034,19 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
         return;
       }
 
-      // For wedding type, show signature modal before submitting
+      // ===== CREATE MODE: ดำเนินการสร้างคำร้องใหม่ =====
+
+      // For training type, submit directly without PDF generation
+      if (type === 'training') {
+        await processFormSubmission(data, employeeData);
+        return;
+      }
+
+      // Store form data and employee data for later use
+      setPendingFormData({ data, employeeData });
+
+      // Show signature modal for wedding type
       if (type === 'wedding') {
-        // Store form data temporarily
-        setPendingFormData({ data, employeeData });
         setShowSignatureModal(true);
         setIsSubmitting(false);
         return;
@@ -1061,6 +1074,101 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     if (pendingFormData) {
       try {
         setIsSubmitting(true);
+
+        // ===== EDIT MODE: ต้อง check ก่อน processFormSubmission =====
+        if (editIdNum) {
+          // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
+          const { data: currentRequest, error: fetchError } = await supabase
+            .from('welfare_requests')
+            .select('status')
+            .eq('id', editIdNum)
+            .single();
+
+          if (fetchError || !currentRequest) {
+            throw new Error('ไม่พบข้อมูลคำร้อง หรือเกิดข้อผิดพลาดในการตรวจสอบสถานะ');
+          }
+
+          if (currentRequest.status && currentRequest.status.toLowerCase() === 'approved') {
+            toast({
+              title: 'ไม่สามารถแก้ไขได้',
+              description: 'คำร้องนี้ได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขได้',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            setPendingFormData(null);
+            return;
+          }
+
+          // UPDATE EXISTING REQUEST
+          const data = pendingFormData.data;
+          console.log('handleSignatureConfirm - pendingFormData.data:', data);
+          console.log('handleSignatureConfirm - amount:', data.amount, 'netAmount:', data.netAmount);
+          const updateData: any = {
+            amount: Number(data.netAmount || data.amount || 0),
+            details: data.details || '',
+            title: data.title || '',
+            attachment_url: JSON.stringify(files),
+            updated_at: new Date().toISOString(),
+            start_date: data.startDate || null, // ส่ง null แทน empty string สำหรับ date
+            end_date: data.endDate || null, // ส่ง null แทน empty string สำหรับ date
+            total_days: data.totalDays || null,
+            birth_type: data.birthType || null,
+            childbirths: data.childbirths ? JSON.stringify(data.childbirths) : null,
+            funeral_type: data.funeralType || null,
+            training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
+            total_amount: data.totalAmount || null,
+            tax7_percent: data.tax7Percent || null,
+            withholding_tax3_percent: data.withholdingTax3Percent || null,
+            net_amount: data.netAmount || null,
+            excess_amount: data.excessAmount || null,
+            company_payment: data.companyPayment || null,
+            employee_payment: data.employeePayment || null,
+            course_name: data.courseName || null,
+            organizer: data.organizer || null,
+            is_vat_included: data.isVatIncluded || false,
+            department_request: pendingFormData.employeeData?.Team || null,
+            user_signature: signatureData, // เพิ่ม signature ใน update
+          };
+
+          console.log('UPDATE MODE (signature): updateData', updateData, 'editIdNum', editIdNum);
+
+          const { data: updatedData, error: updateError } = await supabase
+            .from('welfare_requests')
+            .update(updateData)
+            .eq('id', editIdNum)
+            .select('id, amount, net_amount'); // ดึงข้อมูลที่ update กลับมา
+
+          console.log('UPDATE RESULT:', { updatedData, updateError });
+
+          if (updateError) {
+            console.error('Supabase updateError:', updateError);
+            throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
+          }
+
+          // ตรวจสอบค่าในฐานข้อมูลหลัง update
+          const { data: verifyData } = await supabase
+            .from('welfare_requests')
+            .select('id, amount, net_amount')
+            .eq('id', editIdNum)
+            .single();
+          console.log('VERIFY AFTER UPDATE:', verifyData);
+
+          await refreshRequests();
+
+          // เรียก onSuccess callback เพื่อให้ parent component refresh data
+          if (onSuccess) {
+            onSuccess();
+          }
+
+          toast({
+            title: 'แก้ไขคำร้องสำเร็จ',
+            description: 'ข้อมูลคำร้องได้รับการแก้ไขเรียบร้อยแล้ว',
+          });
+          setTimeout(onBack, 1000); // ลดเวลาเพื่อให้ UX ดีขึ้น
+          return;
+        }
+
+        // ===== CREATE MODE: สร้างคำร้องใหม่ =====
         await processFormSubmission(pendingFormData.data, pendingFormData.employeeData, signatureData);
       } catch (error: any) {
         console.error('Error submitting form after signature:', error);
@@ -1418,6 +1526,25 @@ export function WelfareForm({ type, onBack, editId }: WelfareFormProps) {
     const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
     return totalDays;
   };
+
+  // คำนวณ netAmount หลังจากโหลด edit data เสร็จ
+  // เพื่อให้ netAmount ถูกต้องตามค่า amount ที่โหลดมา
+  useEffect(() => {
+    if (editDataFetched && editIdNum) {
+      const amount = watch('amount');
+      const vatAmount = Number(watch('tax7Percent')) || 0;
+      const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+
+      if (type === 'training' && amount) {
+        // สำหรับ training ใช้ currentRemainingBudget + originalEditAmount
+        const effectiveBudget = currentRemainingBudget + originalEditAmount;
+        calculateTrainingAmounts(Number(amount), effectiveBudget, vatAmount, withholdingAmount);
+      } else if (type !== 'training' && type !== 'internal_training' && amount) {
+        // สำหรับ welfare types อื่นๆ
+        calculateNonTrainingAmounts(Number(amount), vatAmount, withholdingAmount);
+      }
+    }
+  }, [editDataFetched, originalEditAmount, currentRemainingBudget]);
 
   return (
     <div className="animate-fade-in">

@@ -88,10 +88,14 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
     try {
       const data = await getBenefitLimits();
 
-      // รวมสวัสดิการค่าตัดแว่นและค่าทำฟันเป็นรายการเดียวกัน
+      // กรองประเภทสวัสดิการที่ไม่ต้องแสดง
+      // - glasses: รวมกับ dental แล้ว
+      // - childbirth: ค่าคลอดบุตร (ไม่แสดง)
+      // - funeral: ค่าช่วยเหลืองานศพ (ไม่แสดง)
       const processedData = data.filter(benefit => {
-        // กรองเอาเฉพาะรายการที่ไม่ใช่ค่าตัดแว่น
-        return benefit.type !== 'glasses';
+        return benefit.type !== 'glasses' &&
+               benefit.type !== 'childbirth' &&
+               benefit.type !== 'funeral';
       });
 
       setBenefits(processedData);
