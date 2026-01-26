@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { formatNumberWithCommas, parseFormattedNumber, formatInputWhileTyping, formatNumberOnBlur, formatNumberForInput } from '@/utils/numberFormat';
+import { getWelfareTypeLabel } from '@/lib/utils';
 
 import LoadingPopup from './LoadingPopup';
 import { generateWelfarePDF } from '../pdf/WelfarePDFGenerator';
@@ -24,6 +25,7 @@ import { uploadPDFToSupabase } from '@/utils/pdfUtils';
 import { DigitalSignature } from '../signature/DigitalSignature';
 import { ParticipantSelector } from './ParticipantSelector';
 import { AdvanceForm } from './AdvanceForm';
+import { sendLineNotification } from '@/services/lineApi';
 
 interface WelfareFormProps {
   type: WelfareType;
@@ -1337,6 +1339,19 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
         description: 'คำร้องการอบรมภายในของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
       });
 
+      // Send LINE notification for internal training
+      try {
+        await sendLineNotification({
+          employeeEmail: user.email || '',
+          type: 'อบรมภายใน',
+          status: 'submitted',
+          userName: finalEmployeeData?.Name || user?.email || 'Unknown User',
+          runNumber: result?.id?.toString(),
+        });
+      } catch (lineError) {
+        console.error('LINE notification error:', lineError);
+      }
+
       reset();
       setFiles([]);
       setTimeout(onBack, 2000);
@@ -1459,6 +1474,20 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       description: 'คำร้องของคุณถูกส่งเรียบร้อยแล้ว และอยู่ในระหว่างการพิจารณา',
     });
 
+    // Send LINE notification to the user who submitted the request
+    try {
+      await sendLineNotification({
+        employeeEmail: user.email || '',
+        type: getWelfareTypeLabel(type),
+        status: 'submitted',
+        amount: Number(data.netAmount || data.amount || 0),
+        userName: finalEmployeeData?.Name || user?.email || 'Unknown User',
+        runNumber: result?.runNumber || result?.id?.toString(),
+      });
+    } catch (lineError) {
+      console.error('LINE notification error:', lineError);
+      // Don't show error to user - LINE notification is optional
+    }
 
     reset();
     setFiles([]);
