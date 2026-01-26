@@ -896,6 +896,16 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       return;
     }
 
+    // Check required document attachments for welfare types
+    if (type !== 'training' && type !== 'internal_training' && type !== 'advance' && files.length === 0) {
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: 'กรุณาอัพโหลดเอกสารประกอบอย่างน้อย 1 ไฟล์',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Check training eligibility before submission
     if (type === 'training' && !checkTrainingEligibility(employeeData)) {
       toast({
@@ -2748,461 +2758,51 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             )}
           </div>
 
-          {/* Document Selection - Only for welfare types (not training, internal_training, advance) */}
+          {/* Document Attachments - Only for welfare types (not training, internal_training, advance) */}
           {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
             <div className="space-y-4">
-              <label className="form-label">เลือกเอกสารที่แนบ</label>
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Row 1 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="receipt"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.receipt')}
-                    />
-                    <label htmlFor="receipt" className="text-sm text-gray-700">
-                      ใบเสร็จรับเงิน
-                    </label>
-                  </div>
+              <label className="form-label flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                แนบเอกสาร <span className="text-red-500">*</span>
+              </label>
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                <Input
+                  type="file"
+                  onChange={handleFileChange}
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx"
+                  className="form-input"
+                />
+                <p className="text-xs text-gray-500">
+                  กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์ (รูปภาพ, PDF, Word)
+                </p>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="idCardCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.idCardCopy')}
-                    />
-                    <label htmlFor="idCardCopy" className="text-sm text-gray-700">
-                      สำเนาบัตรประชาชน
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="bankBookCopy"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.bankBookCopy')}
-                    />
-                    <label htmlFor="bankBookCopy" className="text-sm text-gray-700">
-                      สำเนาบัญชีธนาคาร
-                    </label>
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="birthCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.birthCertificate')}
-                    />
-                    <label htmlFor="birthCertificate" className="text-sm text-gray-700">
-                      สำเนาสูติบัตรบุตร
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="deathCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.deathCertificate')}
-                    />
-                    <label htmlFor="deathCertificate" className="text-sm text-gray-700">
-                      สำเนาใบมรณะบัตร
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="weddingCard"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.weddingCard')}
-                    />
-                    <label htmlFor="weddingCard" className="text-sm text-gray-700">
-                      การ์ดแต่งงาน
-                    </label>
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="medicalCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.medicalCertificate')}
-                    />
-                    <label htmlFor="medicalCertificate" className="text-sm text-gray-700">
-                      ใบรับรองแพทย์
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="marriageCertificate"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.marriageCertificate')}
-                    />
-                    <label htmlFor="marriageCertificate" className="text-sm text-gray-700">
-                      สำเนาทะเบียนสมรส
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="other"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      {...register('attachmentSelections.other')}
-                    />
-                    <label htmlFor="other" className="text-sm text-gray-700">
-                      อื่นๆ
-                    </label>
-                  </div>
-                </div>
-
-                {/* Other text input - show when "อื่นๆ" is checked */}
-                {watch('attachmentSelections.other') && (
-                  <div className="mt-4">
-                    <Input
-                      placeholder="ระบุเอกสารอื่นๆ"
-                      className="form-input"
-                      {...register('attachmentSelections.otherText')}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Dynamic file upload fields based on selections */}
-              <div className="mt-6 space-y-4">
-                <h3 className="text-sm font-semibold text-gray-700">แนบไฟล์เอกสาร</h3>
-
-                {/* Receipt */}
-                {watch('attachmentSelections.receipt') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      ใบเสร็จรับเงิน
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'receipt')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.receipt && documentFiles.receipt.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.receipt.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('receipt', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                {/* Display uploaded files */}
+                {files.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    <p className="text-sm font-medium text-gray-700">ไฟล์ที่อัพโหลดแล้ว ({files.length} ไฟล์)</p>
+                    {files.map((fileUrl, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
+                        <a
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-2 truncate max-w-[80%]"
+                        >
+                          <Download className="h-4 w-4 flex-shrink-0" />
+                          ไฟล์ {index + 1}
+                        </a>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFile(index)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ID Card Copy */}
-                {watch('attachmentSelections.idCardCopy') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      สำเนาบัตรประชาชน
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'idCardCopy')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.idCardCopy && documentFiles.idCardCopy.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.idCardCopy.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('idCardCopy', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Bank Book Copy */}
-                {watch('attachmentSelections.bankBookCopy') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      สำเนาบัญชีธนาคาร
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'bankBookCopy')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.bankBookCopy && documentFiles.bankBookCopy.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.bankBookCopy.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('bankBookCopy', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Birth Certificate */}
-                {watch('attachmentSelections.birthCertificate') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      สำเนาสูติบัตรบุตร
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'birthCertificate')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.birthCertificate && documentFiles.birthCertificate.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.birthCertificate.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('birthCertificate', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Death Certificate */}
-                {watch('attachmentSelections.deathCertificate') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      สำเนาใบมรณะบัตร
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'deathCertificate')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.deathCertificate && documentFiles.deathCertificate.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.deathCertificate.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('deathCertificate', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Wedding Card */}
-                {watch('attachmentSelections.weddingCard') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      การ์ดแต่งงาน
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'weddingCard')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.weddingCard && documentFiles.weddingCard.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.weddingCard.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('weddingCard', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Medical Certificate */}
-                {watch('attachmentSelections.medicalCertificate') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      ใบรับรองแพทย์
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'medicalCertificate')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.medicalCertificate && documentFiles.medicalCertificate.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.medicalCertificate.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('medicalCertificate', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Marriage Certificate */}
-                {watch('attachmentSelections.marriageCertificate') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      สำเนาทะเบียนสมรส
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'marriageCertificate')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.marriageCertificate && documentFiles.marriageCertificate.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.marriageCertificate.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('marriageCertificate', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Other */}
-                {watch('attachmentSelections.other') && (
-                  <div className="border rounded-lg p-4 bg-white space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      อื่นๆ {watch('attachmentSelections.otherText') && `(${watch('attachmentSelections.otherText')})`}
-                    </label>
-                    <Input
-                      type="file"
-                      onChange={(e) => handleDocumentFileChange(e, 'other')}
-                      multiple
-                      className="form-input"
-                    />
-                    {documentFiles.other && documentFiles.other.length > 0 && (
-                      <div className="space-y-2">
-                        {documentFiles.other.map((fileUrl, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              ไฟล์ {index + 1}
-                            </a>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocumentFile('other', index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
