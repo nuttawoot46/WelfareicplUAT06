@@ -1344,9 +1344,16 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
         await sendLineNotification({
           employeeEmail: user.email || '',
           type: 'อบรมภายใน',
-          status: 'submitted',
+          status: 'รอหัวหน้าอนุมัติ',
           userName: finalEmployeeData?.Name || user?.email || 'Unknown User',
           runNumber: result?.id?.toString(),
+          requestDate: new Date().toLocaleString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
         });
       } catch (lineError) {
         console.error('LINE notification error:', lineError);
@@ -1476,13 +1483,27 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
 
     // Send LINE notification to the user who submitted the request
     try {
+      const requestAmount = Number(data.netAmount || data.amount || 0);
+      // คำนวณงบประมาณคงเหลือหลังหักคำร้องนี้
+      const budgetAfterRequest = type === 'training'
+        ? Math.max(0, (remainingBudget || 0) - requestAmount)
+        : Math.max(0, (currentRemainingBudget || 0) - requestAmount);
+
       await sendLineNotification({
         employeeEmail: user.email || '',
         type: getWelfareTypeLabel(type),
-        status: 'submitted',
-        amount: Number(data.netAmount || data.amount || 0),
+        status: 'รอหัวหน้าอนุมัติ',
+        amount: requestAmount,
         userName: finalEmployeeData?.Name || user?.email || 'Unknown User',
         runNumber: result?.runNumber || result?.id?.toString(),
+        remainingBudget: budgetAfterRequest,
+        requestDate: new Date().toLocaleString('th-TH', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
       });
     } catch (lineError) {
       console.error('LINE notification error:', lineError);
