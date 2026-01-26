@@ -896,8 +896,8 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       return;
     }
 
-    // Check required document attachments for welfare types
-    if (type !== 'training' && type !== 'internal_training' && type !== 'advance' && files.length === 0) {
+    // Check required document attachments for welfare types and training
+    if (type !== 'internal_training' && type !== 'advance' && files.length === 0) {
       toast({
         title: 'กรุณาแนบเอกสาร',
         description: 'กรุณาอัพโหลดเอกสารประกอบอย่างน้อย 1 ไฟล์',
@@ -2758,8 +2758,8 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             )}
           </div>
 
-          {/* Document Attachments - Only for welfare types (not training, internal_training, advance) */}
-          {type !== 'training' && type !== 'internal_training' && type !== 'advance' && (
+          {/* Document Attachments - For welfare types and training (not internal_training, advance) */}
+          {type !== 'internal_training' && type !== 'advance' && (
             <div className="space-y-4">
               <label className="form-label flex items-center gap-2">
                 <Paperclip className="h-4 w-4" />
