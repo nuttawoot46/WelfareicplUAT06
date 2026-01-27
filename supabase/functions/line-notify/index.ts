@@ -50,7 +50,6 @@ function createFlexMessage(
   status: string,
   amount: number,
   userName: string,
-  runNumber?: string,
   remainingBudget?: number,
   requestDate?: string
 ) {
@@ -103,16 +102,10 @@ function createFlexMessage(
                 contents: [
                   {
                     type: "text",
-                    text: "ICP LADDA",
+                    text: "ICPL Welfare System",
                     color: "#FFFFFF",
                     size: "sm",
                     weight: "bold",
-                  },
-                  {
-                    type: "text",
-                    text: "Welfare System",
-                    color: "#B3D4FC",
-                    size: "xs",
                   },
                 ],
                 flex: 4,
@@ -217,32 +210,6 @@ function createFlexMessage(
                   },
                 ],
               },
-              // เลขที่เอกสาร (if exists)
-              ...(runNumber
-                ? [
-                    {
-                      type: "box" as const,
-                      layout: "horizontal" as const,
-                      contents: [
-                        {
-                          type: "text" as const,
-                          text: "📋 เลขที่",
-                          size: "sm" as const,
-                          color: "#666666",
-                          flex: 4,
-                        },
-                        {
-                          type: "text" as const,
-                          text: runNumber,
-                          size: "sm" as const,
-                          color: "#333333",
-                          flex: 6,
-                          align: "end" as const,
-                        },
-                      ],
-                    },
-                  ]
-                : []),
               // ประเภท
               {
                 type: "box",
@@ -389,7 +356,7 @@ serve(async (req) => {
   }
 
   try {
-    const { employeeEmail, type, status, amount, userName, runNumber, remainingBudget, requestDate } = await req.json()
+    const { employeeEmail, type, status, amount, userName, remainingBudget, requestDate } = await req.json()
 
     if (!employeeEmail || !type || !status) {
       return new Response(
@@ -414,7 +381,7 @@ serve(async (req) => {
     }
 
     // ส่ง Flex Message
-    const message = createFlexMessage(type, status, amount || 0, userName || "", runNumber, remainingBudget, requestDate)
+    const message = createFlexMessage(type, status, amount || 0, userName || "", remainingBudget, requestDate)
 
     const pushResponse = await fetch("https://api.line.me/v2/bot/message/push", {
       method: "POST",
