@@ -25,6 +25,7 @@ import LoadingPopup from '@/components/forms/LoadingPopup';
 import { getWelfareTypeLabel } from '@/lib/utils';
 
 import { supabase } from '@/lib/supabase';
+import { sendLineNotification } from '@/services/lineApi';
 
 export const HRApprovalPage = () => {
   const { user, profile, loading: isAuthLoading } = useAuth();
@@ -475,20 +476,92 @@ export const HRApprovalPage = () => {
       if (isBulkApprovalMode) {
         const nextIndex = currentBulkIndex + 1;
         if (nextIndex < bulkApprovalQueue.length) {
+          // Send LINE notification for current request before moving to next
+          try {
+            const employeeId = pendingApprovalRequest.employee_id || pendingApprovalRequest.userId;
+            const numericId = parseInt(employeeId, 10);
+            let employeeEmail = null;
+
+            if (!isNaN(numericId)) {
+              const { data: empData } = await supabase
+                .from('Employee')
+                .select('email_user')
+                .eq('id', numericId)
+                .single();
+              employeeEmail = empData?.email_user;
+            }
+
+            if (employeeEmail) {
+              await sendLineNotification({
+                employeeEmail,
+                type: getWelfareTypeLabel(pendingApprovalRequest.type),
+                status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+                amount: Number(pendingApprovalRequest.amount) || 0,
+                userName: pendingApprovalRequest.userName,
+                requestDate: new Date().toLocaleString('th-TH', {
+                  timeZone: 'Asia/Bangkok',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              });
+            }
+          } catch (lineError) {
+            console.error('Failed to send LINE notification:', lineError);
+          }
+
           // Move to next request in bulk approval
           setCurrentBulkIndex(nextIndex);
           setPendingApprovalRequest(bulkApprovalQueue[nextIndex]);
           // Keep signature popup open for next request
         } else {
+          // Send LINE notification for the last request in bulk
+          try {
+            const employeeId = pendingApprovalRequest.employee_id || pendingApprovalRequest.userId;
+            const numericId = parseInt(employeeId, 10);
+            let employeeEmail = null;
+
+            if (!isNaN(numericId)) {
+              const { data: empData } = await supabase
+                .from('Employee')
+                .select('email_user')
+                .eq('id', numericId)
+                .single();
+              employeeEmail = empData?.email_user;
+            }
+
+            if (employeeEmail) {
+              await sendLineNotification({
+                employeeEmail,
+                type: getWelfareTypeLabel(pendingApprovalRequest.type),
+                status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+                amount: Number(pendingApprovalRequest.amount) || 0,
+                userName: pendingApprovalRequest.userName,
+                requestDate: new Date().toLocaleString('th-TH', {
+                  timeZone: 'Asia/Bangkok',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              });
+            }
+          } catch (lineError) {
+            console.error('Failed to send LINE notification:', lineError);
+          }
+
           // Bulk approval complete
           const hasSpecialApproval = bulkApprovalQueue.some(req => {
             const reqType = req.type || req.request_type;
             return (reqType === 'internal_training' || reqType === 'training') && Number(req.amount) > 10000;
           });
-          const message = hasSpecialApproval 
+          const message = hasSpecialApproval
             ? `All ${bulkApprovalQueue.length} requests approved successfully. Some requests sent to Special Approval, others to Accounting.`
             : `All ${bulkApprovalQueue.length} requests approved successfully with signatures and sent to Accounting.`;
-          
+
           addNotification({
             userId: user.id,
             title: 'Success',
@@ -505,11 +578,46 @@ export const HRApprovalPage = () => {
           setIsSignaturePopupOpen(false);
         }
       } else {
-        // Single approval
-        const message = requiresSpecialApproval 
+        // Single approval - Send LINE notification
+        try {
+          const employeeId = pendingApprovalRequest.employee_id || pendingApprovalRequest.userId;
+          const numericId = parseInt(employeeId, 10);
+          let employeeEmail = null;
+
+          if (!isNaN(numericId)) {
+            const { data: empData } = await supabase
+              .from('Employee')
+              .select('email_user')
+              .eq('id', numericId)
+              .single();
+            employeeEmail = empData?.email_user;
+          }
+
+          if (employeeEmail) {
+            await sendLineNotification({
+              employeeEmail,
+              type: getWelfareTypeLabel(pendingApprovalRequest.type),
+              status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+              amount: Number(pendingApprovalRequest.amount) || 0,
+              userName: pendingApprovalRequest.userName,
+              requestDate: new Date().toLocaleString('th-TH', {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            });
+          }
+        } catch (lineError) {
+          console.error('Failed to send LINE notification:', lineError);
+        }
+
+        const message = requiresSpecialApproval
           ? 'Request approved successfully with signature and sent to Special Approval.'
           : 'Request approved successfully with signature and sent to Accounting for final approval.';
-        
+
         addNotification({
           userId: user.id,
           title: 'Success',

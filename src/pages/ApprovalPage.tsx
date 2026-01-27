@@ -28,6 +28,7 @@ import { getWelfareTypeLabel } from '@/lib/utils';
 
 
 import { supabase } from '@/lib/supabase';
+import { sendLineNotification } from '@/services/lineApi';
 
 export const ApprovalPage = () => {
   const { user, profile, loading: isAuthLoading } = useAuth();
@@ -377,20 +378,51 @@ export const ApprovalPage = () => {
           message += ` Sent to HR.`;
         }
         
-        addNotification({ 
-          userId: user.id, 
-          title: 'Success', 
-          message: message, 
-          type: 'success' 
+        addNotification({
+          userId: user.id,
+          title: 'Success',
+          message: message,
+          type: 'success'
         });
+
+        // Send LINE notifications to all requesters
+        for (const req of pendingBulkApproval) {
+          try {
+            const { data: employeeData } = await supabase
+              .from('Employee')
+              .select('email_user')
+              .eq('id', req.userId)
+              .single();
+
+            if (employeeData?.email_user) {
+              const destination = (req.type === 'advance' || req.type === 'general-advance' || req.type === 'expense-clearing') ? 'บัญชี' : ' HR ';
+              await sendLineNotification({
+                employeeEmail: employeeData.email_user,
+                type: getWelfareTypeLabel(req.type),
+                status: `รอ${destination}อนุมัติ`,
+                amount: Number(req.amount) || 0,
+                userName: req.userName,
+                requestDate: new Date().toLocaleString('th-TH', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }),
+              });
+            }
+          } catch (lineError) {
+            console.error('LINE notification error:', lineError);
+          }
+        }
 
         // Refresh both welfare and internal training requests
         await refreshRequests();
         await refreshInternalTrainingRequests();
-        
+
         // Store request IDs before resetting state
         const requestIds = pendingBulkApproval.map(req => req.id);
-        
+
         // Reset states
         setPendingBulkApproval([]);
         setIsBulkApproval(false);
@@ -470,20 +502,49 @@ export const ApprovalPage = () => {
         }
         
         const destination = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'general-advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'Accounting' : 'HR';
-        addNotification({ 
-          userId: user.id, 
-          title: 'Success', 
-          message: `Request approved successfully with signature and sent to ${destination}.`, 
-          type: 'success' 
+        addNotification({
+          userId: user.id,
+          title: 'Success',
+          message: `Request approved successfully with signature and sent to ${destination}.`,
+          type: 'success'
         });
+
+        // Send LINE notification to the requester
+        try {
+          // Get employee email from request
+          const { data: employeeData } = await supabase
+            .from('Employee')
+            .select('email_user')
+            .eq('id', pendingApprovalRequest.userId)
+            .single();
+
+          if (employeeData?.email_user) {
+            await sendLineNotification({
+              employeeEmail: employeeData.email_user,
+              type: getWelfareTypeLabel(pendingApprovalRequest.type),
+              status: `รอ${destination === 'HR' ? ' HR ' : 'บัญชี'}อนุมัติ`,
+              amount: Number(pendingApprovalRequest.amount) || 0,
+              userName: pendingApprovalRequest.userName,
+              requestDate: new Date().toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+            });
+          }
+        } catch (lineError) {
+          console.error('LINE notification error:', lineError);
+        }
 
         // Refresh both welfare and internal training requests
         await refreshRequests();
         await refreshInternalTrainingRequests();
-        
+
         // Store requestId before resetting state
         const requestId = pendingApprovalRequest.id;
-        
+
         // Reset states
         setPendingApprovalRequest(null);
         setIsSignaturePopupOpen(false);

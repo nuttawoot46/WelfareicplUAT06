@@ -22,6 +22,7 @@ import { usePDFOperations } from '@/hooks/usePDFOperations';
 import LoadingPopup from '@/components/forms/LoadingPopup';
 import { getWelfareTypeLabel } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { sendLineNotification } from '@/services/lineApi';
 
 export const AccountingApprovalPage = () => {
   const { user, profile, loading: isAuthLoading } = useAuth();
@@ -211,27 +212,63 @@ export const AccountingApprovalPage = () => {
               updated_at: currentDateTime
             })
             .eq('id', req.id);
-            
+
           if (error) {
             console.error('Error updating request:', error);
             throw error;
           }
+
+          // Send LINE notification for each approved request
+          try {
+            const employeeId = (req as any).employee_id || req.userId;
+            const numericId = parseInt(employeeId, 10);
+            let employeeEmail = null;
+
+            if (!isNaN(numericId)) {
+              const { data: empData } = await supabase
+                .from('Employee')
+                .select('email_user')
+                .eq('id', numericId)
+                .single();
+              employeeEmail = empData?.email_user;
+            }
+
+            if (employeeEmail) {
+              await sendLineNotification({
+                employeeEmail,
+                type: getWelfareTypeLabel(req.type),
+                status: 'อนุมัติเรียบร้อย',
+                amount: Number(req.amount) || 0,
+                userName: req.userName,
+                requestDate: new Date().toLocaleString('th-TH', {
+                  timeZone: 'Asia/Bangkok',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              });
+            }
+          } catch (lineError) {
+            console.error('Failed to send LINE notification:', lineError);
+          }
         }
-        
-        addNotification({ 
-          userId: user.id, 
-          title: 'Success', 
-          message: `${pendingBulkApproval.length} requests approved successfully with signature.`, 
-          type: 'success' 
+
+        addNotification({
+          userId: user.id,
+          title: 'Success',
+          message: `${pendingBulkApproval.length} requests approved successfully with signature.`,
+          type: 'success'
         });
 
         await refreshRequests();
-        
+
         setPendingBulkApproval([]);
         setIsBulkApproval(false);
         setIsSignaturePopupOpen(false);
         setSelectedRequests([]);
-        
+
       } else if (pendingApprovalRequest) {
         // Handle individual approval
         const { error } = await supabase
@@ -245,21 +282,57 @@ export const AccountingApprovalPage = () => {
             updated_at: currentDateTime
           })
           .eq('id', pendingApprovalRequest.id);
-          
+
         if (error) {
           console.error('Error updating request:', error);
           throw error;
         }
-        
-        addNotification({ 
-          userId: user.id, 
-          title: 'Success', 
-          message: 'Request approved successfully with signature.', 
-          type: 'success' 
+
+        // Send LINE notification
+        try {
+          const employeeId = (pendingApprovalRequest as any).employee_id || pendingApprovalRequest.userId;
+          const numericId = parseInt(employeeId, 10);
+          let employeeEmail = null;
+
+          if (!isNaN(numericId)) {
+            const { data: empData } = await supabase
+              .from('Employee')
+              .select('email_user')
+              .eq('id', numericId)
+              .single();
+            employeeEmail = empData?.email_user;
+          }
+
+          if (employeeEmail) {
+            await sendLineNotification({
+              employeeEmail,
+              type: getWelfareTypeLabel(pendingApprovalRequest.type),
+              status: 'อนุมัติเรียบร้อย',
+              amount: Number(pendingApprovalRequest.amount) || 0,
+              userName: pendingApprovalRequest.userName,
+              requestDate: new Date().toLocaleString('th-TH', {
+                timeZone: 'Asia/Bangkok',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            });
+          }
+        } catch (lineError) {
+          console.error('Failed to send LINE notification:', lineError);
+        }
+
+        addNotification({
+          userId: user.id,
+          title: 'Success',
+          message: 'Request approved successfully with signature.',
+          type: 'success'
         });
 
         await refreshRequests();
-        
+
         setPendingApprovalRequest(null);
         setIsSignaturePopupOpen(false);
       }
