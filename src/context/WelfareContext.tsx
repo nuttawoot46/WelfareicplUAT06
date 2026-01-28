@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { WelfareRequest, WelfareType, StatusType } from '@/types';
 import { BenefitLimit, getBenefitLimits } from '@/services/welfareApi';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { debounce } from '@/utils/debounce';
+import { sendLineNotification } from '@/services/lineApi';
 
 interface WelfareContextType {
   welfareRequests: WelfareRequest[];
@@ -32,6 +33,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Use ref to avoid toast in dependency arrays (toast is unstable)
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   // Cache duration in milliseconds (5 minutes)
   const CACHE_DURATION = 5 * 60 * 1000;
@@ -61,7 +66,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('WelfareContext - Error:', error);
 
       if (error) {
-        toast({ title: 'โหลดข้อมูลล้มเหลว', description: error.message, variant: 'destructive' });
+        toastRef.current({ title: 'โหลดข้อมูลล้มเหลว', description: error.message, variant: 'destructive' });
       } else {
         setWelfareRequests(
           (data || []).map((row: any) => {
@@ -183,11 +188,11 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } catch (err) {
       console.error('Exception fetching data:', err);
-      toast({ title: 'โหลดข้อมูลล้มเหลว', description: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ', variant: 'destructive' });
+      toastRef.current({ title: 'โหลดข้อมูลล้มเหลว', description: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [lastFetchTime]);
 
   useEffect(() => {
     if (!user) return;
@@ -198,7 +203,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setBenefitLimits(limits);
       } catch (error) {
         console.error("Failed to fetch benefit limits", error);
-        toast({
+        toastRef.current({
           title: 'ไม่สามารถโหลดข้อมูลวงเงินสวัสดิการได้',
           variant: 'destructive',
         });
@@ -271,7 +276,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       subscription.unsubscribe();
     };
-  }, [user, fetchRequests, toast]);
+  }, [user, fetchRequests]);
 
   const getRequestsByUser = (userId: string) => {
     return welfareRequests.filter(request => request.userId === userId);
@@ -314,12 +319,16 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const getChildbirthCount = (userId: string): { total: number; remaining: number } => {
     const MAX_CHILDREN = 3;
 
-    // หา welfare requests ของ user นี้ที่เป็น childbirth และ status เป็น completed
+    // Status ที่ถูกปฏิเสธ (ไม่นับรวม)
+    const rejectedStatuses = ['rejected_manager', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval'];
+
+    // หา welfare requests ของ user นี้ที่เป็น childbirth และ status ไม่ใช่ rejected
+    // (นับรวม pending และ completed เพื่อป้องกันการส่งคำร้องเกินจำนวนที่กำหนด)
     const childbirthRequests = welfareRequests.filter(
       request =>
         request.userId === userId &&
         request.type === 'childbirth' &&
-        request.status === 'completed'
+        !rejectedStatuses.includes(request.status)
     );
 
     // นับจำนวนบุตรทั้งหมดที่เบิกไปแล้ว
@@ -527,7 +536,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setWelfareRequests(prev => [newRequest, ...prev]);
       return newRequest;
     } catch (err: any) {
-      toast({
+      toastRef.current({
         title: "ส่งคำร้องล้มเหลว",
         description: err.message,
         variant: "destructive",
@@ -554,7 +563,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
         prev.map(req => req.id === id ? { ...req, ...data } : req)
       );
     } catch (err: any) {
-      toast({
+      toastRef.current({
         title: "อัปเดตล้มเหลว",
         description: err.message,
         variant: "destructive",
@@ -607,16 +616,40 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Don't update local state immediately - let real-time subscription handle it
       // This prevents race conditions and duplicate entries
 
+      // ส่ง LINE notification แจ้งเตือนผู้เบิก
+      if (data && data[0]) {
+        const req = data[0] as any;
+        // ดึง email ของผู้เบิกจาก Employee table
+        const { data: empData } = await supabase
+          .from('Employee')
+          .select('"email_user"')
+          .eq('id', req.employee_id)
+          .single();
+
+        if (empData?.email_user) {
+          sendLineNotification({
+            employeeEmail: empData.email_user,
+            type: req.request_type,
+            status: status,
+            amount: req.amount,
+            userName: req.employee_name,
+            runNumber: req.run_number,
+          }).catch(err => console.error('LINE notify error:', err));
+        }
+      }
+
       return { success: true, data };
     } catch (err: any) {
-      toast({ title: 'อัพเดทสถานะล้มเหลว', description: err.message, variant: 'destructive' });
+      toastRef.current({ title: 'อัพเดทสถานะล้มเหลว', description: err.message, variant: 'destructive' });
       return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const value: WelfareContextType = {
+  const refreshRequests = useCallback(() => fetchRequests(true), [fetchRequests]);
+
+  const value: WelfareContextType = useMemo(() => ({
     welfareRequests,
     getRequestsByUser,
     getRequestsByStatus,
@@ -624,13 +657,13 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     submitRequest,
     updateRequest,
     updateRequestStatus,
-    refreshRequests: () => fetchRequests(true),
+    refreshRequests,
     isLoading,
     getWelfareLimit,
     getRemainingBudget,
     getChildbirthCount,
     trainingBudget
-  };
+  }), [welfareRequests, isLoading, trainingBudget, fetchRequests]);
 
   return <WelfareContext.Provider value={value}>{children}</WelfareContext.Provider>;
 };

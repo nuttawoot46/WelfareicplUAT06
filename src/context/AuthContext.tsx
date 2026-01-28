@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const navigate = useNavigate();
 
-  const signInWithMicrosoft = async () => {
+  const signInWithMicrosoft = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
@@ -54,39 +54,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
     if (error) console.error('Error signing in with Microsoft:', error);
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     console.log('Starting sign out process...');
-    
+
     try {
       // Clear all auth state first
       setSession(null);
       setUser(null);
       setProfile(null);
-      
+
       // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
-      
+
       // Try to sign out from Supabase, but don't wait for it
       supabase.auth.signOut().catch(error => {
         console.warn('Supabase sign out error (non-blocking):', error);
       });
-      
+
       // Force redirect to home page with cache busting
       const timestamp = new Date().getTime();
       window.location.href = `/?_=${timestamp}`;
-      
+
       // Force stop all execution after redirect
       window.stop();
-      
+
     } catch (error) {
       console.error('Error during sign out:', error);
       // Still try to redirect even if there was an error
       window.location.href = '/';
     }
-  };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -184,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: employeeData.Role || userRole, // Try to get Role from employeeData first
             manager_email: employeeData['Email.Manager'],
             start_date: employeeData.start_date,
-            avatar_url: user.user_metadata?.avatar_url || null,
+            avatar_url: employeeData.avatar_url || user.user_metadata?.avatar_url || null,
             // Budget fields
             budget_dentalglasses: employeeData.budget_dentalglasses,
             budget_medical: employeeData.budget_medical,
@@ -208,7 +208,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const value = { session, user, profile, loading, signOut, signInWithMicrosoft, isAuthenticated: !!user };
+  const value = useMemo(() => ({
+    session,
+    user,
+    profile,
+    loading,
+    signOut,
+    signInWithMicrosoft,
+    isAuthenticated: !!user
+  }), [session, user, profile, loading, signOut, signInWithMicrosoft]);
   // Now profile contains all budget fields, accessible via useAuth().
 
   if (loading) return <div>Loading Authentication...</div>;

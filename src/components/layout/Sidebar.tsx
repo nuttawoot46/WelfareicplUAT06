@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -23,24 +23,19 @@ import {
   Activity,
   HelpCircle,
   Layout,
-  Calendar,
-  ClipboardList
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 
 export function Sidebar() {
   const { user, profile, signOut } = useAuth();
-  console.log('Sidebar - Profile:', profile);
-  console.log('Sidebar - Profile Role:', profile?.role);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatar_url || null);
   // Make role check case-insensitive
   const userRole = profile?.role?.toLowerCase() || '';
   const isAdmin = userRole === 'admin';
   const isSuperAdmin = userRole === 'superadmin';
-  console.log('Sidebar - User:', user);
-  console.log('Sidebar - Profile:', profile);
-  console.log('Sidebar - User Role:', userRole);
-  console.log('Sidebar - isAdmin:', isAdmin);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
 
@@ -83,7 +78,13 @@ export function Sidebar() {
   const email = user?.email || '';
   const department = profile?.department || '';
   const position = profile?.position || '';
-  const displayInitial = displayName.charAt(0).toUpperCase();
+
+  // Sync avatar URL when profile changes
+  useEffect(() => {
+    if (profile?.avatar_url !== undefined) {
+      setAvatarUrl(profile.avatar_url || null);
+    }
+  }, [profile?.avatar_url]);
 
   return (
     <>
@@ -483,6 +484,17 @@ export function Sidebar() {
             </div>
           )}
 
+          {/* User Guide */}
+          <Link to="/user-guide" className={cn(
+            "nav-link group",
+            isActive('/user-guide') ? "nav-link-active" : "text-white/90 hover:text-white"
+          )}>
+            <BookOpen className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="transition-all duration-300 text-white font-medium">คู่มือการใช้งาน</span>
+            )}
+          </Link>
+
           {/* Support/IT Contact */}
           <Link to="/support" className={cn(
             "nav-link group",
@@ -494,61 +506,6 @@ export function Sidebar() {
             )}
           </Link>
 
-          {/* Leave Calendar Menu with Dropdown */}
-          <div className="relative">
-            <div
-              className={cn(
-                "nav-link group cursor-pointer",
-                isSubmenuActive(['/leave-calendar', '/leave-approve']) ? "nav-link-active" : "text-white/90 hover:text-white"
-              )}
-              onClick={() => isOpen && toggleSubmenu('leave')}
-              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, leave: true }))}
-              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, leave: false }))}
-            >
-              <Calendar className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <>
-                  <span className="transition-all duration-300 text-white font-medium">ระบบลา</span>
-                  <ChevronDown className={cn(
-                    "h-4 w-4 ml-auto transition-transform duration-200",
-                    openSubmenus.leave && "rotate-180"
-                  )} />
-                </>
-              )}
-            </div>
-
-            {/* Leave Submenu */}
-            {(openSubmenus.leave || !isOpen) && (
-              <div className={cn(
-                isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-              )}>
-                <Link to="/leave-calendar" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <Calendar className="h-4 w-4" />
-                  <span>ปฏิทินการลา</span>
-                </Link>
-                {(userRole === 'manager' || userRole === 'hr' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'accountingandmanager') && (
-                  <Link to="/leave-approve" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <CheckSquare className="h-4 w-4" />
-                    <span>อนุมัติการลา</span>
-                  </Link>
-                )}
-                <Link to="/leave-report" className={cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )}>
-                  <ClipboardList className="h-4 w-4" />
-                  <span>รายงานการลา</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
         </nav>
 
         {/* User profile & logout */}
@@ -557,12 +514,14 @@ export function Sidebar() {
             "flex items-center gap-3 mb-4 group relative",
             isOpen ? "justify-start" : "justify-center"
           )}>
-            <div className={cn(
-              "w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-primary font-bold text-xl",
-              !isOpen && "group-hover:bg-white/80 transition-colors",
-              "shadow-md"
-            )}>
-              {displayInitial}
+            {/* Profile Picture with Upload */}
+            <div className="relative">
+              <ProfilePictureUpload
+                currentAvatarUrl={avatarUrl}
+                displayName={displayName}
+                onAvatarUpdate={(newUrl) => setAvatarUrl(newUrl || null)}
+                isOpen={isOpen}
+              />
 
               {/* Tooltip for collapsed state */}
               {!isOpen && (
