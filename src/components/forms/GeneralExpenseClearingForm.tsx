@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Trash2, Info } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Trash2, Info, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,6 +85,7 @@ const GENERAL_EXPENSE_CATEGORIES = [
   { name: 'ค่าวงดนตรี / เครื่องเสียง / MC', taxRate: 3, hasInfo: false },
   { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
   { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
+  { name: 'ค่าน้ำมัน', taxRate: 0, hasInfo: false },
   { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false },
 ];
 
@@ -159,6 +160,11 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
     invoice: false,
   });
 
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+  // Draft key for localStorage
+  const DRAFT_KEY = `general_expense_clearing_draft_${user?.email || 'anonymous'}`;
+
   const {
     register,
     handleSubmit,
@@ -177,6 +183,80 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
     control,
     name: "expenseClearingItems"
   });
+
+  // Save draft to localStorage
+  const saveDraft = () => {
+    setIsSavingDraft(true);
+    try {
+      const formData = watch();
+      const draftData = {
+        ...formData,
+        documentFiles,
+        documentSelections,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+      toast({
+        title: 'บันทึกฉบับร่างสำเร็จ',
+        description: 'ข้อมูลถูกบันทึกเป็นฉบับร่างเรียบร้อยแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกฉบับร่างได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  // Load draft from localStorage
+  const loadDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        const draftData = JSON.parse(savedDraft);
+        // Reset form with draft data
+        reset({
+          startDate: draftData.startDate || '',
+          endDate: draftData.endDate || '',
+          amount: draftData.amount || 0,
+          details: draftData.details || '',
+          title: draftData.title || '',
+          originalAdvanceRequestId: draftData.originalAdvanceRequestId,
+          originalAdvanceRunNumber: draftData.originalAdvanceRunNumber || '',
+          advanceDepartment: draftData.advanceDepartment || '',
+          advanceDepartmentOther: draftData.advanceDepartmentOther || '',
+          advanceActivityType: draftData.advanceActivityType || '',
+          advanceParticipants: draftData.advanceParticipants || 0,
+          expenseClearingItems: draftData.expenseClearingItems || [{ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, vatAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' }],
+          attachmentSelections: draftData.attachmentSelections || {},
+        });
+        if (draftData.documentFiles) {
+          setDocumentFiles(draftData.documentFiles);
+        }
+        if (draftData.documentSelections) {
+          setDocumentSelections(draftData.documentSelections);
+        }
+        toast({
+          title: 'โหลดฉบับร่างสำเร็จ',
+          description: `ข้อมูลฉบับร่างถูกโหลดเรียบร้อยแล้ว (บันทึกเมื่อ ${new Date(draftData.savedAt).toLocaleString('th-TH')})`,
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      return false;
+    }
+  };
+
+  // Clear draft from localStorage
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+  };
 
   const getStatusText = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -210,6 +290,11 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
     };
     fetchEmployeeData();
   }, [user?.email]);
+
+  // Load draft when component mounts
+  useEffect(() => {
+    loadDraft();
+  }, []);
 
   useEffect(() => {
     const fetchAdvanceRequests = async () => {
@@ -633,6 +718,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
         invoice: [],
       });
       setUserSignature('');
+      clearDraft(); // Clear draft after successful submission
       setTimeout(onBack, 2000);
     } catch (error: any) {
       console.error('Error submitting form:', error);
@@ -649,7 +735,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
 
       <div id="general-expense-clearing-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบฟอร์มเคลียร์ค่าใช้จ่าย (ทั่วไป)</h1>
+          <h1 className="text-3xl font-bold">แบบฟอร์มเคลียร์ค่าใช้จ่าย (ทั่วไป)</h1>
         </div>
 
         
@@ -658,7 +744,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           <input type="hidden" {...register('amount', { valueAsNumber: true })} />
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">เลือกคำขอเบิกเงินล่วงหน้าเดิม (ถ้ามี)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">เลือกคำขอเบิกเงินล่วงหน้าเดิม (ถ้ามี)</h3>
             <div className="space-y-2">
               <label className="form-label">คำขอเบิกเงินล่วงหน้าที่ต้องการเคลียร์</label>
               {availableAdvanceRequests.length > 0 ? (
@@ -676,7 +762,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 </Select>
               ) : (
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 text-base">
                     ไม่พบคำขอเบิกเงินล่วงหน้าทั่วไป กรุณากรอกข้อมูลใหม่ทั้งหมดในส่วนข้อมูลทั่วไปด้านล่าง
                   </p>
                 </div>
@@ -685,7 +771,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
             
             {/* แผนก */}
             <div className="space-y-2">
@@ -738,7 +824,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                   })}
                 />
                 {errors.startDate && (
-                  <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.startDate.message}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -757,7 +843,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                   })}
                 />
                 {errors.advanceParticipants && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceParticipants.message}</p>
                 )}
               </div>
             </div>
@@ -765,7 +851,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่ายจริง</h3>
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่ายจริง</h3>
               <Button
                 type="button"
                 onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, vatAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' })}
@@ -781,16 +867,16 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ลำดับ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">อัตราภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนใช้<br/>(ก่อนภาษีมูลค่าเพิ่ม)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีมูลค่าเพิ่ม</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษีหัก ณ ที่จ่าย</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">รวมจำนวนเงินทั้งสิ้น</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ลำดับ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ชื่อรายการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">อัตราภาษี</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">จำนวนเบิก</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">จำนวนใช้<br/>(ก่อนภาษีมูลค่าเพิ่ม)</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ภาษีมูลค่าเพิ่ม</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ภาษีหัก ณ ที่จ่าย</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">รวมจำนวนเงินทั้งสิ้น</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -842,7 +928,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                           {watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
-                              className="w-full text-sm"
+                              className="w-full text-base"
                               {...register(`expenseClearingItems.${index}.otherDescription` as const, {
                                 required: watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
@@ -852,7 +938,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                             <button
                               type="button"
                               onClick={() => setShowLotteryInfoModal(true)}
-                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mt-1"
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-base mt-1"
                             >
                               <Info className="h-4 w-4" />
                               ดูข้อมูลเพิ่มเติม
@@ -1089,7 +1175,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         ? 'bg-green-50 border-green-200'
                         : 'bg-gray-50 border-gray-200'
                   }`}>
-                    <div className={`text-sm font-medium ${
+                    <div className={`text-base font-medium ${
                       isNegative
                         ? 'text-red-600'
                         : isPositive
@@ -1098,7 +1184,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                     }`}>
                       {isNegative ? 'จำนวนเงินที่ต้องชำระเพิ่ม' : 'จำนวนเงินคืนรวม'}
                     </div>
-                    <div className={`text-2xl font-bold ${
+                    <div className={`text-3xl font-bold ${
                       isNegative
                         ? 'text-red-800'
                         : isPositive
@@ -1125,8 +1211,8 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
 
           {/* แนบไฟล์เอกสาร - Checkbox Based */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
-            <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-base text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {DOCUMENT_TYPES.map((docType) => (
@@ -1142,7 +1228,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                     />
                     <label
                       htmlFor={`doc-${docType.key}`}
-                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                      className="text-base font-medium text-gray-700 cursor-pointer"
                     >
                       {docType.label}
                     </label>
@@ -1154,7 +1240,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
                         <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
                           <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
-                          <span className="mt-1 block text-xs text-gray-600">
+                          <span className="mt-1 block text-sm text-gray-600">
                             คลิกเพื่อเลือกไฟล์
                           </span>
                           <input
@@ -1175,7 +1261,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                             <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
                               <div className="flex items-center space-x-2">
                                 <Check className="h-4 w-4 text-green-600" />
-                                <span className="text-xs text-green-700 truncate max-w-[150px]">
+                                <span className="text-sm text-green-700 truncate max-w-[150px]">
                                   ไฟล์ {index + 1}
                                 </span>
                               </div>
@@ -1201,10 +1287,10 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
             {/* Summary of uploaded documents */}
             {Object.values(documentFiles).some(files => files.length > 0) && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <h4 className="text-base font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
                 <div className="space-y-1">
                   {DOCUMENT_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
-                    <div key={dt.key} className="flex items-center text-xs text-blue-700">
+                    <div key={dt.key} className="flex items-center text-sm text-blue-700">
                       <Check className="h-3 w-3 mr-2" />
                       {dt.label}: {documentFiles[dt.key].length} ไฟล์
                     </div>
@@ -1217,6 +1303,25 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onBack}>
               ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={saveDraft}
+              disabled={isSavingDraft}
+              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+            >
+              {isSavingDraft ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  บันทึกฉบับร่าง
+                </>
+              )}
             </Button>
             <Button
               type="submit"
@@ -1258,7 +1363,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 <div className="bg-yellow-100 p-2 rounded-full">
                   <AlertCircle className="h-6 w-6 text-yellow-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
+                <h3 className="text-xl font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
               </div>
               <button
                 onClick={() => setShowLotteryInfoModal(false)}
@@ -1272,7 +1377,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 <strong>ของรางวัลชิงโชค</strong> คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ <strong className="text-red-600">1,000 บาท</strong> ขึ้นไป
               </p>
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                <p className="text-red-700 text-sm">
+                <p className="text-red-700 text-base">
                   <strong>คำเตือน:</strong> ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก
                 </p>
               </div>

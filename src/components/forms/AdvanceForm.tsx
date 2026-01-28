@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
-import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Plus, X, Paperclip, Check, Loader2, Info, Trash2, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +99,7 @@ const ADVANCE_EXPENSE_CATEGORIES = [
   { name: 'ค่าของรางวัลเพื่อการชิงโชค', taxRate: 5, hasInfo: true, infoText: 'ของรางวัลชิงโชค คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ 1,000 บาท ขึ้นไป (ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก)' },
   { name: 'ค่าว่าจ้างโฆษณาทางวิทยุ', taxRate: 2, hasInfo: false },
   { name: 'ค่าขนส่ง', taxRate: 1, hasInfo: true, infoText: 'กรณีจดทะเบียนประเภทธุรกิจขนส่ง' },
+  { name: 'ค่าน้ำมัน', taxRate: 0, hasInfo: false },
   { name: 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)', taxRate: 0, hasInfo: false }
 ];
 
@@ -212,6 +213,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     budgetRequestLetter: false,
   });
 
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+  // Draft key for localStorage
+  const DRAFT_KEY = `advance_draft_${user?.email || 'anonymous'}`;
+
   const {
     register,
     handleSubmit,
@@ -230,6 +236,98 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     control,
     name: "advanceExpenseItems"
   });
+
+  // Save draft to localStorage
+  const saveDraft = () => {
+    setIsSavingDraft(true);
+    try {
+      const formData = watch();
+      const draftData = {
+        ...formData,
+        files,
+        documentFiles,
+        documentSelections,
+        dealerSearchTerm,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+      toast({
+        title: 'บันทึกฉบับร่างสำเร็จ',
+        description: 'ข้อมูลถูกบันทึกเป็นฉบับร่างเรียบร้อยแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกฉบับร่างได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  // Load draft from localStorage
+  const loadDraft = () => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        const draftData = JSON.parse(savedDraft);
+        // Reset form with draft data
+        reset({
+          startDate: draftData.startDate || '',
+          endDate: draftData.endDate || '',
+          amount: draftData.amount || 0,
+          details: draftData.details || '',
+          title: draftData.title || '',
+          advanceDepartment: draftData.advanceDepartment || '',
+          advanceDepartmentOther: draftData.advanceDepartmentOther || '',
+          advanceDistrict: draftData.advanceDistrict || '',
+          advanceActivityType: draftData.advanceActivityType || '',
+          advanceActivityOther: draftData.advanceActivityOther || '',
+          advanceDealerName: draftData.advanceDealerName || '',
+          advanceSubdealerName: draftData.advanceSubdealerName || '',
+          advanceShopCompany: draftData.advanceShopCompany || '',
+          advanceAmphur: draftData.advanceAmphur || '',
+          advanceProvince: draftData.advanceProvince || '',
+          advanceEventDate: draftData.advanceEventDate || '',
+          advanceParticipants: draftData.advanceParticipants || 0,
+          venue: draftData.venue || '',
+          bankAccountName: draftData.bankAccountName || '',
+          bankName: draftData.bankName || '',
+          bankAccountNumber: draftData.bankAccountNumber || '',
+          advanceExpenseItems: draftData.advanceExpenseItems || [{ name: '', taxRate: 0, requestAmount: 0, taxAmount: 0, netAmount: 0, otherDescription: '' }],
+          attachmentSelections: draftData.attachmentSelections || {},
+        });
+        if (draftData.files) {
+          setFiles(draftData.files);
+        }
+        if (draftData.documentFiles) {
+          setDocumentFiles(draftData.documentFiles);
+        }
+        if (draftData.documentSelections) {
+          setDocumentSelections(draftData.documentSelections);
+        }
+        if (draftData.dealerSearchTerm) {
+          setDealerSearchTerm(draftData.dealerSearchTerm);
+        }
+        toast({
+          title: 'โหลดฉบับร่างสำเร็จ',
+          description: `ข้อมูลฉบับร่างถูกโหลดเรียบร้อยแล้ว (บันทึกเมื่อ ${new Date(draftData.savedAt).toLocaleString('th-TH')})`,
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      return false;
+    }
+  };
+
+  // Clear draft from localStorage
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+  };
 
   // Fetch employee data when component mounts
   useEffect(() => {
@@ -273,6 +371,13 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
     fetchEmployeeData();
   }, [user?.email, setValue]);
+
+  // Load draft when component mounts (only if not in edit mode)
+  useEffect(() => {
+    if (!editIdNum) {
+      loadDraft();
+    }
+  }, []);
 
   // Fetch dealer list when component mounts
   useEffect(() => {
@@ -980,6 +1085,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       reset();
       setFiles([]);
       setUserSignature('');
+      clearDraft(); // Clear draft after successful submission
       setTimeout(onBack, 2000);
 
     } catch (error: any) {
@@ -1001,7 +1107,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
       <div id="advance-form-content" className="form-container">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">แบบฟอร์มขออนุมัติเบิกเงินล่วงหน้า (ฝ่ายขาย)</h1>
+          <h1 className="text-3xl font-bold">แบบฟอร์มขออนุมัติเบิกเงินล่วงหน้า (ฝ่ายขาย)</h1>
         </div>
 
 
@@ -1016,7 +1122,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         })} className="space-y-6">
           {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">ข้อมูลทั่วไป</h3>
 
             {/* แผนกและเขต */}
             <div className="grid grid-cols-2 gap-4">
@@ -1041,7 +1147,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceDepartment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceDepartment.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceDepartment.message}</p>
                 )}
               </div>
 
@@ -1049,11 +1155,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <label className="form-label">เขต</label>
                 <Input
                   placeholder="ระบุเขต"
-                  className="form-input bg-gray-50"
-                  readOnly
+                  className="form-input"
                   {...register('advanceDistrict')}
                 />
-                <p className="text-xs text-gray-500">เขตจะถูกกรอกอัตโนมัติตามข้อมูลพนักงาน</p>
               </div>
             </div>
 
@@ -1069,7 +1173,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceDepartmentOther && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceDepartmentOther.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceDepartmentOther.message}</p>
                 )}
               </div>
             )}
@@ -1116,7 +1220,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 })}
               />
               {errors.advanceActivityType && (
-                <p className="text-red-500 text-sm mt-1">{errors.advanceActivityType.message}</p>
+                <p className="text-red-500 text-base mt-1">{errors.advanceActivityType.message}</p>
               )}
             </div>
             {/* รายละเอียดเพิ่มเติม */}
@@ -1144,7 +1248,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.startDate && (
-                  <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.startDate.message}</p>
                 )}
               </div>
 
@@ -1156,7 +1260,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   {...register('endDate')}
                 />
                 {errors.endDate && (
-                  <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.endDate.message}</p>
                 )}
               </div>
 
@@ -1173,7 +1277,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceParticipants && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceParticipants.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceParticipants.message}</p>
                 )}
               </div>
             </div>
@@ -1220,7 +1324,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceDealerName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceDealerName.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceDealerName.message}</p>
                 )}
 
                 {/* Autocomplete Dropdown */}
@@ -1248,9 +1352,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           setShowDealerDropdown(false);
                         }}
                       >
-                        <div className="font-medium text-sm">{dealer.Name}</div>
+                        <div className="font-medium text-base">{dealer.Name}</div>
                         {(dealer.City || dealer.County) && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-sm text-gray-500">
                             {dealer.City && dealer.County ? `${dealer.City}, ${dealer.County}` : dealer.City || dealer.County}
                           </div>
                         )}
@@ -1301,7 +1405,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceAmphur && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceAmphur.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceAmphur.message}</p>
                 )}
               </div>
 
@@ -1332,7 +1436,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.advanceProvince && (
-                  <p className="text-red-500 text-sm mt-1">{errors.advanceProvince.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.advanceProvince.message}</p>
                 )}
               </div>
             </div>
@@ -1341,7 +1445,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           {/* ส่วนที่ 2: รายละเอียดค่าใช้จ่าย */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">รายละเอียดค่าใช้จ่าย</h3>
               <Button
                 type="button"
                 onClick={() => appendExpense({ name: '', taxRate: 0, requestAmount: 0, taxAmount: 0, netAmount: 0, otherDescription: '' })}
@@ -1358,19 +1462,19 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium w-16">ลำดับ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ภาษี %</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">จำนวนเงินเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium">ยอดสุทธิ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-sm font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium w-16">ลำดับ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ชื่อรายการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ภาษี %</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">จำนวนเงินเบิก</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ยอดสุทธิ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
                       <td className="border border-gray-300 p-1 text-center">
-                        <div className="text-sm font-medium text-gray-700">{index + 1}</div>
+                        <div className="text-base font-medium text-gray-700">{index + 1}</div>
                       </td>
                       <td className="border border-gray-300 p-1">
                         <div className="space-y-2">
@@ -1413,7 +1517,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             <button
                               type="button"
                               onClick={() => setShowLotteryInfoModal(true)}
-                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mt-1"
                             >
                               <Info className="h-4 w-4" />
                               <span>ดูข้อมูลเพิ่มเติม</span>
@@ -1424,7 +1528,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             <button
                               type="button"
                               onClick={() => setShowTransportInfoModal(true)}
-                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mt-1"
                             >
                               <Info className="h-4 w-4" />
                               <span>ดูข้อมูลเพิ่มเติม</span>
@@ -1433,7 +1537,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           {watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' && (
                             <Input
                               placeholder="ระบุรายละเอียด"
-                              className="w-full text-sm"
+                              className="w-full text-base"
                               {...register(`advanceExpenseItems.${index}.otherDescription` as const, {
                                 required: watch(`advanceExpenseItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
@@ -1442,7 +1546,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         </div>
                       </td>
                       <td className="border border-gray-300 p-1 text-center">
-                        <div className="text-sm font-medium text-gray-700">
+                        <div className="text-base font-medium text-gray-700">
                           {watch(`advanceExpenseItems.${index}.taxRate`) || 0}%
                         </div>
                       </td>
@@ -1552,8 +1656,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             {/* Total Amount Display */}
             <div className="flex justify-end">
               <div className="bg-welfare-blue/10 border border-welfare-blue/30 rounded-lg p-4 min-w-[200px]">
-                <div className="text-sm text-welfare-blue font-medium">จำนวนเงินรวมทั้งสิ้น</div>
-                <div className="text-2xl font-bold text-welfare-blue">
+                <div className="text-base text-welfare-blue font-medium">จำนวนเงินรวมทั้งสิ้น</div>
+                <div className="text-3xl font-bold text-welfare-blue">
                   {formatNumberWithCommas(calculateTotalAmount())} บาท
                 </div>
               </div>
@@ -1562,7 +1666,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
           {/* ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก</h3>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก</h3>
 
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
@@ -1610,7 +1714,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   })}
                 />
                 {errors.bankAccountNumber && (
-                  <p className="text-red-500 text-sm mt-1">{errors.bankAccountNumber.message}</p>
+                  <p className="text-red-500 text-base mt-1">{errors.bankAccountNumber.message}</p>
                 )}
               </div>
             </div>
@@ -1618,8 +1722,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
           {/* แนบเอกสารประกอบ */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
-            <p className="text-sm text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-base text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
 
             <div className="grid grid-cols-1 gap-4">
               {ADVANCE_DOCUMENT_TYPES.map((docType) => (
@@ -1635,7 +1739,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     />
                     <label
                       htmlFor={`doc-${docType.key}`}
-                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                      className="text-base font-medium text-gray-700 cursor-pointer"
                     >
                       {docType.label}
                     </label>
@@ -1647,7 +1751,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
                         <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
                           <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
-                          <span className="mt-1 block text-xs text-gray-600">
+                          <span className="mt-1 block text-sm text-gray-600">
                             คลิกเพื่อเลือกไฟล์
                           </span>
                           <input
@@ -1668,7 +1772,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                             <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
                               <div className="flex items-center space-x-2">
                                 <Check className="h-4 w-4 text-blue-600" />
-                                <span className="text-xs text-blue-700 truncate max-w-[150px]">
+                                <span className="text-sm text-blue-700 truncate max-w-[150px]">
                                   ไฟล์ {index + 1}
                                 </span>
                               </div>
@@ -1694,10 +1798,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             {/* Summary of uploaded documents */}
             {Object.values(documentFiles).some(files => files.length > 0) && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <h4 className="text-base font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
                 <div className="space-y-1">
                   {ADVANCE_DOCUMENT_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
-                    <div key={dt.key} className="flex items-center text-xs text-blue-700">
+                    <div key={dt.key} className="flex items-center text-sm text-blue-700">
                       <Check className="h-3 w-3 mr-2" />
                       {dt.label}: {documentFiles[dt.key].length} ไฟล์
                     </div>
@@ -1715,6 +1819,25 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               onClick={onBack}
             >
               ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={saveDraft}
+              disabled={isSavingDraft}
+              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+            >
+              {isSavingDraft ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  บันทึกฉบับร่าง
+                </>
+              )}
             </Button>
             <Button
               type="submit"
@@ -1760,7 +1883,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">ความหมายของประเภทกิจกรรม</h3>
+              <h3 className="text-xl font-semibold text-gray-800">ความหมายของประเภทกิจกรรม</h3>
               <button
                 onClick={() => setShowActivityInfoModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -1769,10 +1892,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               </button>
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-base font-medium text-gray-700">
                 {watch('advanceActivityType')}
               </p>
-              <div className="text-sm text-gray-600 whitespace-pre-line bg-gray-50 p-4 rounded">
+              <div className="text-base text-gray-600 whitespace-pre-line bg-gray-50 p-4 rounded">
                 {selectedActivityInfo}
               </div>
             </div>
@@ -1798,7 +1921,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <div className="bg-yellow-100 p-2 rounded-full">
                   <AlertCircle className="h-6 w-6 text-yellow-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
+                <h3 className="text-xl font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าของรางวัลเพื่อการชิงโชค</h3>
               </div>
               <button
                 onClick={() => setShowLotteryInfoModal(false)}
@@ -1812,7 +1935,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <strong>ของรางวัลชิงโชค</strong> คือ ของรางวัลที่มีมูลค่า/ชิ้น ตั้งแต่ <strong className="text-red-600">1,000 บาท</strong> ขึ้นไป
               </p>
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                <p className="text-red-700 text-sm">
+                <p className="text-red-700 text-base">
                   <strong>คำเตือน:</strong> ต้องขออนุญาตชิงโชค หากไม่ได้รับอนุญาต แล้วจัดกิจกรรม มีความผิดตามกฎหมาย อาจได้รับโทษปรับและ/หรือจำคุก
                 </p>
               </div>
@@ -1839,7 +1962,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <div className="bg-blue-100 p-2 rounded-full">
                   <Info className="h-6 w-6 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าขนส่ง</h3>
+                <h3 className="text-xl font-semibold text-gray-800">ข้อมูลสำคัญ: ค่าขนส่ง</h3>
               </div>
               <button
                 onClick={() => setShowTransportInfoModal(false)}
@@ -1853,7 +1976,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <strong>ค่าขนส่ง (ภาษี 1%)</strong>
               </p>
               <div className="mt-3 p-3 bg-blue-100 border border-blue-300 rounded">
-                <p className="text-blue-800 text-sm">
+                <p className="text-blue-800 text-base">
                   กรณีจดทะเบียนประเภทธุรกิจขนส่ง
                 </p>
               </div>
