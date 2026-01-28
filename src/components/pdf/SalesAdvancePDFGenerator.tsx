@@ -126,8 +126,8 @@ const createSalesAdvanceFormHTML = (
       </div>
 
       <!-- Employee Info Section -->
-      <div style="margin-bottom: 20px; background: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 4px solid #0066cc;">
-        <div style="font-weight: bold; margin-bottom: 10px; color: #0066cc;">ข้อมูลผู้ขอเบิก (ฝ่ายขาย)</div>
+      <div style="margin-bottom: 20px; padding: 15px 0;">
+        <div style="font-weight: bold; margin-bottom: 10px;">ข้อมูลผู้ขอเบิก (ฝ่ายขาย)</div>
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 100px; font-weight: bold;">ชื่อ-นามสกุล:</span>
           <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeName}</span>
@@ -164,7 +164,7 @@ const createSalesAdvanceFormHTML = (
         <!-- Details Section -->
         <div style="margin-bottom: 10px;">
           <span style="font-weight: bold;">รายละเอียด ( โปรดระบุ )</span>
-          <div style="margin-top: 5px; line-height: 1.6; padding: 10px; background: #fafafa; border-radius: 4px; border: 1px solid #e0e0e0;">
+          <div style="margin-top: 5px; line-height: 1.6; padding: 10px 0;">
             ${advanceData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
           </div>
         </div>
@@ -190,7 +190,7 @@ const createSalesAdvanceFormHTML = (
       </div>
 
       <!-- Sales Information Section -->
-      <div style="margin-bottom: 20px; background: #fff8e6; padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
+      <div style="margin-bottom: 20px; padding: 15px 0;">
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 120px; font-weight: bold;">ชื่อดิลเลอร์:</span>
           <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${salesDealerName}</span>
