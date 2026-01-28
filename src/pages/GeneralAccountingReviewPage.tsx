@@ -153,52 +153,56 @@ const GeneralAccountingReviewPage: React.FC = () => {
       ? ['completed', 'rejected_accounting']
       : ['pending_accounting'];
 
-    // Fetch only from advance and expense clearing tables
-    const tables = ['advance_requests', 'expense_clearing_requests'];
-    let allRequests: GeneralRequestItem[] = [];
+    // ประเภทบัญชีทั้งหมด
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
 
-    for (const table of tables) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*, department_request')
-        .in('status', statusFilter);
+    // Fetch from welfare_requests table with accounting types filter
+    const { data, error } = await supabase
+      .from('welfare_requests')
+      .select('*')
+      .in('status', statusFilter)
+      .in('request_type', accountingTypes)
+      .order('created_at', { ascending: false });
 
-      if (data) {
-        const mapped = data.map((req: any) => {
-          let attachments: string[] = [];
-          try {
-            if (Array.isArray(req.attachment_url)) {
-              attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
-            } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
-              try {
-                const parsed = JSON.parse(req.attachment_url);
-                if (Array.isArray(parsed)) {
-                  attachments = parsed.filter(url => url && typeof url === 'string');
-                } else if (typeof parsed === 'string') {
-                  attachments = [parsed];
-                }
-              } catch {
-                attachments = [req.attachment_url];
-              }
-            }
-          } catch (error) {
-            console.warn('Error processing attachments for request:', req.id, error);
-            attachments = [];
-          }
-
-          // Add table identifier to distinguish request types
-          return {
-            ...req,
-            attachments,
-            table_source: table,
-            request_type: table === 'advance_requests' ? 'advance' : 'expense_clearing'
-          };
-        });
-        allRequests = [...allRequests, ...mapped];
-      }
+    if (error) {
+      console.error('Error fetching requests:', error);
+      setRequests([]);
+      setIsLoading(false);
+      return;
     }
 
-    setRequests(allRequests as GeneralRequestItem[]);
+    if (data) {
+      const mapped = data.map((req: any) => {
+        let attachments: string[] = [];
+        try {
+          if (Array.isArray(req.attachment_url)) {
+            attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
+          } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
+            try {
+              const parsed = JSON.parse(req.attachment_url);
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(url => url && typeof url === 'string');
+              } else if (typeof parsed === 'string') {
+                attachments = [parsed];
+              }
+            } catch {
+              attachments = [req.attachment_url];
+            }
+          }
+        } catch (error) {
+          console.warn('Error processing attachments for request:', req.id, error);
+          attachments = [];
+        }
+
+        return {
+          ...req,
+          attachments,
+          table_source: 'welfare_requests'
+        };
+      });
+      setRequests(mapped as GeneralRequestItem[]);
+    }
+
     setIsLoading(false);
   };
 
@@ -216,54 +220,58 @@ const GeneralAccountingReviewPage: React.FC = () => {
       endDate = endOfYear(new Date(selectedYear + '-01-01'));
     }
 
-    // Fetch only from advance and expense clearing tables
-    const tables = ['advance_requests', 'expense_clearing_requests'];
-    let allReportData: GeneralRequestItem[] = [];
+    // ประเภทบัญชีทั้งหมด
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
 
-    for (const table of tables) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*, department_request')
-        .eq('status', 'completed')
-        .gte('accounting_approved_at', startDate.toISOString())
-        .lte('accounting_approved_at', endDate.toISOString())
-        .order('accounting_approved_at', { ascending: false });
+    // Fetch from welfare_requests table with accounting types filter
+    const { data, error } = await supabase
+      .from('welfare_requests')
+      .select('*')
+      .eq('status', 'completed')
+      .in('request_type', accountingTypes)
+      .gte('accounting_approved_at', startDate.toISOString())
+      .lte('accounting_approved_at', endDate.toISOString())
+      .order('accounting_approved_at', { ascending: false });
 
-      if (data && !error) {
-        const mapped = data.map((req: any) => {
-          let attachments: string[] = [];
-          try {
-            if (Array.isArray(req.attachment_url)) {
-              attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
-            } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
-              try {
-                const parsed = JSON.parse(req.attachment_url);
-                if (Array.isArray(parsed)) {
-                  attachments = parsed.filter(url => url && typeof url === 'string');
-                } else if (typeof parsed === 'string') {
-                  attachments = [parsed];
-                }
-              } catch {
-                attachments = [req.attachment_url];
-              }
-            }
-          } catch (error) {
-            console.warn('Error processing attachments for report request:', req.id, error);
-            attachments = [];
-          }
-
-          return {
-            ...req,
-            attachments,
-            table_source: table,
-            request_type: table === 'advance_requests' ? 'advance' : 'expense_clearing'
-          };
-        });
-        allReportData = [...allReportData, ...mapped];
-      }
+    if (error) {
+      console.error('Error fetching report data:', error);
+      setReportData([]);
+      setIsLoading(false);
+      return;
     }
 
-    setReportData(allReportData as GeneralRequestItem[]);
+    if (data) {
+      const mapped = data.map((req: any) => {
+        let attachments: string[] = [];
+        try {
+          if (Array.isArray(req.attachment_url)) {
+            attachments = req.attachment_url.filter((url: any) => url && typeof url === 'string');
+          } else if (typeof req.attachment_url === 'string' && req.attachment_url.trim()) {
+            try {
+              const parsed = JSON.parse(req.attachment_url);
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(url => url && typeof url === 'string');
+              } else if (typeof parsed === 'string') {
+                attachments = [parsed];
+              }
+            } catch {
+              attachments = [req.attachment_url];
+            }
+          }
+        } catch (error) {
+          console.warn('Error processing attachments for report request:', req.id, error);
+          attachments = [];
+        }
+
+        return {
+          ...req,
+          attachments,
+          table_source: 'welfare_requests'
+        };
+      });
+      setReportData(mapped as GeneralRequestItem[]);
+    }
+
     setIsLoading(false);
   };
   const filterRequests = () => {
@@ -373,8 +381,10 @@ const GeneralAccountingReviewPage: React.FC = () => {
         return 'เบิกเงินล่วงหน้า (ฝ่ายขาย)';
       case 'general-advance':
         return 'เบิกเงินล่วงหน้า (ทั่วไป)';
-      case 'expense_clearing':
-        return 'เคลียร์ค่าใช้จ่าย';
+      case 'expense-clearing':
+        return 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)';
+      case 'general-expense-clearing':
+        return 'เคลียร์ค่าใช้จ่าย (ทั่วไป)';
       default:
         return type;
     }
@@ -868,7 +878,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     <option value="">ทุกประเภท</option>
                     <option value="advance">เบิกเงินล่วงหน้า (ฝ่ายขาย)</option>
                     <option value="general-advance">เบิกเงินล่วงหน้า (ทั่วไป)</option>
-                    <option value="expense_clearing">เคลียร์ค่าใช้จ่าย</option>
+                    <option value="expense-clearing">เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)</option>
+                    <option value="general-expense-clearing">เคลียร์ค่าใช้จ่าย (ทั่วไป)</option>
                   </select>
                 </div>
               </div>

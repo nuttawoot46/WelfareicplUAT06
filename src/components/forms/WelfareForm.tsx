@@ -182,7 +182,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
     return editIdStr ? Number(editIdStr) : undefined;
   }, [editId, location.search]);
   const { user, profile } = useAuth();
-  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount } = useWelfare();
+  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount, welfareRequests } = useWelfare();
   const { submitRequest: submitInternalTrainingRequest, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [files, setFiles] = useState<string[]>([]);
   const [documentFiles, setDocumentFiles] = useState<{
@@ -322,11 +322,11 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
     }
 
     // ถ้าเป็น childbirth ให้ดึงข้อมูลจำนวนบุตรที่เบิกไปแล้ว
-    if (type === 'childbirth' && user) {
-      const childbirthInfo = getChildbirthCount(user.id);
+    if (type === 'childbirth' && profile?.employee_id) {
+      const childbirthInfo = getChildbirthCount(String(profile.employee_id));
       setChildbirthLimit(childbirthInfo);
     }
-  }, [type, user, profile, trainingBudget]);
+  }, [type, profile, trainingBudget, welfareRequests]); // เพิ่ม welfareRequests เพื่ออัพเดทจำนวนบุตรหลังส่งคำร้อง
 
   // 2. แยก useEffect สำหรับ fetch edit data - run ครั้งเดียวเมื่อ editIdNum มีค่า
   useEffect(() => {
@@ -416,16 +416,30 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
   const birthType = watch('birthType');
   const childbirths = watch('childbirths');
 
-  // Update amount when childbirths change
+  // ฟังก์ชันคำนวณจำนวนเงินค่าคลอดบุตร
+  const calculateChildbirthAmount = (childbirthsData: { childName: string; birthType: string }[]) => {
+    if (!childbirthsData || childbirthsData.length === 0) return;
+
+    const totalAmount = childbirthsData.reduce((sum, child) => {
+      const childAmount = child.birthType === 'natural' ? 4000.00 : 6000.00;
+      return sum + childAmount;
+    }, 0);
+
+    setValue('amount', parseFloat(totalAmount.toFixed(2)));
+
+    // คำนวณ netAmount ทันที
+    const vatAmount = Number(watch('tax7Percent')) || 0;
+    const withholdingAmount = Number(watch('withholdingTax3Percent')) || 0;
+    const netAmount = totalAmount + vatAmount - withholdingAmount;
+    setValue('netAmount', parseFloat(netAmount.toFixed(2)));
+  };
+
+  // Update amount when childbirths change (ใช้ JSON.stringify เพื่อตรวจจับการเปลี่ยนแปลงภายใน array)
   useEffect(() => {
     if (type === 'childbirth' && childbirths && childbirths.length > 0) {
-      const totalAmount = childbirths.reduce((sum, child) => {
-        const childAmount = child.birthType === 'natural' ? 4000.00 : 6000.00;
-        return sum + childAmount;
-      }, 0);
-      setValue('amount', parseFloat(totalAmount.toFixed(2)));
+      calculateChildbirthAmount(childbirths);
     }
-  }, [childbirths, type, setValue]);
+  }, [JSON.stringify(childbirths), type, setValue]);
 
   // คำนวณผลลัพธ์ใหม่ทันทีเมื่อเปลี่ยน amount, VAT หรือ withholding tax
   useEffect(() => {
@@ -932,8 +946,8 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       }
 
       // ตรวจสอบจำนวนบุตรสำหรับ childbirth type
-      if (type === 'childbirth') {
-        const childbirthInfo = getChildbirthCount(user.id);
+      if (type === 'childbirth' && profile?.employee_id) {
+        const childbirthInfo = getChildbirthCount(String(profile.employee_id));
         const currentChildbirthCount = data.childbirths?.length || 0;
         const totalAfterSubmit = childbirthInfo.total + currentChildbirthCount;
 
@@ -2631,7 +2645,16 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                             render={({ field }) => (
                               <Select
                                 value={field.value}
-                                onValueChange={field.onChange}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  // คำนวณจำนวนเงินใหม่ทันทีเมื่อเปลี่ยนประเภทการคลอด
+                                  setTimeout(() => {
+                                    const currentChildbirths = watch('childbirths');
+                                    if (currentChildbirths) {
+                                      calculateChildbirthAmount(currentChildbirths);
+                                    }
+                                  }, 0);
+                                }}
                               >
                                 <SelectTrigger className="form-input">
                                   <SelectValue />
@@ -2698,14 +2721,17 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       value: 1,
                       message: 'จำนวนเงินต้องมากกว่า 0'
                     },
-                    max: {
-                      value: Math.min(maxAmount || 100000, remainingBudget || 0),
-                      message: `จำนวนเงินต้องไม่เกิน ${Math.min(maxAmount || 100000, remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`
-                    },
-                    validate: {
-                      notMoreThanRemaining: value =>
-                        Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
-                    },
+                    // ค่าคลอดบุตรไม่จำกัดวงเงิน (จำกัดแค่จำนวนบุตร 3 คน)
+                    ...(type !== 'childbirth' && {
+                      max: {
+                        value: Math.min(maxAmount || 100000, remainingBudget || 0),
+                        message: `จำนวนเงินต้องไม่เกิน ${Math.min(maxAmount || 100000, remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`
+                      },
+                      validate: {
+                        notMoreThanRemaining: (value: number) =>
+                          Number(value) <= remainingBudget || 'จำนวนเงินเกินงบประมาณที่เหลืออยู่'
+                      }
+                    }),
                     onChange: (e) => {
                       const amount = Number(e.target.value);
                       const vatAmount = Number(watch('tax7Percent')) || 0;

@@ -73,7 +73,8 @@ export const getWelfareTypeLabel = (type: string): string => {
     'internal_training': 'อบรมภายใน',
     'advance': 'เบิกเงินล่วงหน้า (ฝ่ายขาย)',
     'general-advance': 'เบิกเงินล่วงหน้า (ทั่วไป)',
-    'expense-clearing': 'เคลียร์ค่าใช้จ่าย'
+    'expense-clearing': 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)',
+    'general-expense-clearing': 'เคลียร์ค่าใช้จ่าย (ทั่วไป)'
   };
 
   return welfareTypeLabels[type] || type;

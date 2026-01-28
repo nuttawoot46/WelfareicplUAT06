@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -210,7 +211,7 @@ export function SupportPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-green-900 text-sm">อีเมล</p>
-                        <p className="text-green-700 text-xs">it-support@company.com</p>
+                        <p className="text-green-700 text-xs">it@icpladda.com</p>
                       </div>
                     </div>
                     
@@ -219,23 +220,12 @@ export function SupportPage() {
                         <MessageSquare className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-purple-900 text-sm">Line Official</p>
-                        <p className="text-purple-700 text-xs">@company-it-support</p>
+                        <p className="font-medium text-purple-900 text-sm">Line</p>
+                        <p className="text-purple-700 text-xs">nutbbc18</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200 hover:shadow-md transition-all duration-200">
-                      <div className="p-2 bg-orange-600 rounded-full">
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-orange-900 text-sm">AI Assistant</p>
-                        <p className="text-orange-700 text-xs">ช่วยเหลือเบื้องต้น 24/7</p>
-                      </div>
-                      <Button size="sm" className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white border-0 text-xs px-2 py-1">
-                        เริ่มแชท
-                      </Button>
-                    </div>
+                    
                   </CardContent>
                 </Card>
 
@@ -255,20 +245,13 @@ export function SupportPage() {
                         <span className="font-medium text-green-900 text-sm">จันทร์ - ศุกร์</span>
                         <span className="font-bold text-green-700 text-sm">08:30 - 17:30</span>
                       </div>
-                      <div className="flex justify-between items-center p-2 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <span className="font-medium text-yellow-900 text-sm">เสาร์</span>
-                        <span className="font-bold text-yellow-700 text-sm">09:00 - 12:00</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg border border-red-200">
-                        <span className="font-medium text-red-900 text-sm">อาทิตย์</span>
-                        <span className="font-bold text-red-600 text-sm">ปิดทำการ</span>
-                      </div>
+                      
                     </div>
                     
                     <Alert className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                       <AlertDescription className="text-amber-800 font-medium text-sm">
-                        สำหรับปัญหาเร่งด่วนนอกเวลาทำการ กรุณาโทร <span className="font-bold">081-234-5678</span>
+                        สำหรับปัญหาเร่งด่วนนอกเวลาทำการ กรุณาโทร <span className="font-bold">082-991-4578</span>
                       </AlertDescription>
                     </Alert>
                   </CardContent>
@@ -291,33 +274,19 @@ export function SupportPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid md:grid-cols-3 gap-4">
-                    <Button 
-                      variant="outline" 
-                      className="h-auto p-4 flex flex-col items-center gap-2 border-2 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group"
-                    >
-                      <div className="p-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                        <Shield className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <span className="font-medium text-sm">รีเซ็ตรหัสผ่าน</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-auto p-4 flex flex-col items-center gap-2 border-2 hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
-                    >
-                      <div className="p-2 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
-                        <Monitor className="h-5 w-5 text-green-600" />
-                      </div>
-                      <span className="font-medium text-sm">ปัญหาระบบ</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-auto p-4 flex flex-col items-center gap-2 border-2 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group"
-                    >
-                      <div className="p-2 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
-                        <FileText className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <span className="font-medium text-sm">คู่มือการใช้งาน</span>
-                    </Button>
+                    
+                    
+                    <Link to="/user-guide">
+                      <Button
+                        variant="outline"
+                        className="h-auto p-4 flex flex-col items-center gap-2 border-2 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group w-full"
+                      >
+                        <div className="p-2 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
+                          <FileText className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <span className="font-medium text-sm">คู่มือการใช้งาน</span>
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

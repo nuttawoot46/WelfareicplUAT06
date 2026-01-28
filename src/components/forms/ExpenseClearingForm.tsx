@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -109,8 +109,8 @@ const ACTIVITY_TYPES = [
     description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
   },
   {
-    name: 'จัดประชุมดิลเลอร์',
-    description: 'ค่าใช้จ่ายในการจัดประชุมดิลเลอร์'
+    name: 'ดีลเลอร์',
+    description: 'ค่าใช้จ่ายในการดีลเลอร์'
   },
   {
     name: 'ค่ารับรองลูกค้า/ของขวัญร้านค้า',
@@ -173,6 +173,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   const [dealerList, setDealerList] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [dealerSearchTerm, setDealerSearchTerm] = useState('');
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
+  const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
   const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
 
   // Document type files state
@@ -497,15 +498,18 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     }
   };
 
-  // Filter dealers based on search term
-  const filteredDealers = useMemo(() => {
-    if (!dealerSearchTerm) return dealerList;
-    const searchLower = dealerSearchTerm.toLowerCase();
-    return dealerList.filter(dealer =>
-      dealer.Name.toLowerCase().includes(searchLower) ||
-      dealer.City?.toLowerCase().includes(searchLower) ||
-      dealer.County?.toLowerCase().includes(searchLower)
-    );
+  // Filter dealers based on search term (เหมือน AdvanceForm)
+  useEffect(() => {
+    if (dealerSearchTerm.trim() === '') {
+      setFilteredDealers([]);
+      setShowDealerDropdown(false);
+    } else {
+      const filtered = dealerList.filter(dealer =>
+        dealer.Name.toLowerCase().includes(dealerSearchTerm.toLowerCase())
+      );
+      setFilteredDealers(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setShowDealerDropdown(filtered.length > 0);
+    }
   }, [dealerSearchTerm, dealerList]);
 
   // Watch expense items for real-time updates

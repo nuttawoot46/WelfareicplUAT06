@@ -116,7 +116,12 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [visibilitySettings, setVisibilitySettings] = useState<FormVisibility[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
-  const { getRemainingBudget } = useWelfare();
+  const { getChildbirthCount } = useWelfare();
+
+  // เฉพาะ admin, manager, accountingandmanager เท่านั้นที่เห็นเมนูขออนุมัติจ้างงาน
+  const canAccessEmploymentApproval = ['admin', 'manager', 'accountingandmanager'].includes(
+    profile?.role?.toLowerCase() || ''
+  );
 
   // ดึงข้อมูลยอดเงินคงเหลือและการแสดงฟอร์ม
   useEffect(() => {
@@ -182,22 +187,34 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     if (workDurationRestrictedTypes.includes(type)) {
       const workDays = getWorkDuration();
       if (workDays < 180) {
-        return { 
-          available: false, 
-          reason: `ต้องทำงานครบ 180 วัน (ปัจจุบัน ${workDays} วัน)` 
+        return {
+          available: false,
+          reason: `ต้องทำงานครบ 180 วัน (ปัจจุบัน ${workDays} วัน)`
         };
       }
     }
-    
+
+    // สำหรับค่าคลอดบุตร ตรวจสอบจำนวนบุตรคงเหลือแทนวงเงิน
+    if (type === 'childbirth' && profile?.employee_id) {
+      const childbirthInfo = getChildbirthCount(String(profile.employee_id));
+      if (childbirthInfo.remaining <= 0) {
+        return {
+          available: false,
+          reason: 'เบิกครบ 3 คนแล้ว'
+        };
+      }
+      return { available: true };
+    }
+
     // ตรวจสอบยอดเงินคงเหลือ
     const limit = benefitLimits.find(limit => limit.type === type);
     if (!limit || limit.remaining <= 0) {
-      return { 
-        available: false, 
-        reason: 'เงินคงเหลือหมด' 
+      return {
+        available: false,
+        reason: 'เงินคงเหลือหมด'
       };
     }
-    
+
     return { available: true };
   };
 
@@ -240,14 +257,25 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     if (type === 'internal_training') {
       return 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร';
     }
-    
+
     if (type === 'employment-approval') {
       return 'สำหรับการขออนุมัติจ้างพนักงานใหม่หรือทดแทนตำแหน่ง';
     }
-    
+
+    // สำหรับค่าคลอดบุตร แสดงจำนวนบุตรคงเหลือแทนวงเงิน
+    if (type === 'childbirth' && profile?.employee_id) {
+      const childbirthInfo = getChildbirthCount(String(profile.employee_id));
+      return `เบิกไปแล้ว: ${childbirthInfo.total} คน | คงเหลือ: ${childbirthInfo.remaining} คน (สูงสุด 3 คน)`;
+    }
+
     const remaining = getRemainingAmount(type);
     const used = getUsedAmount(type);
-    
+
+    // สำหรับ glasses และ dental เพิ่มข้อความอธิบายว่าใช้วงเงินเดียวกัน
+    if (type === 'glasses' || type === 'dental') {
+      return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท (ค่าตัดแว่นและทำฟันใช้วงเงินเดียวกัน)`;
+    }
+
     return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท`;
   };
 
@@ -448,28 +476,32 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       <h1 className="text-2xl font-bold mb-6">เลือกประเภท</h1>
       
       <Tabs defaultValue="welfare" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1">
-          <TabsTrigger 
+        <TabsList className={cn("grid w-full mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1", canAccessEmploymentApproval ? "grid-cols-2" : "grid-cols-1")}>
+          <TabsTrigger
             value="welfare"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
           >
             สวัสดิการ
           </TabsTrigger>
-          <TabsTrigger 
-            value="employment"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
-          >
-            ขออนุมัติจ้างงาน
-          </TabsTrigger>
+          {canAccessEmploymentApproval && (
+            <TabsTrigger
+              value="employment"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+            >
+              ขออนุมัติจ้างงาน
+            </TabsTrigger>
+          )}
         </TabsList>
-        
+
         <TabsContent value="welfare">
           {renderFormCards(visibleWelfareOptions)}
         </TabsContent>
-        
-        <TabsContent value="employment">
-          {renderFormCards(visibleEmploymentOptions)}
-        </TabsContent>
+
+        {canAccessEmploymentApproval && (
+          <TabsContent value="employment">
+            {renderFormCards(visibleEmploymentOptions)}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

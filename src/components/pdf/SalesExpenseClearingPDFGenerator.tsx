@@ -101,7 +101,7 @@ const createSalesExpenseClearingFormHTML = (
         </div>
 
         <!-- Center Title -->
-        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -3cm;">
+        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -1.5cm;">
           <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">ใบเคลียร์ค่าใช้จ่าย</div>
           <div style="font-size: 14px; margin-bottom: 10px; color: #1565c0;">(ฝ่ายขาย)</div>
           <div style="font-size: 12px;">วันที่ ${currentDate}</div>
@@ -208,67 +208,67 @@ const createSalesExpenseClearingFormHTML = (
 
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
-            <tr style="background: #e3f2fd;">
-              <th style="border: 1px solid black; padding: 4px; text-align: center; width: 30px;">ลำดับ</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: left;">ชื่อรายการ</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: center; width: 50px;">อัตราภาษี</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 70px;">จำนวนเบิก</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 70px;">จำนวนใช้<br/>(ก่อน VAT)</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 60px;">ภาษีมูลค่าเพิ่ม</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 60px;">ภาษีหัก ณ ที่จ่าย</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 70px;">รวมจำนวนเงินทั้งสิ้น</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; width: 70px;">คืนเงิน(+)<br/>เบิกเงิน(-)</th>
+            <tr style="background: #e3f2fd; height: 40px;">
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 30px; height: 40px;">ลำดับ</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: left; vertical-align: middle; height: 40px;">ชื่อรายการ</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 50px; height: 40px;">อัตราภาษี</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">จำนวนเบิก</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">จำนวนใช้<br/>(ก่อน VAT)</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 60px; height: 40px;">ภาษีมูลค่าเพิ่ม</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 60px; height: 40px;">ภาษีหัก ณ ที่จ่าย</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">รวมจำนวนเงินทั้งสิ้น</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">คืนเงิน(+)<br/>เบิกเงิน(-)</th>
             </tr>
           </thead>
           <tbody>
             ${expenseItems.map((item, index) => `
-              <tr>
-                <td style="border: 1px solid black; padding: 3px; text-align: center;">${index + 1}</td>
-                <td style="border: 1px solid black; padding: 3px;">${item.name || 'รายการไม่ระบุ'}${item.otherDescription ? ` (${item.otherDescription})` : ''}</td>
-                <td style="border: 1px solid black; padding: 3px; text-align: center;">${item.taxRate || 0}%</td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right;">
+              <tr style="height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${index + 1}</td>
+                <td style="border: 1px solid black; padding: 3px; vertical-align: middle; height: 28px;">${item.name || 'รายการไม่ระบุ'}${item.otherDescription ? ` (${item.otherDescription})` : ''}</td>
+                <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${item.taxRate || 0}%</td>
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.requestAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; background: #fef3c7;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: #fef3c7; height: 28px;">
                   ${formatCurrency(Number(item.usedAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.vatAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.taxAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; background: #dbeafe; font-weight: bold;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: #dbeafe; font-weight: bold; height: 28px;">
                   ${formatCurrency(Number(item.netAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; background: ${(Number(item.refund) || 0) >= 0 ? '#dcfce7' : '#fee2e2'}; font-weight: bold;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: ${(Number(item.refund) || 0) >= 0 ? '#dcfce7' : '#fee2e2'}; font-weight: bold; height: 28px;">
                   ${formatCurrency(Number(item.refund) || 0)}
                 </td>
               </tr>
             `).join('')}
             ${expenseItems.length === 0 ? `
-              <tr>
-                <td style="border: 1px solid black; padding: 6px;" colspan="9">ไม่มีรายการค่าใช้จ่าย</td>
+              <tr style="height: 28px;">
+                <td style="border: 1px solid black; padding: 6px; vertical-align: middle; height: 28px;" colspan="9">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
-            <tr style="background: #bbdefb; font-weight: bold;">
-              <td style="border: 1px solid black; padding: 6px; text-align: center;" colspan="3">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: #1565c0;">
+            <tr style="background: #bbdefb; font-weight: bold; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: center; vertical-align: middle; height: 32px;" colspan="3">รวมทั้งสิ้น</td>
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: #1565c0; height: 32px;">
                 ${formatCurrency(totalRequested)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: #fd7e14;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: #fd7e14; height: 32px;">
                 ${formatCurrency(totalUsed)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.vatAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.taxAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.netAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; color: ${totalRefund >= 0 ? '#16a34a' : '#dc2626'}; font-size: 11px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: ${totalRefund >= 0 ? '#16a34a' : '#dc2626'}; font-size: 11px; height: 32px;">
                 ${formatCurrency(totalRefund)}
               </td>
             </tr>

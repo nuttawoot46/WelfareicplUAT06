@@ -147,19 +147,22 @@ export const ApprovalPage = () => {
       }
     }
 
+    // ประเภทที่ต้องส่งไปบัญชี (accounting types)
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+
     return base
       .filter((req: WelfareRequest) => {
         // Filter by tab type first
         if (activeTab === 'pending-welfare') {
           // Show only welfare requests pending manager approval
           if (req.status !== 'pending_manager') return false;
-          // Filter out accounting types (advance and expense-clearing)
-          if (req.type === 'advance' || req.type === 'expense-clearing') return false;
+          // Filter out accounting types
+          if (accountingTypes.includes(req.type)) return false;
         } else if (activeTab === 'pending-accounting') {
           // Show only accounting requests pending manager approval
           if (req.status !== 'pending_manager') return false;
-          // Only show accounting types (advance and expense-clearing)
-          if (req.type !== 'advance' && req.type !== 'expense-clearing') return false;
+          // Only show accounting types
+          if (!accountingTypes.includes(req.type)) return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by manager (approved or rejected)
           const processedStatuses = ['pending_hr', 'pending_accounting', 'approved', 'rejected_manager', 'rejected_hr', 'rejected_accounting'];
@@ -343,9 +346,10 @@ export const ApprovalPage = () => {
       
       if (isBulkApproval && pendingBulkApproval.length > 0) {
         // Handle bulk approval
+        const accountingTypesForBulk = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
         for (const req of pendingBulkApproval) {
           // Determine next status based on request type
-          const nextStatus = (req.type === 'advance' || req.type === 'expense-clearing') ? 'pending_accounting' : 'pending_hr';
+          const nextStatus = accountingTypesForBulk.includes(req.type) ? 'pending_accounting' : 'pending_hr';
           
           const { error } = await supabase
             .from('welfare_requests')
@@ -366,7 +370,8 @@ export const ApprovalPage = () => {
           }
         }
         
-        const accountingCount = pendingBulkApproval.filter(req => req.type === 'advance' || req.type === 'general-advance' || req.type === 'expense-clearing').length;
+        const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+        const accountingCount = pendingBulkApproval.filter(req => accountingTypes.includes(req.type)).length;
         const hrCount = pendingBulkApproval.length - accountingCount;
         
         let message = `${pendingBulkApproval.length} requests approved successfully with signature.`;
@@ -395,7 +400,8 @@ export const ApprovalPage = () => {
               .single();
 
             if (employeeData?.email_user) {
-              const destination = (req.type === 'advance' || req.type === 'general-advance' || req.type === 'expense-clearing') ? 'บัญชี' : ' HR ';
+              const accountingTypesForLine = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+              const destination = accountingTypesForLine.includes(req.type) ? 'บัญชี' : ' HR ';
               await sendLineNotification({
                 employeeEmail: employeeData.email_user,
                 type: getWelfareTypeLabel(req.type),
@@ -481,7 +487,8 @@ export const ApprovalPage = () => {
       } else if (pendingApprovalRequest) {
         // Handle individual approval
         // Determine next status based on request type
-        const nextStatus = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'general-advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'pending_accounting' : 'pending_hr';
+        const accountingTypesForStatus = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+        const nextStatus = accountingTypesForStatus.includes(pendingApprovalRequest.type) ? 'pending_accounting' : 'pending_hr';
         
         const { error } = await supabase
           .from('welfare_requests')
@@ -501,7 +508,8 @@ export const ApprovalPage = () => {
           throw error;
         }
         
-        const destination = (pendingApprovalRequest.type === 'advance' || pendingApprovalRequest.type === 'general-advance' || pendingApprovalRequest.type === 'expense-clearing') ? 'Accounting' : 'HR';
+        const accountingTypesForDest = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+        const destination = accountingTypesForDest.includes(pendingApprovalRequest.type) ? 'Accounting' : 'HR';
         addNotification({
           userId: user.id,
           title: 'Success',

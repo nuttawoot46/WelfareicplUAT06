@@ -143,15 +143,19 @@ const WelfareAccountingReviewPage: React.FC = () => {
 
   const fetchRequests = async () => {
     setIsLoading(true);
-    const statusFilter = activeTab === 'history' 
-      ? ['completed', 'rejected_accounting'] 
+    const statusFilter = activeTab === 'history'
+      ? ['completed', 'rejected_accounting']
       : ['pending_accounting'];
 
-    // Only fetch from welfare_requests table for welfare types
+    // Accounting types to exclude (these are shown in GeneralAccountingReviewPage)
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+
+    // Only fetch from welfare_requests table for HR welfare types (exclude accounting types)
     const { data, error } = await supabase
       .from('welfare_requests')
       .select('*, department_request')
-      .in('status', statusFilter);
+      .in('status', statusFilter)
+      .not('request_type', 'in', `(${accountingTypes.join(',')})`);
 
     if (data) {
       const mapped = data.map((req: any) => {
@@ -196,11 +200,15 @@ const WelfareAccountingReviewPage: React.FC = () => {
       endDate = endOfYear(new Date(selectedYear + '-01-01'));
     }
 
-    // Only fetch from welfare_requests table for welfare types
+    // Accounting types to exclude (these are shown in GeneralAccountingReviewPage)
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+
+    // Only fetch from welfare_requests table for HR welfare types (exclude accounting types)
     const { data, error } = await supabase
       .from('welfare_requests')
       .select('*, department_request')
       .eq('status', 'completed')
+      .not('request_type', 'in', `(${accountingTypes.join(',')})`)
       .gte('accounting_approved_at', startDate.toISOString())
       .lte('accounting_approved_at', endDate.toISOString())
       .order('accounting_approved_at', { ascending: false });

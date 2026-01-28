@@ -121,8 +121,8 @@ const ACTIVITY_TYPES = [
     description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
   },
   {
-    name: 'จัดประชุมดิลเลอร์',
-    description: 'ค่าใช้จ่ายในการจัดประชุมดิลเลอร์'
+    name: 'ดีลเลอร์',
+    description: 'ค่าใช้จ่ายในการดีลเลอร์'
   },
   {
     name: 'ค่ารับรองลูกค้า/ของขวัญร้านค้า',
@@ -661,8 +661,8 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   type AdvanceDocumentType = 'bankbookCustomer' | 'budgetRequestLetter';
 
   const ADVANCE_DOCUMENT_TYPES: { key: AdvanceDocumentType; label: string }[] = [
-    { key: 'bankbookCustomer', label: 'หน้าบุ๊คแบงค์ลูกค้า' },
-    { key: 'budgetRequestLetter', label: 'หนังสือของบ' },
+    { key: 'bankbookCustomer', label: 'สำเนาหน้าบัญชีธนาคารของลูกค้า' },
+    { key: 'budgetRequestLetter', label: 'หนังสือของบสนับสนุน' },
   ];
 
   // Handle checkbox toggle for document type
@@ -808,11 +808,18 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         }
 
         // UPDATE EXISTING REQUEST
+        // รวม files และ documentFiles เข้าด้วยกัน
+        const allAttachmentsForUpdate = [
+          ...files,
+          ...documentFiles.bankbookCustomer,
+          ...documentFiles.budgetRequestLetter,
+        ].filter(url => url && url.trim() !== '');
+
         const updateData: any = {
           amount: Number(data.amount || 0),
           details: data.details || '',
           title: data.title || '',
-          attachment_url: JSON.stringify(files),
+          attachment_url: JSON.stringify(allAttachmentsForUpdate),
           updated_at: new Date().toISOString(),
           start_date: data.startDate,
           end_date: data.endDate,
@@ -864,6 +871,14 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       // CREATE NEW REQUEST
       // Generate run number only for advance type
       const runNumber = generateAdvanceRunNumber();
+
+      // รวม files และ documentFiles เข้าด้วยกัน
+      const allAttachments = [
+        ...files,
+        ...documentFiles.bankbookCustomer,
+        ...documentFiles.budgetRequestLetter,
+      ].filter(url => url && url.trim() !== '');
+
       const requestData = {
         userId: profile.employee_id.toString(),
         userName: employeeData?.Name || user?.email || 'Unknown User',
@@ -874,7 +889,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         amount: Number(data.amount || 0),
         date: data.startDate || new Date().toISOString(),
         details: data.details || '',
-        attachments: files,
+        attachments: allAttachments,
         notes: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
