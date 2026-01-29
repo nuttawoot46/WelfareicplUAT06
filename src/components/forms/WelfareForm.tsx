@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import axios from 'axios';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WelfareType, ParticipantGroup, ParticipantMember } from '@/types';
+import { WelfareType, ParticipantGroup, ParticipantMember, FitnessParticipant } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
 import { useInternalTraining } from '@/context/InternalTrainingContext';
 import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { formatNumberWithCommas, parseFormattedNumber, formatInputWhileTyping, formatNumberOnBlur, formatNumberForInput } from '@/utils/numberFormat';
 import { getWelfareTypeLabel } from '@/lib/utils';
@@ -49,6 +50,10 @@ interface FormValues {
     birthType: 'natural' | 'caesarean';
   }[];
   funeralType?: 'employee_spouse' | 'child' | 'parent';
+  // Fitness specific fields (ค่าออกกำลังกาย)
+  fitnessParticipants?: FitnessParticipant[];
+  fitnessSplitEqually?: boolean;
+  fitnessAmountPerPerson?: number;
   attachments?: FileList;
   trainingTopics?: { value: string }[];
   totalAmount?: number;
@@ -128,7 +133,7 @@ const EMPLOYEE_LEVELS = [
   'หัวหน้างาน',
   'ผู้ช่วยผู้จัดการ',
   'ผู้จัดการ',
-  'รองกรรมการผู้จัดการ',
+  'กรรมการผู้จัดการ',
   'กรรมการผู้จัดการ / ประธาน'
 ];
 
@@ -150,8 +155,8 @@ const getFormTitle = (type: WelfareType): string => {
     training: 'แบบฟอร์มขอสวัสดิการค่าอบรม',
     childbirth: 'แบบฟอร์มขอสวัสดิการค่าคลอดบุตร',
     funeral: 'แบบฟอร์มขอสวัสดิการค่าช่วยเหลืองานศพ',
-    glasses: 'แบบฟอร์มขอสวัสดิการค่าตัดแว่น',
-    dental: 'แบบฟอร์มขอสวัสดิการค่าทำฟัน',
+    glasses: 'แบบฟอร์มขอสวัสดิการค่าตัดแว่นสายตา',
+    dental: 'แบบฟอร์มขอสวัสดิการค่ารักษาทัตกรรม',
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
     internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
@@ -182,7 +187,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
     return editIdStr ? Number(editIdStr) : undefined;
   }, [editId, location.search]);
   const { user, profile } = useAuth();
-  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount, welfareRequests } = useWelfare();
+  const { submitRequest, isLoading, getWelfareLimit, getRemainingBudget, trainingBudget, refreshRequests, getChildbirthCount, getFuneralUsedTypes, welfareRequests } = useWelfare();
   const { submitRequest: submitInternalTrainingRequest, refreshRequests: refreshInternalTrainingRequests } = useInternalTraining();
   const [files, setFiles] = useState<string[]>([]);
   const [documentFiles, setDocumentFiles] = useState<{
@@ -209,6 +214,14 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
   const [workDaysError, setWorkDaysError] = useState<string>('');
   const [childbirthLimit, setChildbirthLimit] = useState<{ total: number; remaining: number }>({ total: 0, remaining: 3 });
   const [originalEditAmount, setOriginalEditAmount] = useState<number>(0); // เก็บจำนวนเงินเดิมตอน edit เพื่อบวกกลับไปใน remaining budget
+
+  // Fitness specific states (ค่าออกกำลังกาย)
+  const [allEmployees, setAllEmployees] = useState<Array<{ id: number; Name: string; email_user: string; budget_fitness: number; Team: string | null }>>([]);
+  const [selectedFitnessParticipants, setSelectedFitnessParticipants] = useState<FitnessParticipant[]>([]);
+  const [fitnessSplitEqually, setFitnessSplitEqually] = useState(false);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  const [selectedFitnessTeam, setSelectedFitnessTeam] = useState<string>('');
+  const [showFitnessEmployeeDialog, setShowFitnessEmployeeDialog] = useState(false);
 
   const {
     register,
@@ -268,6 +281,53 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
 
     fetchEmployeeData();
   }, [user?.email]);
+
+  // Fetch all employees for fitness participant selection
+  useEffect(() => {
+    const fetchAllEmployees = async () => {
+      if (type !== 'fitness') return;
+
+      setIsLoadingEmployees(true);
+      try {
+        const { data, error } = await supabase
+          .from('Employee')
+          .select('id, Name, email_user, budget_fitness, Team')
+          .not('email_user', 'is', null)
+          .order('Name', { ascending: true });
+
+        if (!error && data) {
+          // Filter out current user from the list
+          const filteredEmployees = data.filter(emp => emp.email_user !== user?.email);
+          setAllEmployees(filteredEmployees);
+        }
+      } catch (error) {
+        console.error('Error fetching employees for fitness:', error);
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    };
+
+    fetchAllEmployees();
+  }, [type, user?.email]);
+
+  // Recalculate fitness split when amount changes
+  const watchedAmount = watch('amount');
+  useEffect(() => {
+    if (type === 'fitness' && fitnessSplitEqually && selectedFitnessParticipants.length > 0) {
+      const totalParticipants = selectedFitnessParticipants.length + 1; // +1 for current user
+      const currentAmount = Number(watchedAmount) || 0;
+      const splitAmount = Math.floor(currentAmount / totalParticipants);
+
+      // Update each participant's amount
+      const updatedParticipants = selectedFitnessParticipants.map(p => ({
+        ...p,
+        amount: splitAmount
+      }));
+      setSelectedFitnessParticipants(updatedParticipants);
+      setValue('fitnessParticipants', updatedParticipants);
+      setValue('fitnessAmountPerPerson', splitAmount);
+    }
+  }, [watchedAmount, type, fitnessSplitEqually]);
 
   // Helper function to calculate work days
   const calculateWorkDays = (startDate: string): number => {
@@ -1036,6 +1096,12 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
           vat: data.vat,
           // Document selections
           attachment_selections: data.attachmentSelections ? JSON.stringify(data.attachmentSelections) : null,
+          // Fitness specific fields (ค่าออกกำลังกาย)
+          fitness_participants: selectedFitnessParticipants.length > 0 ? JSON.stringify(selectedFitnessParticipants) : null,
+          fitness_split_equally: fitnessSplitEqually,
+          fitness_amount_per_person: fitnessSplitEqually && selectedFitnessParticipants.length > 0
+            ? Math.floor(Number(data.amount || 0) / (selectedFitnessParticipants.length + 1))
+            : null,
         };
 
         console.log('UPDATE MODE: updateData', updateData, 'editIdNum', editIdNum);
@@ -1225,6 +1291,18 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
         finalEmployeeData = fetchedEmployeeData;
         console.log('=== processFormSubmission: Fetched fresh employeeData ===');
         console.log('fetchedEmployeeData:', fetchedEmployeeData);
+
+        // เมื่ออยู่ใน Edit mode และเป็นประเภท training ให้ใช้ remainingBudget ที่คำนวณแล้ว (บวก originalEditAmount กลับ)
+        // แทน Budget_Training จากฐานข้อมูล เพื่อให้ PDF แสดง "ยอดคงเหลือก่อนเบิก" ถูกต้อง
+        if (editIdNum && type === 'training' && originalEditAmount > 0) {
+          finalEmployeeData = {
+            ...finalEmployeeData,
+            Budget_Training: remainingBudget // remainingBudget = currentRemainingBudget + originalEditAmount
+          };
+          console.log('=== Edit mode: Adjusted Budget_Training for PDF ===');
+          console.log('originalEditAmount:', originalEditAmount);
+          console.log('Adjusted Budget_Training:', remainingBudget);
+        }
       } else if (!finalEmployeeData) {
         throw new Error('ไม่พบข้อมูลพนักงาน');
       }
@@ -1415,6 +1493,12 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       userSignature: signature || userSignature, // เพิ่มลายเซ็น
       // Document selections
       attachmentSelections: data.attachmentSelections,
+      // Fitness specific fields (ค่าออกกำลังกาย)
+      fitness_participants: selectedFitnessParticipants.length > 0 ? JSON.stringify(selectedFitnessParticipants) : null,
+      fitness_split_equally: fitnessSplitEqually,
+      fitness_amount_per_person: fitnessSplitEqually && selectedFitnessParticipants.length > 0
+        ? Math.floor(Number(data.amount || 0) / (selectedFitnessParticipants.length + 1))
+        : null,
     };
 
     const result = await submitRequest(requestData);
@@ -1654,7 +1738,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             </Alert>
           </div>
         )}
-        {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && type !== 'childbirth' && (
+        {user && type !== 'training' && type !== 'internal_training' && type !== 'advance' && type !== 'childbirth' && type !== 'funeral' && (
           <div className="mb-6">
             <p className="text-sm font-medium text-gray-700">
               งบประมาณคงเหลือสำหรับสวัสดิการนี้: <span className="font-bold text-welfare-blue">{(remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
@@ -1958,27 +2042,323 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
           )}
 
           {/* Funeral specific fields */}
-          {type === 'funeral' && (
-            <div className="space-y-2">
-              <label className="form-label">ประเภทสวัสดิการงานศพ</label>
-              <Select
-                onValueChange={(value) => setValue('funeralType', value as 'employee_spouse' | 'child' | 'parent')}
-                defaultValue={watch('funeralType')}
-                {...register('funeralType', {
-                  required: type === 'funeral' ? 'กรุณาเลือกประเภทสวัสดิการงานศพ' : false
-                })}
+          {type === 'funeral' && (() => {
+            const funeralInfo = profile?.employee_id ? getFuneralUsedTypes(String(profile.employee_id)) : { usedTypes: [], availableTypes: ['employee_spouse', 'child', 'parent'] };
+
+            // จำนวนเงินสำหรับแต่ละประเภทงานศพ
+            const funeralAmounts: Record<string, number> = {
+              'employee_spouse': 9000, // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 6,000
+              'child': 7000,           // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 4,000
+              'parent': 5000           // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 2,000
+            };
+
+            const handleFuneralTypeChange = (value: string) => {
+              setValue('funeralType', value as 'employee_spouse' | 'child' | 'parent');
+              // Auto-fill amount based on selected type
+              if (funeralAmounts[value]) {
+                setValue('amount', funeralAmounts[value]);
+              }
+            };
+
+            return (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="form-label">ประเภทสวัสดิการงานศพ</label>
+                  
+
+                  <Select
+                    onValueChange={handleFuneralTypeChange}
+                    defaultValue={watch('funeralType')}
+                    {...register('funeralType', {
+                      required: type === 'funeral' ? 'กรุณาเลือกประเภทสวัสดิการงานศพ' : false
+                    })}
+                  >
+                    <SelectTrigger className="form-input">
+                      <SelectValue placeholder="เลือกประเภทสวัสดิการงานศพ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        value="employee_spouse"
+                        disabled={funeralInfo.usedTypes.includes('employee_spouse')}
+                      >
+                        <div className="flex flex-col">
+                          <span>พนักงาน/สามีหรือภรรยาของพนักงาน {funeralInfo.usedTypes.includes('employee_spouse') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
+                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 6,000 บาท + พวงหรีด 1 พวง</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem
+                        value="child"
+                        disabled={funeralInfo.usedTypes.includes('child')}
+                      >
+                        <div className="flex flex-col">
+                          <span>บุตร ของพนักงาน {funeralInfo.usedTypes.includes('child') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
+                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 4,000 บาท + พวงหรีด 1 พวง</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem
+                        value="parent"
+                        disabled={funeralInfo.usedTypes.includes('parent')}
+                      >
+                        <div className="flex flex-col">
+                          <span>บิดา/มารดา ของพนักงาน {funeralInfo.usedTypes.includes('parent') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
+                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 2,000 บาท + พวงหรีด 1 พวง</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.funeralType && (
+                    <p className="text-red-500 text-sm mt-1">{errors.funeralType.message}</p>
+                  )}
+                </div>
+
+                {/* แสดงรายละเอียดเงินช่วยเหลือตามประเภทที่เลือก */}
+                {watch('funeralType') && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 font-medium">รายละเอียดสวัสดิการ:</p>
+                    <ul className="text-sm text-blue-700 mt-1 list-disc list-inside">
+                      {watch('funeralType') === 'employee_spouse' && (
+                        <>
+                          <li>ค่าเจ้าภาพ: 3,000 บาท</li>
+                          <li>เงินช่วยเหลือ: 6,000 บาท</li>
+                          <li>พวงหรีด: 1 พวง</li>
+                          <li className="font-semibold">รวม: 9,000 บาท + พวงหรีด</li>
+                        </>
+                      )}
+                      {watch('funeralType') === 'child' && (
+                        <>
+                          <li>ค่าเจ้าภาพ: 3,000 บาท</li>
+                          <li>เงินช่วยเหลือ: 4,000 บาท</li>
+                          <li>พวงหรีด: 1 พวง</li>
+                          <li className="font-semibold">รวม: 7,000 บาท + พวงหรีด</li>
+                        </>
+                      )}
+                      {watch('funeralType') === 'parent' && (
+                        <>
+                          <li>ค่าเจ้าภาพ: 3,000 บาท</li>
+                          <li>เงินช่วยเหลือ: 2,000 บาท</li>
+                          <li>พวงหรีด: 1 พวง</li>
+                          <li className="font-semibold">รวม: 5,000 บาท + พวงหรีด</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Fitness specific fields - ค่าออกกำลังกาย */}
+          {type === 'fitness' && (
+            <div className="space-y-4 border rounded-lg p-4 bg-green-50">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <span>👥</span> ไปออกกำลังกายกับเพื่อนร่วมงาน (ไม่บังคับ)
+              </h3>
+              <p className="text-sm text-gray-600">
+                สามารถเลือกพนักงานที่ไปออกกำลังกายด้วยกัน เพื่อหารค่าใช้จ่ายเท่าๆ กัน
+              </p>
+
+              {/* Add Employee Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSelectedFitnessTeam('');
+                  setShowFitnessEmployeeDialog(true);
+                }}
+                className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50"
               >
-                <SelectTrigger className="form-input">
-                  <SelectValue placeholder="เลือกประเภทสวัสดิการงานศพ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee_spouse">สวัสดิการงานศพ พนักงาน/สามีหรือภรรยาของพนักงาน</SelectItem>
-                  <SelectItem value="child">สวัสดิการงานศพ บุตร ของพนักงาน</SelectItem>
-                  <SelectItem value="parent">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.funeralType && (
-                <p className="text-red-500 text-sm mt-1">{errors.funeralType.message}</p>
+                <Plus className="h-4 w-4" />
+                เพิ่มพนักงาน
+              </Button>
+
+              {/* Add Employee Dialog */}
+              <Dialog open={showFitnessEmployeeDialog} onOpenChange={setShowFitnessEmployeeDialog}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>เพิ่มพนักงานร่วมออกกำลังกาย</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    {/* Team Selection */}
+                    <div className="space-y-2">
+                      <label className="form-label">เลือกทีม/แผนก</label>
+                      <Select
+                        value={selectedFitnessTeam}
+                        onValueChange={(value) => setSelectedFitnessTeam(value)}
+                      >
+                        <SelectTrigger className="form-input">
+                          <SelectValue placeholder="เลือกทีม..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEAMS.map((team) => (
+                            <SelectItem key={team} value={team}>
+                              {team}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Employee Selection */}
+                    <div className="space-y-2">
+                      <label className="form-label">เลือกพนักงาน</label>
+                      {isLoadingEmployees ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>กำลังโหลด...</span>
+                        </div>
+                      ) : (
+                        <Select
+                          disabled={!selectedFitnessTeam}
+                          onValueChange={(value) => {
+                            const employee = allEmployees.find(emp => emp.id.toString() === value);
+                            if (employee && !selectedFitnessParticipants.find(p => p.employee_id === employee.id)) {
+                              const newParticipant: FitnessParticipant = {
+                                employee_id: employee.id,
+                                employee_name: employee.Name || '',
+                                email: employee.email_user || '',
+                                amount: 0
+                              };
+                              setSelectedFitnessParticipants([...selectedFitnessParticipants, newParticipant]);
+                              setShowFitnessEmployeeDialog(false);
+                              setSelectedFitnessTeam('');
+                            }
+                          }}
+                        >
+                          <SelectTrigger className={`form-input ${!selectedFitnessTeam ? 'opacity-50' : ''}`}>
+                            <SelectValue placeholder={selectedFitnessTeam ? "เลือกพนักงาน..." : "กรุณาเลือกทีมก่อน"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allEmployees
+                              .filter(emp => emp.Team === selectedFitnessTeam && !selectedFitnessParticipants.find(p => p.employee_id === emp.id))
+                              .map((employee) => (
+                                <SelectItem key={employee.id} value={employee.id.toString()}>
+                                  {employee.Name}
+                                </SelectItem>
+                              ))}
+                            {allEmployees.filter(emp => emp.Team === selectedFitnessTeam && !selectedFitnessParticipants.find(p => p.employee_id === emp.id)).length === 0 && selectedFitnessTeam && (
+                              <div className="p-2 text-sm text-gray-500 text-center">ไม่มีพนักงานในทีมนี้</div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowFitnessEmployeeDialog(false);
+                        setSelectedFitnessTeam('');
+                      }}
+                    >
+                      ยกเลิก
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Selected Participants List */}
+              {selectedFitnessParticipants.length > 0 && (
+                <div className="space-y-2">
+                  <label className="form-label">รายชื่อพนักงานที่เลือก ({selectedFitnessParticipants.length} คน)</label>
+                  <div className="space-y-2">
+                    {selectedFitnessParticipants.map((participant, index) => (
+                      <div key={participant.employee_id} className="flex items-center justify-between bg-white p-2 rounded border">
+                        <span className="text-sm">{index + 1}. {participant.employee_name}</span>
+                        <div className="flex items-center gap-2">
+                          {fitnessSplitEqually && (
+                            <span className="text-sm text-green-600 font-medium">
+                              {formatNumberWithCommas(participant.amount)} บาท
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedFitnessParticipants(
+                                selectedFitnessParticipants.filter(p => p.employee_id !== participant.employee_id)
+                              );
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Split Equally Button */}
+              {selectedFitnessParticipants.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSplitValue = !fitnessSplitEqually;
+                        setFitnessSplitEqually(newSplitValue);
+
+                        if (newSplitValue) {
+                          // Calculate split amount (including current user)
+                          const totalParticipants = selectedFitnessParticipants.length + 1; // +1 for current user
+                          const currentAmount = watch('amount') || 0;
+                          const splitAmount = Math.floor(currentAmount / totalParticipants);
+
+                          // Update each participant's amount
+                          const updatedParticipants = selectedFitnessParticipants.map(p => ({
+                            ...p,
+                            amount: splitAmount
+                          }));
+                          setSelectedFitnessParticipants(updatedParticipants);
+
+                          // Update form values
+                          setValue('fitnessParticipants', updatedParticipants);
+                          setValue('fitnessSplitEqually', true);
+                          setValue('fitnessAmountPerPerson', splitAmount);
+                        } else {
+                          // Reset amounts
+                          const resetParticipants = selectedFitnessParticipants.map(p => ({
+                            ...p,
+                            amount: 0
+                          }));
+                          setSelectedFitnessParticipants(resetParticipants);
+                          setValue('fitnessParticipants', resetParticipants);
+                          setValue('fitnessSplitEqually', false);
+                          setValue('fitnessAmountPerPerson', 0);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        fitnessSplitEqually
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {fitnessSplitEqually ? '✓ หารเท่ากัน' : 'หารเท่ากัน'}
+                    </button>
+                    {fitnessSplitEqually && (
+                      <span className="text-sm text-gray-600">
+                        (รวมตัวคุณ = {selectedFitnessParticipants.length + 1} คน)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Split Summary */}
+                  {fitnessSplitEqually && watch('amount') > 0 && (
+                    <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                      <p className="text-sm text-green-800 font-medium">สรุปการหารค่าใช้จ่าย:</p>
+                      <ul className="text-sm text-green-700 mt-1 space-y-1">
+                        <li>• ยอดรวมทั้งหมด: {formatNumberWithCommas(watch('amount'))} บาท</li>
+                        <li>• จำนวนคน: {selectedFitnessParticipants.length + 1} คน (รวมตัวคุณ)</li>
+                        <li className="font-semibold">• คนละ: {formatNumberWithCommas(Math.floor(watch('amount') / (selectedFitnessParticipants.length + 1)))} บาท</li>
+                      </ul>
+                      <p className="text-xs text-green-600 mt-2">
+                        * ระบบจะหักเงินจากงบออกกำลังกายของพนักงานแต่ละคนตามจำนวนที่แสดง
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -2721,8 +3101,8 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       value: 1,
                       message: 'จำนวนเงินต้องมากกว่า 0'
                     },
-                    // ค่าคลอดบุตรไม่จำกัดวงเงิน (จำกัดแค่จำนวนบุตร 3 คน)
-                    ...(type !== 'childbirth' && {
+                    // ค่าคลอดบุตรและค่าช่วยเหลืองานศพไม่จำกัดวงเงิน
+                    ...(type !== 'childbirth' && type !== 'funeral' && {
                       max: {
                         value: Math.min(maxAmount || 100000, remainingBudget || 0),
                         message: `จำนวนเงินต้องไม่เกิน ${Math.min(maxAmount || 100000, remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`

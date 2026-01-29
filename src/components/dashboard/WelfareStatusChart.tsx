@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { RefreshCw, FileText, Download, Heart, Briefcase, GraduationCap } from 'lucide-react';
+import { RefreshCw, FileText, Download, Heart, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,9 +109,9 @@ const getRequestTypeText = (requestType: string) => {
     case 'funeral':
       return 'ค่าช่วยเหลืองานศพ';
     case 'glasses':
-      return 'ค่าตัดแว่น';
+      return 'ค่าตัดแว่นสายตา';
     case 'dental':
-      return 'ค่าทำฟัน';
+      return 'ค่ารักษาทัตกรรม';
     case 'fitness':
       return 'ค่าออกกำลังกาย';
     case 'medical':
@@ -166,10 +166,8 @@ const exportToCSV = (data: WelfareRequestItem[], filename = "welfare_report.csv"
   URL.revokeObjectURL(url);
 };
 
-// ประเภทสวัสดิการ (ไม่รวมค่าอบรม)
-const WELFARE_TYPES = ['wedding', 'childbirth', 'funeral', 'glasses', 'dental', 'fitness', 'medical'];
-// ประเภทค่าอบรม
-const TRAINING_TYPES = ['training', 'internal_training'];
+// ประเภทสวัสดิการ (รวมค่าอบรม)
+const WELFARE_TYPES = ['wedding', 'childbirth', 'funeral', 'glasses', 'dental', 'fitness', 'medical', 'training', 'internal_training'];
 // ประเภทขออนุมัติงาน
 const EMPLOYMENT_TYPES = ['employment-approval'];
 
@@ -338,17 +336,20 @@ const WelfareStatusChart: React.FC = React.memo(() => {
     return monthNames[monthIndex] || month;
   };
 
+  // Check if there are any employment requests
+  const hasEmploymentRequests = useMemo(() => {
+    return requests.some(request => EMPLOYMENT_TYPES.includes(request.request_type));
+  }, [requests]);
+
   // Filter requests - ใช้ useMemo เพื่อประสิทธิภาพ
   const filteredRequests = useMemo(() => {
     if (!requests.length) return [];
 
     let result = [...requests];
 
-    // Filter by tab type (สวัสดิการ vs ค่าอบรม vs ขออนุมัติงาน)
+    // Filter by tab type (สวัสดิการ vs ขออนุมัติงาน)
     if (activeTab === 'welfare') {
       result = result.filter(request => WELFARE_TYPES.includes(request.request_type));
-    } else if (activeTab === 'training') {
-      result = result.filter(request => TRAINING_TYPES.includes(request.request_type));
     } else if (activeTab === 'employment') {
       result = result.filter(request => EMPLOYMENT_TYPES.includes(request.request_type));
     }
@@ -411,7 +412,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
     }
 
     if (filteredRequests.length === 0) {
-      const tabName = activeTab === 'welfare' ? 'สวัสดิการ' : activeTab === 'training' ? 'ค่าอบรม' : 'อนุมัติจ้างงาน';
+      const tabName = activeTab === 'welfare' ? 'สวัสดิการ' : 'อนุมัติจ้างงาน';
       return (
         <div className="text-center py-8 text-gray-500">
           <p>ไม่พบรายการคำร้องขอ{tabName}</p>
@@ -605,42 +606,35 @@ const WelfareStatusChart: React.FC = React.memo(() => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger
-                value="welfare"
-                className="flex items-center gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white"
-              >
-                <Heart className="h-4 w-4" />
-                สวัสดิการ
-              </TabsTrigger>
-              <TabsTrigger
-                value="training"
-                className="flex items-center gap-2 data-[state=active]:bg-green-500 data-[state=active]:text-white"
-              >
-                <GraduationCap className="h-4 w-4" />
-                ค่าอบรม
-              </TabsTrigger>
-              <TabsTrigger
-                value="employment"
-                className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white"
-              >
-                <Briefcase className="h-4 w-4" />
-                ขออนุมัติจ้างงาน
-              </TabsTrigger>
-            </TabsList>
+            {hasEmploymentRequests && (
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger
+                  value="welfare"
+                  className="flex items-center gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white"
+                >
+                  <Heart className="h-4 w-4" />
+                  สวัสดิการ
+                </TabsTrigger>
+                <TabsTrigger
+                  value="employment"
+                  className="flex items-center gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  ขออนุมัติจ้างงาน
+                </TabsTrigger>
+              </TabsList>
+            )}
 
             {/* Shared content for all tabs */}
             <TabsContent value="welfare" className="mt-0">
               {renderTableContent()}
             </TabsContent>
 
-            <TabsContent value="training" className="mt-0">
-              {renderTableContent()}
-            </TabsContent>
-
-            <TabsContent value="employment" className="mt-0">
-              {renderTableContent()}
-            </TabsContent>
+            {hasEmploymentRequests && (
+              <TabsContent value="employment" className="mt-0">
+                {renderTableContent()}
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>

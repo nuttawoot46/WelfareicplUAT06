@@ -12,7 +12,7 @@ import { getFormVisibility, FormVisibility } from '@/services/formVisibilityApi'
 interface WelfareOption {
   id: WelfareType;
   title: string;
-  description?: string;
+  description?: string | React.ReactNode;
   icon: JSX.Element;
   color: string;
 }
@@ -116,7 +116,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const [visibilitySettings, setVisibilitySettings] = useState<FormVisibility[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, profile } = useAuth();
-  const { getChildbirthCount } = useWelfare();
+  const { getChildbirthCount, getFuneralUsedTypes } = useWelfare();
 
   // เฉพาะ admin, manager, accountingandmanager เท่านั้นที่เห็นเมนูขออนุมัติจ้างงาน
   const canAccessEmploymentApproval = ['admin', 'manager', 'accountingandmanager'].includes(
@@ -180,7 +180,19 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     if (type === 'training' || type === 'internal_training' || type === 'employment-approval') {
       return { available: true };
     }
-    
+
+    // สำหรับค่าช่วยเหลืองานศพ ตรวจสอบว่ายังมีประเภทที่ใช้ได้หรือไม่
+    if (type === 'funeral' && profile?.employee_id) {
+      const funeralInfo = getFuneralUsedTypes(String(profile.employee_id));
+      if (funeralInfo.availableTypes.length === 0) {
+        return {
+          available: false,
+          reason: 'ใช้สิทธิ์ครบทุกประเภทแล้ว'
+        };
+      }
+      return { available: true };
+    }
+
     // ประเภทที่ต้องตรวจสอบอายุงาน 180 วัน
     const workDurationRestrictedTypes: WelfareType[] = ['glasses', 'dental', 'wedding', 'childbirth'];
     
@@ -253,13 +265,18 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   };
 
   // ฟังก์ชันสร้างข้อความแสดงยอดเงิน
-  const getBudgetDescription = (type: WelfareType): string => {
+  const getBudgetDescription = (type: WelfareType): string | React.ReactNode => {
     if (type === 'internal_training') {
       return 'สำหรับการขออนุมัติจัดอบรมภายในองค์กร';
     }
 
     if (type === 'employment-approval') {
       return 'สำหรับการขออนุมัติจ้างพนักงานใหม่หรือทดแทนตำแหน่ง';
+    }
+
+    // สำหรับค่าช่วยเหลืองานศพ ไม่แสดงรายละเอียด
+    if (type === 'funeral') {
+      return '';
     }
 
     // สำหรับค่าคลอดบุตร แสดงจำนวนบุตรคงเหลือแทนวงเงิน
@@ -273,7 +290,17 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
 
     // สำหรับ glasses และ dental เพิ่มข้อความอธิบายว่าใช้วงเงินเดียวกัน
     if (type === 'glasses' || type === 'dental') {
-      return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท (ค่าตัดแว่นและทำฟันใช้วงเงินเดียวกัน)`;
+      return (
+        <>
+          ใช้ไป: {used.toLocaleString()} บาท | คงเหลือ: {remaining.toLocaleString()} บาท{' '}
+          <span className="text-red-500 font-bold">(ค่าตัดแว่นสายตาและค่ารักษาทัตกรรมใช้วงเงินเดียวกัน)</span>
+        </>
+      );
+    }
+
+    // สำหรับค่าออกกำลังกาย เพิ่มข้อความว่าคงเหลือต่อเดือน
+    if (type === 'fitness') {
+      return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท/เดือน`;
     }
 
     return `ใช้ไป: ${used.toLocaleString()} บาท | คงเหลือ: ${remaining.toLocaleString()} บาท`;
@@ -290,14 +317,14 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
     },
     {
       id: 'glasses',
-      title: 'ค่าตัดแว่น',
+      title: 'ค่าตัดแว่นสายตา',
       description: getBudgetDescription('glasses'),
       icon: <GlassesIcon />,
       color: 'text-welfare-blue',
     },
     {
       id: 'dental',
-      title: 'ค่าทำฟัน',
+      title: 'ค่ารักษาทัตกรรม',
       description: getBudgetDescription('dental'),
       icon: <DentalIcon />,
       color: 'text-welfare-orange',
@@ -393,6 +420,9 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
   const visibleWelfareOptions = welfareOptions.filter(option => isFormVisibleByAdmin(option.id));
   const visibleEmploymentOptions = employmentOptions.filter(option => isFormVisibleByAdmin(option.id));
 
+  // แสดง Tab ขออนุมัติจ้างงาน เฉพาะเมื่อ: 1) มีสิทธิ์ตาม role และ 2) มี form ที่แสดงได้
+  const showEmploymentTab = canAccessEmploymentApproval && visibleEmploymentOptions.length > 0;
+
   const renderFormCards = (options: WelfareOption[]) => {
     if (options.length === 0) {
       return (
@@ -443,10 +473,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                 <CardTitle className={cn("mt-4", isDisabled && "text-gray-400")}>
                   {option.title}
                 </CardTitle>
-                <CardDescription className={cn(isDisabled && "text-gray-400")}>
+                <CardDescription className={cn("text-base", isDisabled && "text-gray-400")}>
                   {option.description}
                   {isDisabled && (
-                    <span className="block text-red-500 text-xs mt-1">
+                    <span className="block text-red-500 text-sm mt-1">
                       ไม่สามารถเลือกได้ ({availability.reason})
                     </span>
                   )}
@@ -476,14 +506,14 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       <h1 className="text-2xl font-bold mb-6">เลือกประเภท</h1>
       
       <Tabs defaultValue="welfare" className="w-full">
-        <TabsList className={cn("grid w-full mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1", canAccessEmploymentApproval ? "grid-cols-2" : "grid-cols-1")}>
+        <TabsList className={cn("grid w-full mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1", showEmploymentTab ? "grid-cols-2" : "grid-cols-1")}>
           <TabsTrigger
             value="welfare"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
           >
             สวัสดิการ
           </TabsTrigger>
-          {canAccessEmploymentApproval && (
+          {showEmploymentTab && (
             <TabsTrigger
               value="employment"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
@@ -497,7 +527,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
           {renderFormCards(visibleWelfareOptions)}
         </TabsContent>
 
-        {canAccessEmploymentApproval && (
+        {showEmploymentTab && (
           <TabsContent value="employment">
             {renderFormCards(visibleEmploymentOptions)}
           </TabsContent>
