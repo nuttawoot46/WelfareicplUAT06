@@ -91,9 +91,9 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
       });
     }
     
-    // สวัสดิการค่าตัดแว่นและทำฟัน (รวมกัน)
+    // สวัสดิการค่าตัดแว่นสายตาและทำฟัน (รวมกัน)
     if (employee.budget_dentalglasses !== null && employee.budget_dentalglasses !== undefined) {
-      const totalLimit = 2000; // วงเงินทั้งหมด (รวมค่าแว่นและค่าทำฟัน)
+      const totalLimit = 2000; // วงเงินทั้งหมด (รวมค่าแว่นและค่ารักษาทัตกรรม)
       const remaining = employee.budget_dentalglasses; // ใช้ยอดคงเหลือจาก Supabase โดยตรง
       const used = totalLimit - remaining;
       
@@ -209,7 +209,7 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
       { type: 'training', totalLimit: 10000, used: 2500, remaining: 7500 },
       { type: 'childbirth', totalLimit: 8000, used: 0, remaining: 8000 },
       { type: 'funeral', totalLimit: 10000, used: 0, remaining: 10000 },
-      // รวมค่าตัดแว่นและค่าทำฟันเป็นรายการเดียวกัน
+      // รวมค่าตัดแว่นสายตาและค่ารักษาทัตกรรมเป็นรายการเดียวกัน
       { type: 'dental', totalLimit: 2000, used: 0, remaining: 2000 },
       { type: 'glasses', totalLimit: 2000, used: 0, remaining: 2000 },
       { type: 'fitness', totalLimit: 300, used: 0, remaining: 300 },

@@ -138,8 +138,8 @@ vibrant-welfare-hub/
 | `training` | ค่าอบรมภายนอก | Dynamic (per employee) |
 | `childbirth` | ค่าคลอดบุตร | 8,000 THB (max 2 children) |
 | `funeral` | ค่าช่วยเหลืองานศพ | 10,000 THB |
-| `glasses` | ค่าตัดแว่น | 2,000 THB (shared with dental) |
-| `dental` | ค่าทำฟัน | 2,000 THB (shared with glasses) |
+| `glasses` | ค่าตัดแว่นสายตา | 2,000 THB (shared with dental) |
+| `dental` | ค่ารักษาทัตกรรม | 2,000 THB (shared with glasses) |
 | `fitness` | ค่าออกกำลังกาย | 300 THB |
 | `medical` | ของเยี่ยมกรณีเจ็บป่วย | 1,000 THB |
 | `internal_training` | อบรมภายใน | N/A |

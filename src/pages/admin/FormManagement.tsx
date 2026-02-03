@@ -11,15 +11,16 @@ import { FormVisibility, getFormVisibility, updateFormVisibility, updateFormAllo
 const formLabels: Record<string, { title: string; category: string }> = {
   // Welfare forms
   'training': { title: 'ค่าอบรม', category: 'สวัสดิการ' },
-  'glasses': { title: 'ค่าตัดแว่น', category: 'สวัสดิการ' },
-  'dental': { title: 'ค่าทำฟัน', category: 'สวัสดิการ' },
+  'glasses': { title: 'ค่าตัดแว่นสายตา', category: 'สวัสดิการ' },
+  'dental': { title: 'ค่ารักษาทัตกรรม', category: 'สวัสดิการ' },
   'fitness': { title: 'ค่าออกกำลังกาย', category: 'สวัสดิการ' },
   'medical': { title: 'ของเยี่ยมกรณีเจ็บป่วย', category: 'สวัสดิการ' },
   'wedding': { title: 'สวัสดิการงานสมรส', category: 'สวัสดิการ' },
   'childbirth': { title: 'ค่าคลอดบุตร', category: 'สวัสดิการ' },
   'funeral': { title: 'ค่าช่วยเหลืองานศพ', category: 'สวัสดิการ' },
   'internal_training': { title: 'อบรมภายใน', category: 'สวัสดิการ' },
-  'employment-approval': { title: 'ขออนุมัติการจ้างงาน', category: 'สวัสดิการ' },
+  // Employment Approval forms
+  'employment-approval': { title: 'ขออนุมัติการจ้างงาน', category: 'ขออนุมัติจ้างงาน' },
   // Accounting forms
   'advance': { title: 'เบิกเงินล่วงหน้า (ฝ่ายขาย)', category: 'บัญชี' },
   'general-advance': { title: 'เบิกเงินล่วงหน้า (ทั่วไป)', category: 'บัญชี' },
@@ -198,6 +199,7 @@ export function FormManagement() {
   };
 
   const welfareForms = forms.filter(f => formLabels[f.form_type]?.category === 'สวัสดิการ');
+  const employmentForms = forms.filter(f => formLabels[f.form_type]?.category === 'ขออนุมัติจ้างงาน');
   const accountingForms = forms.filter(f => formLabels[f.form_type]?.category === 'บัญชี');
 
   if (loading) {
@@ -239,6 +241,25 @@ export function FormManagement() {
         <CardContent>
           <div className="space-y-4">
             {welfareForms.map((form) => (
+              <FormItem
+                key={form.id}
+                form={form}
+                onToggle={handleToggle}
+                onRolesChange={handleRolesChange}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>ฟอร์มขออนุมัติจ้างงาน</CardTitle>
+          <CardDescription>จัดการการแสดงฟอร์มขออนุมัติจ้างงาน รวมถึงกำหนดว่า Role ใดสามารถเห็นฟอร์มได้</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {employmentForms.map((form) => (
               <FormItem
                 key={form.id}
                 form={form}

@@ -563,7 +563,7 @@ const createTrainingFormHTML = (
                        <img src="${specialSignature}" style="max-width: 120px; max-height: 40px;" />
                      </div>
                      <div>ลงชื่อ.......................กรรมการผู้จัดการ</div>` :
-      `<div>ลงชื่อ.......................รองกรรมการผู้จัดการ</div>`
+      `<div>ลงชื่อ.......................กรรมการผู้จัดการ</div>`
     }
                 </div>
                 <div style="text-align: center; font-size: 8pt;">

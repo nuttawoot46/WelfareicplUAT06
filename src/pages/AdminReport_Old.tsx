@@ -24,8 +24,8 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   training: 'ค่าอบรม',
   childbirth: 'ค่าคลอดบุตร',
   funeral: 'ค่าช่วยเหลืองานศพ',
-  glasses: 'ค่าตัดแว่น',
-  dental: 'ค่าทำฟัน',
+  glasses: 'ค่าตัดแว่นสายตา',
+  dental: 'ค่ารักษาทัตกรรม',
   fitness: 'ค่าออกกำลังกาย',
   medical: 'ค่ารักษาพยาบาล',
 };
@@ -64,7 +64,7 @@ function exportReportToCSV({
       });
     } else {
       csv += 'รายละเอียดการเบิกสวัสดิการของพนักงานทุกคน\r\n';
-      csv += 'ชื่อพนักงาน,แผนก,ค่าแต่งงาน,ค่าอบรม,ค่าคลอดบุตร,ค่าช่วยเหลืองานศพ,ค่าตัดแว่น,ค่าทำฟัน,ค่าออกกำลังกาย,ค่ารักษาพยาบาล,รวมทั้งหมด\r\n';
+      csv += 'ชื่อพนักงาน,แผนก,ค่าแต่งงาน,ค่าอบรม,ค่าคลอดบุตร,ค่าช่วยเหลืองานศพ,ค่าตัดแว่นสายตา,ค่ารักษาทัตกรรม,ค่าออกกำลังกาย,ค่ารักษาพยาบาล,รวมทั้งหมด\r\n';
 
     // Sort employees by department first (Management first), then by name
     const sortedEmployees = [...employees].sort((a, b) => {

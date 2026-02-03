@@ -52,7 +52,7 @@ export const RemainingBudgetCard: React.FC<RemainingBudgetCardProps> = ({
         <div className="space-y-3">
           <div className="text-xs">
             <div className="flex justify-between mb-1">
-              <span>ค่ารักษาทางทันตกรรมหรือค่าตัดแว่นสายตา: สูงสุด {dentalGlassesLimit?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี (หลังทำงานครบ 180 วัน)</span>
+              <span>ค่ารักษาทางทันตกรรมหรือค่าตัดแว่นสายตาสายตา: สูงสุด {dentalGlassesLimit?.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี (หลังทำงานครบ 180 วัน)</span>
               <span className="font-medium text-welfare-blue">คงเหลือ {dentalGlassesRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
             </div>
             <Progress value={dentalGlassesPercentage} className="h-1" />

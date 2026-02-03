@@ -48,12 +48,12 @@ export function WelfareTypeChart() {
       type: 'childbirth_caesarean',
     },
     {
-      name: 'ค่าตัดแว่น',
+      name: 'ค่าตัดแว่นสายตา',
       value: getWelfareLimit('glasses').amount,
       type: 'glasses',
     },
     {
-      name: 'ค่าทำฟัน',
+      name: 'ค่ารักษาทัตกรรม',
       value: getWelfareLimit('dental').amount,
       type: 'dental',
     },

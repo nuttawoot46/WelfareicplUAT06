@@ -47,8 +47,8 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   training: 'ค่าอบรม',
   childbirth: 'ค่าคลอดบุตร',
   funeral: 'ค่าช่วยเหลืองานศพ',
-  glasses: 'ค่าตัดแว่น',
-  dental: 'ค่าตัดแว่นและทำฟัน',
+  glasses: 'ค่าตัดแว่นสายตา',
+  dental: 'ค่าตัดแว่นสายตาและทำฟัน',
   fitness: 'ค่าออกกำลังกาย (ต่อเดือน)',
   medical: 'ค่าเยี่ยมกรณีเจ็บป่วย',
 };

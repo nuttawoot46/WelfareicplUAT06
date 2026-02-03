@@ -256,7 +256,7 @@ const createEmploymentApprovalHTML = (
 
             <!-- Deputy Managing Director Decision (Right Column) -->
             <td style="border-bottom: 1.5px solid black; padding: 6px 8px; width: 50%; vertical-align: top; font-size: 16px; line-height: 1.2;">
-              <div style="font-weight: bold; margin-bottom: 4px;">คำสั่งของรองกรรมการผู้จัดการ / ประธานบริษัท</div>
+              <div style="font-weight: bold; margin-bottom: 4px;">คำสั่งของกรรมการผู้จัดการ / ประธานบริษัท</div>
               <div style="margin-bottom: 3px;">
                 ${checkbox(requestData.status === 'completed')} อนุมัติ
               </div>

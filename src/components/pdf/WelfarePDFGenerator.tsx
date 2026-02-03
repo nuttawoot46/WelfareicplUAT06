@@ -143,7 +143,7 @@ const createWelfareFormHTML = (
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
               <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'dental' || welfareData.type === 'glasses' ? '☑' : '☐'}</span>
-              <span style="line-height: 1.4;">สวัสดิการค่ารักษาทัตกรรมหรือ/และค่าตัดแว่นสายตา (ตามจริง ไม่เกิน 2,000 บาท)</span>
+              <span style="line-height: 1.4;">สวัสดิการค่ารักษาทัตกรรมหรือ/และค่าตัดแว่นสายตาสายตา (ตามจริง ไม่เกิน 2,000 บาท)</span>
             </div>
           </div>
           

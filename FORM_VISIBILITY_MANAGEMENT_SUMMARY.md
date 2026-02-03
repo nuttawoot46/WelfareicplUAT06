@@ -66,8 +66,8 @@ Implemented a comprehensive form visibility management system that allows admins
 
 ### Welfare Forms (10)
 1. training - ค่าอบรม
-2. glasses - ค่าตัดแว่น
-3. dental - ค่าทำฟัน
+2. glasses - ค่าตัดแว่นสายตา
+3. dental - ค่ารักษาทัตกรรม
 4. fitness - ค่าออกกำลังกาย
 5. medical - ของเยี่ยมกรณีเจ็บป่วย
 6. wedding - สวัสดิการงานสมรส

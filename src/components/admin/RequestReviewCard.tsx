@@ -20,8 +20,8 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   training: 'ค่าอบรม',
   childbirth: 'ค่าคลอดบุตร',
   funeral: 'ค่าช่วยเหลืองานศพ',
-  glasses: 'ค่าตัดแว่น',
-  dental: 'ค่าทำฟัน',
+  glasses: 'ค่าตัดแว่นสายตา',
+  dental: 'ค่ารักษาทัตกรรม',
   fitness: 'ค่าออกกำลังกาย',
 };
 

@@ -285,7 +285,7 @@ const EmployeeGuide = () => (
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3 pt-2">
-              <BudgetItem label="ค่าตัดแว่น + ทำฟัน" amount="2,000" note="งบรวมกัน" />
+              <BudgetItem label="ค่าตัดแว่นสายตา + ทำฟัน" amount="2,000" note="งบรวมกัน" />
               <BudgetItem label="ค่าออกกำลังกาย" amount="300" note="ต่อเดือน" />
               <BudgetItem label="สวัสดิการงานสมรส" amount="3,000" />
               <BudgetItem label="ค่าคลอดบุตร" amount="8,000" note="สูงสุด 2 ครั้ง" />
@@ -661,11 +661,11 @@ const FAQSection = () => (
 
     <AccordionItem value="faq-2" className="border rounded-lg px-4 mb-3 shadow-sm">
       <AccordionTrigger className="hover:no-underline">
-        <span className="font-medium text-left">ค่าแว่นกับค่าทำฟัน ใช้วงเงินร่วมกันหรือไม่?</span>
+        <span className="font-medium text-left">ค่าแว่นกับค่ารักษาทัตกรรม ใช้วงเงินร่วมกันหรือไม่?</span>
       </AccordionTrigger>
       <AccordionContent>
         <p className="text-gray-600">
-          ใช่ ค่าตัดแว่น (glasses) และค่าทำฟัน (dental) ใช้วงเงินร่วมกัน 2,000 บาท ต่อปี หากเบิกค่าแว่นไปแล้ว 1,500 บาท จะเหลือเบิกค่าทำฟันได้อีก 500 บาท
+          ใช่ ค่าตัดแว่นสายตา (glasses) และค่ารักษาทัตกรรม (dental) ใช้วงเงินร่วมกัน 2,000 บาท ต่อปี หากเบิกค่าแว่นไปแล้ว 1,500 บาท จะเหลือเบิกค่ารักษาทัตกรรมได้อีก 500 บาท
         </p>
       </AccordionContent>
     </AccordionItem>
@@ -698,7 +698,7 @@ const FAQSection = () => (
       </AccordionTrigger>
       <AccordionContent>
         <p className="text-gray-600">
-          คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติพิเศษจากผู้บริหาร (รองกรรมการผู้จัดการ) เพิ่มเติม โดยระบบจะส่งคำขอไปอัตโนมัติ ไม่ต้องดำเนินการเพิ่มเติม
+          คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติพิเศษจากผู้บริหาร (กรรมการผู้จัดการ) เพิ่มเติม โดยระบบจะส่งคำขอไปอัตโนมัติ ไม่ต้องดำเนินการเพิ่มเติม
         </p>
       </AccordionContent>
     </AccordionItem>

@@ -20,6 +20,7 @@ interface WelfareContextType {
   getWelfareLimit: (type: WelfareType) => { amount: number | null, condition?: string, monthly?: boolean };
   getRemainingBudget: (userId: string, type?: WelfareType) => number;
   getChildbirthCount: (userId: string) => { total: number; remaining: number };
+  getFuneralUsedTypes: (userId: string) => { usedTypes: string[]; availableTypes: string[] };
   trainingBudget: number | null;
 }
 
@@ -362,6 +363,38 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   };
 
+  // ตรวจสอบประเภทงานศพที่ใช้ไปแล้ว (แต่ละประเภทใช้ได้ 1 ครั้งตลอดการทำงาน)
+  const getFuneralUsedTypes = (userId: string): { usedTypes: string[]; availableTypes: string[] } => {
+    const ALL_FUNERAL_TYPES = ['employee_spouse', 'child', 'parent'];
+
+    // Status ที่ถูกปฏิเสธ (ไม่นับรวม)
+    const rejectedStatuses = ['rejected_manager', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval'];
+
+    // หา welfare requests ของ user นี้ที่เป็น funeral และ status ไม่ใช่ rejected
+    const funeralRequests = welfareRequests.filter(
+      request =>
+        request.userId === userId &&
+        request.type === 'funeral' &&
+        !rejectedStatuses.includes(request.status)
+    );
+
+    // รวบรวมประเภทงานศพที่ใช้ไปแล้ว
+    const usedTypes: string[] = [];
+    funeralRequests.forEach(request => {
+      if (request.funeral_type && !usedTypes.includes(request.funeral_type)) {
+        usedTypes.push(request.funeral_type);
+      }
+    });
+
+    // หาประเภทที่ยังไม่ได้ใช้
+    const availableTypes = ALL_FUNERAL_TYPES.filter(type => !usedTypes.includes(type));
+
+    return {
+      usedTypes,
+      availableTypes
+    };
+  };
+
   const submitRequest = async (requestData: Omit<WelfareRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     setIsLoading(true);
     try {
@@ -662,6 +695,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     getWelfareLimit,
     getRemainingBudget,
     getChildbirthCount,
+    getFuneralUsedTypes,
     trainingBudget
   }), [welfareRequests, isLoading, trainingBudget, fetchRequests]);
 

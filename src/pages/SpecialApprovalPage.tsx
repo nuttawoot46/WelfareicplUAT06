@@ -411,7 +411,7 @@ export default function SpecialApprovalPage() {
           setSelectedRequest(null);
         }}
         onSave={handleSignatureComplete}
-        title="ลงลายเซ็นอนุมัติพิเศษ - รองกรรมการผู้จัดการ"
+        title="ลงลายเซ็นอนุมัติพิเศษ - กรรมการผู้จัดการ"
         approverName={profile?.display_name || user?.email || ''}
       />
     </Layout>

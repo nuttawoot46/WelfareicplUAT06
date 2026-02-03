@@ -75,6 +75,14 @@ export interface Announcement {
   updated_at: string;
 }
 
+// Fitness participant for shared cost feature
+export interface FitnessParticipant {
+  employee_id: number;
+  employee_name: string;
+  email: string;
+  amount: number;
+}
+
 export interface WelfareRequest {
   id: number;
   userId: string;
@@ -114,6 +122,10 @@ export interface WelfareRequest {
   birth_type?: string;
   childbirths?: string; // JSON string of array of {childName?: string, birthType: 'natural' | 'caesarean'}
   funeral_type?: string;
+  // Fitness specific fields (ค่าออกกำลังกาย)
+  fitness_participants?: string; // JSON array of {employee_id, employee_name, email, amount}
+  fitness_split_equally?: boolean; // Whether to split cost equally among participants
+  fitness_amount_per_person?: number; // Calculated split amount per person
   training_topics?: string;
   total_amount?: number;
   tax7_percent?: number;
