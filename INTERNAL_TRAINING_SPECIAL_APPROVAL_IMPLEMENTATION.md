@@ -1,7 +1,7 @@
 # Internal Training Special Approval Implementation
 
 ## Overview
-การเพิ่มเงื่อนไขพิเศษสำหรับการอบรมภายใน (Internal Training) ที่มีจำนวนเงินเกิน 10,000 บาท จะต้องผ่านการอนุมัติพิเศษจาก kanin.s@icpladda.com หลังจาก HR อนุมัติแล้ว
+การเพิ่มเงื่อนไขพิเศษสำหรับการอบรมภายใน (Internal Training) ที่มีจำนวนเงินเกิน 10,000 บาท จะต้องผ่านการอนุมัติโดย กรรมการผู้จัดการจาก kanin.s@icpladda.com หลังจาก HR อนุมัติแล้ว
 
 ## Workflow Changes
 
@@ -45,7 +45,7 @@ Employee Submit → Manager Approve → HR Approve → Special Approve (kanin.s)
 
 ### 6. Navigation
 - เพิ่ม menu item ใน Sidebar สำหรับ kanin.s@icpladda.com และ Admin
-- แสดงเป็น "อนุมัติพิเศษ (>10K)"
+- แสดงเป็น "อนุมัติโดย กรรมการผู้จัดการ (>10K)"
 
 ## Files Modified/Created
 

@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { debounce } from '@/utils/debounce';
 import { sendLineNotification } from '@/services/lineApi';
+import { auditWelfareAction } from '@/utils/auditLogger';
 
 interface WelfareContextType {
   welfareRequests: WelfareRequest[];
@@ -567,6 +568,15 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
 
       setWelfareRequests(prev => [newRequest, ...prev]);
+
+      // Audit log: record submission
+      auditWelfareAction(
+        'submit_welfare',
+        newRequestId,
+        `ส่งคำขอสวัสดิการประเภท ${requestData.type} จำนวน ${requestData.amount} บาท`,
+        { type: requestData.type, amount: requestData.amount }
+      );
+
       return newRequest;
     } catch (err: any) {
       toastRef.current({
@@ -669,6 +679,17 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
             runNumber: req.run_number,
           }).catch(err => console.error('LINE notify error:', err));
         }
+      }
+
+      // Audit log: record approval/rejection
+      if (data && data[0]) {
+        const req = data[0] as any;
+        auditWelfareAction(
+          status.startsWith('rejected') ? 'reject_welfare' : 'approve_welfare',
+          id,
+          `${status.startsWith('rejected') ? 'ปฏิเสธ' : 'อนุมัติ'}คำขอสวัสดิการ #${req.run_number || id} ประเภท ${req.request_type || '-'} สถานะ: ${status}`,
+          { new_status: status, comment, request_type: req.request_type, amount: req.amount, run_number: req.run_number }
+        );
       }
 
       return { success: true, data };

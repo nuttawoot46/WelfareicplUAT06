@@ -1,46 +1,34 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
-import { 
-  Activity, 
-  Download, 
-  Filter, 
+import { auditLogApi } from '@/services/auditLogApi';
+import type { AuditLog } from '@/types';
+import {
+  Activity,
+  Download,
+  Filter,
   Search,
   RefreshCw,
-  Eye,
   User,
   FileText,
   Settings,
   Shield,
-  Database
+  Database,
+  CalendarDays,
+  LogIn
 } from 'lucide-react';
-
-interface AuditLog {
-  id: string;
-  timestamp: string;
-  user: string;
-  userEmail: string;
-  action: string;
-  category: 'user_management' | 'welfare_request' | 'system_config' | 'security' | 'database';
-  details: string;
-  ipAddress: string;
-  userAgent: string;
-  severity: 'low' | 'medium' | 'high';
-  status: 'success' | 'failed' | 'warning';
-}
 
 export const AuditLogs = () => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -48,88 +36,39 @@ export const AuditLogs = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('7days');
 
-  useEffect(() => {
-    fetchAuditLogs();
+  const getStartDate = useCallback((range: string): string | undefined => {
+    const now = new Date();
+    switch (range) {
+      case '1day':
+        now.setDate(now.getDate() - 1);
+        return now.toISOString();
+      case '7days':
+        now.setDate(now.getDate() - 7);
+        return now.toISOString();
+      case '30days':
+        now.setDate(now.getDate() - 30);
+        return now.toISOString();
+      case '90days':
+        now.setDate(now.getDate() - 90);
+        return now.toISOString();
+      default:
+        return undefined; // all time
+    }
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [logs, searchTerm, categoryFilter, severityFilter, statusFilter, dateRange]);
-
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
-      // Mock audit logs data - in real implementation, fetch from audit_logs table
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          timestamp: new Date().toISOString(),
-          user: 'SuperAdmin',
-          userEmail: 'superadmin@company.com',
-          action: 'สร้างผู้ใช้ใหม่',
-          category: 'user_management',
-          details: 'สร้างบัญชีผู้ใช้ใหม่: john.doe@company.com',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Chrome 120.0.0.0',
-          severity: 'medium',
-          status: 'success'
-        },
-        {
-          id: '2',
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          user: 'Admin User',
-          userEmail: 'admin@company.com',
-          action: 'อนุมัติคำขอสวัสดิการ',
-          category: 'welfare_request',
-          details: 'อนุมัติคำขอสวัสดิการแต่งงาน ID: 123',
-          ipAddress: '192.168.1.101',
-          userAgent: 'Firefox 121.0.0.0',
-          severity: 'low',
-          status: 'success'
-        },
-        {
-          id: '3',
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          user: 'SuperAdmin',
-          userEmail: 'superadmin@company.com',
-          action: 'เปลี่ยนการตั้งค่าระบบ',
-          category: 'system_config',
-          details: 'เปลี่ยนงบประมาณเริ่มต้นสำหรับสวัสดิการแต่งงาน',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Chrome 120.0.0.0',
-          severity: 'high',
-          status: 'success'
-        },
-        {
-          id: '4',
-          timestamp: new Date(Date.now() - 900000).toISOString(),
-          user: 'Unknown',
-          userEmail: 'unknown@example.com',
-          action: 'พยายามเข้าสู่ระบบ',
-          category: 'security',
-          details: 'พยายามเข้าสู่ระบบด้วยรหัสผ่านผิด',
-          ipAddress: '203.0.113.1',
-          userAgent: 'Unknown',
-          severity: 'high',
-          status: 'failed'
-        },
-        {
-          id: '5',
-          timestamp: new Date(Date.now() - 1200000).toISOString(),
-          user: 'SuperAdmin',
-          userEmail: 'superadmin@company.com',
-          action: 'สำรองข้อมูล',
-          category: 'database',
-          details: 'สำรองข้อมูลฐานข้อมูลแบบด้วยตนเอง',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Chrome 120.0.0.0',
-          severity: 'medium',
-          status: 'success'
-        }
-      ];
-
-      setLogs(mockLogs);
-
+      const { data, count } = await auditLogApi.getLogs({
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        severity: severityFilter !== 'all' ? severityFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
+        startDate: getStartDate(dateRange),
+        limit: 100,
+      });
+      setLogs(data);
+      setTotalCount(count);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       toast({
@@ -140,82 +79,34 @@ export const AuditLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter, severityFilter, statusFilter, searchTerm, dateRange, getStartDate, toast]);
 
-  const applyFilters = () => {
-    let filtered = [...logs];
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(log => 
-        log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(log => log.category === categoryFilter);
-    }
-
-    // Severity filter
-    if (severityFilter !== 'all') {
-      filtered = filtered.filter(log => log.severity === severityFilter);
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(log => log.status === statusFilter);
-    }
-
-    // Date range filter
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (dateRange) {
-      case '1day':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case '7days':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case '30days':
-        startDate.setDate(now.getDate() - 30);
-        break;
-      case '90days':
-        startDate.setDate(now.getDate() - 90);
-        break;
-      default:
-        startDate = new Date(0); // All time
-    }
-
-    filtered = filtered.filter(log => new Date(log.timestamp) >= startDate);
-
-    setFilteredLogs(filtered);
-  };
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
 
   const exportLogs = () => {
     try {
       const csvContent = [
-        ['Timestamp', 'User', 'Email', 'Action', 'Category', 'Details', 'IP Address', 'Severity', 'Status'].join(','),
-        ...filteredLogs.map(log => [
-          log.timestamp,
-          log.user,
-          log.userEmail,
-          log.action,
+        ['Timestamp', 'User', 'Email', 'Role', 'Action', 'Category', 'Details', 'Severity', 'Status', 'Department'].join(','),
+        ...logs.map(log => [
+          log.created_at,
+          `"${log.user_name || ''}"`,
+          log.user_email || '',
+          log.user_role || '',
+          `"${log.action}"`,
           log.category,
-          log.details,
-          log.ipAddress,
+          `"${(log.details || '').replace(/"/g, '""')}"`,
           log.severity,
-          log.status
+          log.status,
+          log.department || ''
         ].join(','))
       ].join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
@@ -226,7 +117,7 @@ export const AuditLogs = () => {
 
       toast({
         title: 'ส่งออกสำเร็จ',
-        description: 'ส่งออกบันทึกการใช้งานเรียบร้อยแล้ว'
+        description: `ส่งออกบันทึก ${logs.length} รายการเรียบร้อยแล้ว`
       });
 
     } catch (error) {
@@ -245,10 +136,14 @@ export const AuditLogs = () => {
         return <User className="h-4 w-4" />;
       case 'welfare_request':
         return <FileText className="h-4 w-4" />;
+      case 'leave_request':
+        return <CalendarDays className="h-4 w-4" />;
       case 'system_config':
         return <Settings className="h-4 w-4" />;
       case 'security':
         return <Shield className="h-4 w-4" />;
+      case 'authentication':
+        return <LogIn className="h-4 w-4" />;
       case 'database':
         return <Database className="h-4 w-4" />;
       default:
@@ -257,26 +152,30 @@ export const AuditLogs = () => {
   };
 
   const getCategoryBadge = (category: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       user_management: 'bg-blue-100 text-blue-800',
       welfare_request: 'bg-green-100 text-green-800',
+      leave_request: 'bg-teal-100 text-teal-800',
       system_config: 'bg-purple-100 text-purple-800',
       security: 'bg-red-100 text-red-800',
+      authentication: 'bg-indigo-100 text-indigo-800',
       database: 'bg-orange-100 text-orange-800'
     };
 
-    const labels = {
+    const labels: Record<string, string> = {
       user_management: 'จัดการผู้ใช้',
       welfare_request: 'คำขอสวัสดิการ',
+      leave_request: 'คำขอลา',
       system_config: 'ตั้งค่าระบบ',
       security: 'ความปลอดภัย',
+      authentication: 'เข้าสู่ระบบ',
       database: 'ฐานข้อมูล'
     };
 
     return (
-      <Badge className={colors[category as keyof typeof colors]}>
+      <Badge className={colors[category] || 'bg-gray-100 text-gray-800'}>
         {getCategoryIcon(category)}
-        <span className="ml-1">{labels[category as keyof typeof labels]}</span>
+        <span className="ml-1">{labels[category] || category}</span>
       </Badge>
     );
   };
@@ -358,11 +257,12 @@ export const AuditLogs = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="user_management">จัดการผู้ใช้</SelectItem>
                   <SelectItem value="welfare_request">คำขอสวัสดิการ</SelectItem>
+                  <SelectItem value="leave_request">คำขอลา</SelectItem>
+                  <SelectItem value="authentication">เข้าสู่ระบบ</SelectItem>
+                  <SelectItem value="user_management">จัดการผู้ใช้</SelectItem>
                   <SelectItem value="system_config">ตั้งค่าระบบ</SelectItem>
                   <SelectItem value="security">ความปลอดภัย</SelectItem>
-                  <SelectItem value="database">ฐานข้อมูล</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -419,7 +319,7 @@ export const AuditLogs = () => {
       {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>บันทึกการใช้งาน ({filteredLogs.length} รายการ)</CardTitle>
+          <CardTitle>บันทึกการใช้งาน ({totalCount} รายการ)</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -438,35 +338,33 @@ export const AuditLogs = () => {
                     <TableHead>รายละเอียด</TableHead>
                     <TableHead>ระดับ</TableHead>
                     <TableHead>สถานะ</TableHead>
-                    <TableHead>IP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.length > 0 ? (
-                    filteredLogs.map((log) => (
+                  {logs.length > 0 ? (
+                    logs.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell className="font-mono text-sm">
-                          {new Date(log.timestamp).toLocaleString('th-TH')}
+                        <TableCell className="font-mono text-sm whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('th-TH')}
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{log.user}</div>
-                            <div className="text-sm text-muted-foreground">{log.userEmail}</div>
+                            <div className="font-medium">{log.user_name || '-'}</div>
+                            <div className="text-sm text-muted-foreground">{log.user_email || '-'}</div>
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">{log.action}</TableCell>
                         <TableCell>{getCategoryBadge(log.category)}</TableCell>
-                        <TableCell className="max-w-xs truncate" title={log.details}>
-                          {log.details}
+                        <TableCell className="max-w-xs truncate" title={log.details || ''}>
+                          {log.details || '-'}
                         </TableCell>
                         <TableCell>{getSeverityBadge(log.severity)}</TableCell>
                         <TableCell>{getStatusBadge(log.status)}</TableCell>
-                        <TableCell className="font-mono text-sm">{log.ipAddress}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         ไม่พบบันทึกการใช้งานที่ตรงกับเงื่อนไข
                       </TableCell>
                     </TableRow>

@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
+import { auditAuthAction } from '@/utils/auditLogger';
+import { auditLogApi } from '@/services/auditLogApi';
 
 interface Profile {
   id: string; // Supabase auth user ID
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const navigate = useNavigate();
+  const loginAuditedRef = useRef<string | null>(null); // Track which user ID we already logged
 
   const signInWithMicrosoft = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -58,6 +61,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = useCallback(async () => {
     console.log('Starting sign out process...');
+
+    // Audit log: record logout - must await before clearing auth state
+    try {
+      await auditLogApi.createLog({
+        action: 'logout',
+        category: 'authentication',
+        severity: 'low',
+        details: `ออกจากระบบ: ${user?.email}`,
+      });
+    } catch (e) {
+      console.warn('Audit log for logout failed (non-blocking):', e);
+    }
+
+    // Reset login audit tracking so next login gets logged
+    loginAuditedRef.current = null;
 
     try {
       // Clear all auth state first
@@ -104,6 +122,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
 
         if (event === 'SIGNED_IN') {
+          // Audit log: record login (only once per user session to avoid duplicates)
+          const userId = session?.user?.id;
+          if (userId && loginAuditedRef.current !== userId) {
+            loginAuditedRef.current = userId;
+            auditAuthAction('login', `เข้าสู่ระบบสำเร็จ: ${session?.user?.email}`);
+          }
+
           // Only navigate to dashboard if user is on login/index page
           // This prevents navigation during token refresh when user is on other pages
           const currentPath = window.location.pathname;

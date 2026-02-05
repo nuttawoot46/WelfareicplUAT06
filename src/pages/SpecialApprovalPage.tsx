@@ -192,7 +192,7 @@ export default function SpecialApprovalPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              คุณไม่มีสิทธิ์เข้าถึงหน้านี้ หน้านี้สำหรับผู้อนุมัติพิเศษ (kanin.s@icpladda.com) และ Admin เท่านั้น
+              คุณไม่มีสิทธิ์เข้าถึงหน้านี้ หน้านี้สำหรับผู้อนุมัติโดย กรรมการผู้จัดการ (kanin.s@icpladda.com) และ Admin เท่านั้น
             </AlertDescription>
           </Alert>
         </div>
@@ -217,12 +217,10 @@ export default function SpecialApprovalPage() {
     <Layout>
       <Card>
         <CardHeader>
-          <CardTitle>การอนุมัติพิเศษ</CardTitle>
+          <CardTitle>การอนุมัติโดย กรรมการผู้จัดการ</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <h3 className="font-semibold text-orange-800 mb-2">คำร้องที่มีจำนวนเงินเกิน 10,000 บาท</h3>
-          </div>
+          
 
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
@@ -257,7 +255,7 @@ export default function SpecialApprovalPage() {
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       <div className="flex flex-col items-center">
                         <FileText className="h-12 w-12 mb-4 opacity-50" />
-                        <p>ไม่มีคำร้องที่รอการอนุมัติพิเศษ</p>
+                        <p>ไม่มีคำร้องที่รอการอนุมัติโดย กรรมการผู้จัดการ</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -279,7 +277,7 @@ export default function SpecialApprovalPage() {
                       <TableCell>
                         <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                           <Clock className="h-3 w-3 mr-1" />
-                          รอการอนุมัติพิเศษ
+                          รอการอนุมัติโดย กรรมการผู้จัดการ
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -322,7 +320,7 @@ export default function SpecialApprovalPage() {
               <Alert className="border-orange-200 bg-orange-50">
                 <AlertCircle className="h-4 w-4 text-orange-600" />
                 <AlertDescription className="text-orange-800">
-                  คำร้องนี้ต้องการการอนุมัติพิเศษเนื่องจากจำนวนเงินเกิน 10,000 บาท
+                  คำร้องนี้ต้องการการอนุมัติโดย กรรมการผู้จัดการเนื่องจากจำนวนเงินเกิน 10,000 บาท
                 </AlertDescription>
               </Alert>
               
@@ -411,7 +409,7 @@ export default function SpecialApprovalPage() {
           setSelectedRequest(null);
         }}
         onSave={handleSignatureComplete}
-        title="ลงลายเซ็นอนุมัติพิเศษ - กรรมการผู้จัดการ"
+        title="ลงลายเซ็นอนุมัติโดย กรรมการผู้จัดการ - กรรมการผู้จัดการ"
         approverName={profile?.display_name || user?.email || ''}
       />
     </Layout>

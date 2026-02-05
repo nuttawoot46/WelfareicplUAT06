@@ -12,6 +12,7 @@ import * as leaveApi from '@/services/leaveApi';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { auditLeaveAction } from '@/utils/auditLogger';
 
 interface LeaveContextType {
   // Data
@@ -249,6 +250,14 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (request) {
           setLeaveRequests((prev) => [request, ...prev]);
           await refreshLeaveBalances();
+
+          // Audit log: record leave submission
+          auditLeaveAction(
+            'submit_leave',
+            request.id,
+            `ส่งคำขอลาประเภท ${leaveType.name_th} จำนวน ${request.total_days} วัน`,
+            { leave_type: leaveType.name_th, total_days: request.total_days }
+          );
         }
 
         return request;
@@ -344,6 +353,14 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               : req
           )
         );
+
+        // Audit log: record leave approval
+        auditLeaveAction(
+          'approve_leave',
+          id,
+          `อนุมัติคำขอลา ID: ${id} โดย ${approverType} (${userName}) สถานะใหม่: ${newStatus}`,
+          { old_status: request.status, new_status: newStatus, approver_type: approverType, employee_name: request.employee_name }
+        );
       }
 
       return success;
@@ -397,6 +414,14 @@ export const LeaveProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           prev.map((req) =>
             req.id === id ? { ...req, status: newStatus } : req
           )
+        );
+
+        // Audit log: record leave rejection
+        auditLeaveAction(
+          'reject_leave',
+          id,
+          `ปฏิเสธคำขอลา ID: ${id} โดย ${approverType} (${userName}) สถานะใหม่: ${newStatus}`,
+          { old_status: request.status, new_status: newStatus, approver_type: approverType, comment, employee_name: request.employee_name }
         );
       }
 

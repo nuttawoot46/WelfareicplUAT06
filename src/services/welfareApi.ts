@@ -91,7 +91,7 @@ export const getBenefitLimits = async (): Promise<BenefitLimit[]> => {
       });
     }
     
-    // สวัสดิการค่าตัดแว่นสายตาและทำฟัน (รวมกัน)
+    // สวัสดิการค่าตัดแว่นสายตาและค่ารักษาทัตกรรม (รวมกัน)
     if (employee.budget_dentalglasses !== null && employee.budget_dentalglasses !== undefined) {
       const totalLimit = 2000; // วงเงินทั้งหมด (รวมค่าแว่นและค่ารักษาทัตกรรม)
       const remaining = employee.budget_dentalglasses; // ใช้ยอดคงเหลือจาก Supabase โดยตรง

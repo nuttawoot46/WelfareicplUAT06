@@ -882,11 +882,12 @@ export const AccountingApprovalPage = () => {
           setPendingBulkApproval([]);
           setIsBulkApproval(false);
         }}
-        onSignatureComplete={handleSignatureComplete}
+        onSave={handleSignatureComplete}
         title={isBulkApproval ? `Approve ${pendingBulkApproval.length} Requests` : 'Approve Request'}
-        description={isBulkApproval 
-          ? `You are about to approve ${pendingBulkApproval.length} accounting requests. Please provide your signature to confirm.`
-          : 'You are about to approve this accounting request. Please provide your signature to confirm.'
+        approverName={profile?.display_name || user?.email || ''}
+        requestDetails={isBulkApproval
+          ? `อนุมัติคำร้องบัญชี ${pendingBulkApproval.length} รายการ`
+          : pendingApprovalRequest ? `${pendingApprovalRequest.userName} - ${getWelfareTypeLabel(pendingApprovalRequest.type)} ฿${pendingApprovalRequest.amount?.toLocaleString() || '0'}` : undefined
         }
       />
     </Layout>

@@ -48,7 +48,7 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   childbirth: 'ค่าคลอดบุตร',
   funeral: 'ค่าช่วยเหลืองานศพ',
   glasses: 'ค่าตัดแว่นสายตา',
-  dental: 'ค่าตัดแว่นสายตาและทำฟัน',
+  dental: 'ค่าตัดแว่นสายตาและค่ารักษาทัตกรรม',
   fitness: 'ค่าออกกำลังกาย (ต่อเดือน)',
   medical: 'ค่าเยี่ยมกรณีเจ็บป่วย',
 };
@@ -95,7 +95,8 @@ export function BenefitLimitSummary({ limit = 8 }: BenefitLimitSummaryProps) {
       const processedData = data.filter(benefit => {
         return benefit.type !== 'glasses' &&
                benefit.type !== 'childbirth' &&
-               benefit.type !== 'funeral';
+               benefit.type !== 'funeral' &&
+               benefit.type !== 'medical';
       });
 
       setBenefits(processedData);

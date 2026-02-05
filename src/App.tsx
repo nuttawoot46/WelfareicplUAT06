@@ -35,6 +35,7 @@ import { SupportPage } from "./pages/SupportPage";
 import SpecialApprovalPage from "./pages/SpecialApprovalPage";
 import UserGuidePage from "./pages/UserGuidePage";
 import LineCallbackPage from "./pages/auth/LineCallbackPage";
+import { ActivityHistoryPage } from "./pages/ActivityHistoryPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -244,12 +245,17 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  {/* Activity History */}
+                  <Route path="/activity-history" element={
+                    <ProtectedRoute>
+                      <ActivityHistoryPage />
+                    </ProtectedRoute>
+                  } />
+
                   {/* User Guide */}
                   <Route path="/user-guide" element={
                     <ProtectedRoute>
-                      <MainLayout>
-                        <UserGuidePage />
-                      </MainLayout>
+                      <UserGuidePage />
                     </ProtectedRoute>
                   } />
 

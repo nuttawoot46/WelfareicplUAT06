@@ -459,11 +459,11 @@ const createTrainingFormHTML = (
                     </div>
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 8px;">
+                  วันที่ ${userSignature ? new Date(welfareData.createdAt || welfareData.date || new Date()).toLocaleDateString('th-TH') : '......./......./..........'}
                 </div>
               </td>
-              
+
               <!-- Manager Signature -->
               <td style="border: 2px solid #000; padding: 8px; width: 50%; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
@@ -499,12 +499,12 @@ const createTrainingFormHTML = (
                     </div>
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 8px;">
+                  วันที่ ${managerSignature ? new Date(welfareData.managerApprovedAt || new Date()).toLocaleDateString('th-TH') : '......./......./..........'}
                 </div>
               </td>
             </tr>
-            
+
             <tr>
               <!-- HR Signature -->
               <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
@@ -542,11 +542,11 @@ const createTrainingFormHTML = (
                     </div>
                   ` : ''}
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 8px;">
+                  วันที่ ${hrSignature ? new Date(welfareData.hrApprovedAt || new Date()).toLocaleDateString('th-TH') : '......./......./..........'}
                 </div>
               </td>
-              
+
               <!-- Deputy Managing Director Signature -->
               <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
@@ -566,8 +566,8 @@ const createTrainingFormHTML = (
       `<div>ลงชื่อ.......................กรรมการผู้จัดการ</div>`
     }
                 </div>
-                <div style="text-align: center; font-size: 8pt;">
-                  วันที่ ${specialSignature ? new Date().toLocaleDateString('th-TH') : '......./......./..........'}
+                <div style="text-align: center; font-size: 8px;">
+                  วันที่ ${specialSignature ? new Date(welfareData.specialApprovedAt || new Date()).toLocaleDateString('th-TH') : '......./......./..........'}
                 </div>
               </td>
             </tr>

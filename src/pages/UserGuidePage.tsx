@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ const UserGuidePage = () => {
   };
 
   return (
+    <Layout>
     <div className="animate-fade-in">
       {/* Back Button */}
       <Button
@@ -183,6 +185,7 @@ const UserGuidePage = () => {
         </Card>
       </div>
     </div>
+    </Layout>
   );
 };
 
@@ -369,7 +372,7 @@ const EmployeeGuide = () => (
           </div>
           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>หมายเหตุ:</strong> คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติพิเศษเพิ่มเติม
+              <strong>หมายเหตุ:</strong> คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติโดย กรรมการผู้จัดการเพิ่มเติม
             </p>
           </div>
         </CardContent>
@@ -698,7 +701,7 @@ const FAQSection = () => (
       </AccordionTrigger>
       <AccordionContent>
         <p className="text-gray-600">
-          คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติพิเศษจากผู้บริหาร (กรรมการผู้จัดการ) เพิ่มเติม โดยระบบจะส่งคำขอไปอัตโนมัติ ไม่ต้องดำเนินการเพิ่มเติม
+          คำขอที่มียอดเกิน 10,000 บาท จะต้องผ่านการอนุมัติโดย กรรมการผู้จัดการจากผู้บริหาร (กรรมการผู้จัดการ) เพิ่มเติม โดยระบบจะส่งคำขอไปอัตโนมัติ ไม่ต้องดำเนินการเพิ่มเติม
         </p>
       </AccordionContent>
     </AccordionItem>

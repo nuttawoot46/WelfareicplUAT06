@@ -376,9 +376,6 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
     if (type === 'training' && user && profile) {
       const budgetResult = getRemainingBudget(user.id, type);
       setEmployeeBudget(budgetResult);
-    } else if (type !== 'training' && limitAmount && !editIdNum) {
-      // ไม่ set amount ถ้าเป็น edit mode (จะใช้ค่าจาก database แทน)
-      setValue('amount', parseFloat(limitAmount.toFixed(2)));
     }
 
     // ถ้าเป็น childbirth ให้ดึงข้อมูลจำนวนบุตรที่เบิกไปแล้ว
@@ -1640,7 +1637,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       netNum = grossAmount - withholding; // แก้ไข: ลบภาษี ณ ที่จ่าย
 
       companyPaymentValue = excessAmountValue / 2;
-      employeePaymentValue = (excessAmountValue / 2) + withholding; // พนักงานต้องจ่ายส่วนเกิน + ภาษี ณ ที่จ่าย
+      employeePaymentValue = excessAmountValue / 2; // หารครึ่งเท่ากัน
 
     } else {
       // --- กรณีไม่เกินงบประมาณ ---
@@ -1766,7 +1763,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
               <Alert>
                 <AlertCircle className="h-4 w-4 mr-2" />
                 <AlertDescription>
-                  อายุงาน: {calculateWorkDays(employeeData.start_date)} วัน (เข้าทำงานวันที่ {new Date(employeeData.start_date).toLocaleDateString('th-TH')})
+                  เข้าทำงานวันที่ {new Date(employeeData.start_date).toLocaleDateString('th-TH')}
                 </AlertDescription>
               </Alert>
             )}
@@ -1887,12 +1884,12 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                 </div>
               </div>
               <div className="space-y-2">
-                <label htmlFor="amount" className="form-label">จำนวนเงิน</label>
+                <label htmlFor="amount" className="form-label">ค่าใช้จ่ายต่อหลักสูตร (ก่อน Vat)</label>
                 <Input
                   id="amount"
                   type="text"
                   className="form-input text-right"
-                  placeholder="ระบุจำนวนเงิน"
+                  placeholder="ระบุค่าใช้จ่ายต่อหลักสูตร"
                   onChange={(e) => {
                     const formatted = formatInputWhileTyping(e.target.value);
                     e.target.value = formatted;
@@ -1908,7 +1905,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       e.target.value = formatNumberOnBlur(numValue);
                     }
                   }}
-                  defaultValue={formatNumberForInput(watch('amount'))}
+                  defaultValue={formatNumberForInput(watch('amount') || 0)}
                 />
                 <input type="hidden" {...register('amount', {
                   required: 'กรุณาระบุจำนวนเงิน',
@@ -1927,7 +1924,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                  <label className="form-label"><span className="text-red-500">(ถ้ามี)</span> ภาษีมูลค่าเพิ่ม 7%</label>
                   <Input
                     type="text"
                     className="form-input text-right"
@@ -1960,7 +1957,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
+                  <label className="form-label"><span className="text-red-500">(ถ้ามี)</span> หักภาษี ณ ที่จ่าย 3%</label>
                   <Input
                     type="text"
                     className="form-input text-right"
@@ -2658,11 +2655,19 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('instructorFee'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('instructorFee', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('instructorFee') || 0)}
                       />
                       <input type="hidden" {...register('instructorFee', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2673,16 +2678,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> หักภาษี ณ ที่จ่าย 3%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('instructorFeeWithholding'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('instructorFeeWithholding', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('instructorFeeWithholding') || 0)}
                       />
                       <input type="hidden" {...register('instructorFeeWithholding', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2690,16 +2703,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       })} />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">VAT (7%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> VAT 7%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('instructorFeeVat'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('instructorFeeVat', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('instructorFeeVat') || 0)}
                       />
                       <input type="hidden" {...register('instructorFeeVat', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2729,11 +2750,19 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('roomFoodBeverage'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('roomFoodBeverage', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('roomFoodBeverage') || 0)}
                       />
                       <input type="hidden" {...register('roomFoodBeverage', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2744,16 +2773,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> หักภาษี ณ ที่จ่าย 3%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('roomFoodBeverageWithholding'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('roomFoodBeverageWithholding', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('roomFoodBeverageWithholding') || 0)}
                       />
                       <input type="hidden" {...register('roomFoodBeverageWithholding', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2761,16 +2798,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       })} />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">VAT (7%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> VAT 7%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('roomFoodBeverageVat'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('roomFoodBeverageVat', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('roomFoodBeverageVat') || 0)}
                       />
                       <input type="hidden" {...register('roomFoodBeverageVat', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2800,11 +2845,19 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('otherExpenses'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('otherExpenses', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('otherExpenses') || 0)}
                       />
                       <input type="hidden" {...register('otherExpenses', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2815,16 +2868,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">หักภาษี ณ ที่จ่าย (3%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> หักภาษี ณ ที่จ่าย 3%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('otherExpensesWithholding'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('otherExpensesWithholding', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('otherExpensesWithholding') || 0)}
                       />
                       <input type="hidden" {...register('otherExpensesWithholding', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2832,16 +2893,24 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                       })} />
                     </div>
                     <div className="space-y-2">
-                      <label className="form-label text-sm">VAT (7%)</label>
+                      <label className="form-label text-sm"><span className="text-red-500">(ถ้ามี)</span> VAT 7%</label>
                       <Input
                         type="text"
                         className="form-input text-right"
                         placeholder="0.00"
-                        value={formatNumberWithCommas(watch('otherExpensesVat'))}
                         onChange={(e) => {
-                          const numValue = parseFormattedNumber(e.target.value);
+                          const formatted = formatInputWhileTyping(e.target.value);
+                          e.target.value = formatted;
+                          const numValue = parseFormattedNumber(formatted);
                           setValue('otherExpensesVat', numValue);
                         }}
+                        onBlur={(e) => {
+                          const numValue = parseFormattedNumber(e.target.value);
+                          if (numValue > 0) {
+                            e.target.value = formatNumberOnBlur(numValue);
+                          }
+                        }}
+                        defaultValue={formatNumberForInput(watch('otherExpensesVat') || 0)}
                       />
                       <input type="hidden" {...register('otherExpensesVat', {
                         min: { value: 0, message: 'จำนวนต้องไม่น้อยกว่า 0' },
@@ -2870,7 +2939,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                     <Alert className="mb-4 border-orange-200 bg-orange-50">
                       <AlertCircle className="h-4 w-4 text-orange-600" />
                       <AlertDescription className="text-orange-800">
-                        <strong>ข้อมูลสำคัญ:</strong> เนื่องจากจำนวนเงินเกิน 10,000 บาท คำร้องนี้จะต้องผ่านการอนุมัติพิเศษจาก kanin.s@icpladda.com หลังจากที่ HR อนุมัติแล้ว
+                        <strong>ข้อมูลสำคัญ:</strong> เนื่องจากจำนวนเงินเกิน 10,000 บาท คำร้องนี้จะต้องผ่านการอนุมัติโดย กรรมการผู้จัดการจาก kanin.s@icpladda.com หลังจากที่ HR อนุมัติแล้ว
                       </AlertDescription>
                     </Alert>
                   )}
@@ -3094,6 +3163,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   step="0.01"
                   className={`form-input ${type === 'childbirth' ? 'bg-gray-100' : ''}`}
                   placeholder="ระบุจำนวนเงิน"
+                  defaultValue={0}
                   readOnly={type === 'childbirth'}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
@@ -3130,7 +3200,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
               {/* VAT and Tax fields for non-training types */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="form-label">ภาษีมูลค่าเพิ่ม (7%)</label>
+                  <label className="form-label"><span className="text-red-500">(ถ้ามี)</span> ภาษีมูลค่าเพิ่ม 7%</label>
                   <Input
                     type="number"
                     className="form-input"
@@ -3155,7 +3225,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">หักภาษี ณ ที่จ่าย (3%)</label>
+                  <label className="form-label"><span className="text-red-500">(ถ้ามี)</span> หักภาษี ณ ที่จ่าย 3%</label>
                   <Input
                     type="number"
                     className="form-input"

@@ -315,7 +315,7 @@ export function Sidebar() {
             )}>
               <ShieldCheck className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติพิเศษ</span>
+                <span className="transition-all duration-300 text-white font-medium">อนุมัติโดย กรรมการผู้จัดการ</span>
               )}
             </Link>
           )}
@@ -482,6 +482,19 @@ export function Sidebar() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Activity History - visible to all roles except superadmin (who uses /superadmin/audit) */}
+          {!isSuperAdmin && (
+            <Link to="/activity-history" className={cn(
+              "nav-link group",
+              isActive('/activity-history') ? "nav-link-active" : "text-white/90 hover:text-white"
+            )}>
+              <Activity className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <span className="transition-all duration-300 text-white font-medium">ประวัติกิจกรรม</span>
+              )}
+            </Link>
           )}
 
           {/* User Guide */}

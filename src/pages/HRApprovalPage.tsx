@@ -495,7 +495,7 @@ export const HRApprovalPage = () => {
               await sendLineNotification({
                 employeeEmail,
                 type: getWelfareTypeLabel(pendingApprovalRequest.type),
-                status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+                status: requiresSpecialApproval ? 'รออนุมัติโดย กรรมการผู้จัดการ' : 'รอบัญชีอนุมัติ',
                 amount: Number(pendingApprovalRequest.amount) || 0,
                 userName: pendingApprovalRequest.userName,
                 requestDate: new Date().toLocaleString('th-TH', {
@@ -536,7 +536,7 @@ export const HRApprovalPage = () => {
               await sendLineNotification({
                 employeeEmail,
                 type: getWelfareTypeLabel(pendingApprovalRequest.type),
-                status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+                status: requiresSpecialApproval ? 'รออนุมัติโดย กรรมการผู้จัดการ' : 'รอบัญชีอนุมัติ',
                 amount: Number(pendingApprovalRequest.amount) || 0,
                 userName: pendingApprovalRequest.userName,
                 requestDate: new Date().toLocaleString('th-TH', {
@@ -597,7 +597,7 @@ export const HRApprovalPage = () => {
             await sendLineNotification({
               employeeEmail,
               type: getWelfareTypeLabel(pendingApprovalRequest.type),
-              status: requiresSpecialApproval ? 'รออนุมัติพิเศษ' : 'รอบัญชีอนุมัติ',
+              status: requiresSpecialApproval ? 'รออนุมัติโดย กรรมการผู้จัดการ' : 'รอบัญชีอนุมัติ',
               amount: Number(pendingApprovalRequest.amount) || 0,
               userName: pendingApprovalRequest.userName,
               requestDate: new Date().toLocaleString('th-TH', {

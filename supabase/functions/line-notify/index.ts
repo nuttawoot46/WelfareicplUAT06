@@ -34,7 +34,7 @@ const statusLabels: Record<string, string> = {
   pending_manager: "รอหัวหน้าอนุมัติ",
   pending_hr: "รอ HR อนุมัติ",
   pending_accounting: "รอบัญชีอนุมัติ",
-  pending_special_approval: "รออนุมัติพิเศษ",
+  pending_special_approval: "รออนุมัติโดย กรรมการผู้จัดการ",
   completed: "อนุมัติเรียบร้อย",
   rejected_manager: "หัวหน้าปฏิเสธ",
   rejected_hr: "HR ปฏิเสธ",

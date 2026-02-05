@@ -501,3 +501,47 @@ export interface EmployeeLeaveDetail {
   };
   balances: LeaveBalance[];
 }
+
+// Audit Log Types
+export type AuditLogCategory =
+  | 'welfare_request'
+  | 'leave_request'
+  | 'authentication'
+  | 'user_management'
+  | 'system_config'
+  | 'security';
+
+export type AuditLogSeverity = 'low' | 'medium' | 'high';
+export type AuditLogStatus = 'success' | 'failed' | 'warning';
+
+export interface AuditLog {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  user_name: string | null;
+  user_role: string | null;
+  action: string;
+  category: AuditLogCategory;
+  severity: AuditLogSeverity;
+  status: AuditLogStatus;
+  details: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
+  metadata: Record<string, any>;
+  ip_address: string | null;
+  user_agent: string | null;
+  department: string | null;
+  created_at: string;
+}
+
+export interface CreateAuditLogData {
+  action: string;
+  category: AuditLogCategory;
+  severity?: AuditLogSeverity;
+  status?: AuditLogStatus;
+  details?: string;
+  resource_type?: string;
+  resource_id?: string;
+  metadata?: Record<string, any>;
+  department?: string;
+}

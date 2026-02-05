@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { X, Trash2, Check } from 'lucide-react';
 
 interface SignaturePopupProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasDrawnSignature, setHasDrawnSignature] = useState(false);
   const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
 
   // Initialize canvas
@@ -32,18 +34,18 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
     if (!ctx) return;
 
     // Set canvas size
-    canvas.width = 400;
+    canvas.width = 600;
     canvas.height = 200;
+
+    // Set white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Set drawing properties
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    // Set white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }, []);
 
   // Lock body scroll and setup canvas
@@ -96,7 +98,7 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   // Start drawing
   const startDrawing = useCallback((e: any) => {
     if (e.cancelable) e.preventDefault();
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -104,7 +106,7 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
     const point = getCoordinates(e);
     setIsDrawing(true);
     setLastPoint(point);
-    
+
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
   }, [getCoordinates]);
@@ -112,7 +114,7 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
   // Continue drawing
   const continueDrawing = useCallback((e: any) => {
     if (e.cancelable) e.preventDefault();
-    
+
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
@@ -120,15 +122,16 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
     if (!canvas || !ctx) return;
 
     const point = getCoordinates(e);
-    
+
     if (lastPoint) {
       ctx.beginPath();
       ctx.moveTo(lastPoint.x, lastPoint.y);
       ctx.lineTo(point.x, point.y);
       ctx.stroke();
     }
-    
+
     setLastPoint(point);
+    setHasDrawnSignature(true);
   }, [isDrawing, lastPoint, getCoordinates]);
 
   // Stop drawing
@@ -140,109 +143,118 @@ export const SignaturePopup: React.FC<SignaturePopupProps> = ({
 
   const clearSignature = useCallback(() => {
     initCanvas();
+    setHasDrawnSignature(false);
   }, [initCanvas]);
 
   const saveSignature = useCallback(async () => {
     const canvas = canvasRef.current;
-    if (!canvas || isSaving) return;
+    if (!canvas || isSaving || !hasDrawnSignature) return;
 
     setIsSaving(true);
     try {
       const dataURL = canvas.toDataURL('image/png');
       await onSave(dataURL);
-      // If successful, close the popup
       onClose();
+      setHasDrawnSignature(false);
+      clearSignature();
     } catch (error) {
       console.error('Error saving signature:', error);
-      // Keep popup open on error so user can try again
       setIsSaving(false);
     }
-  }, [canvasRef, isSaving, onSave, onClose]);
+  }, [canvasRef, isSaving, hasDrawnSignature, onSave, onClose, clearSignature]);
+
+  const handleClose = () => {
+    onClose();
+    setHasDrawnSignature(false);
+    clearSignature();
+  };
 
   if (!isOpen) return null;
 
-
-
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-hidden"
       style={{ touchAction: 'none' }}
       onTouchMove={(e) => e.preventDefault()}
     >
-      <div 
-        className="bg-white rounded-lg p-6 w-full max-w-md mx-4 relative"
+      <div
+        className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 relative"
         style={{ touchAction: 'auto' }}
         onTouchMove={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={24} />
-          </button>
+          <h2 className="text-xl font-bold">{title}</h2>
+          <Button variant="ghost" size="icon" onClick={handleClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
+        {/* Draw Signature */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">
-            กรุณาลงลายเซ็นของคุณในกรอบด้านล่าง
-          </p>
-          <p className="text-sm font-medium text-gray-800">
-            ผู้อนุมัติ: {approverName}
-          </p>
-          {requestDetails && (
-            <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
-              {requestDetails}
+          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+            <div
+              className="border border-gray-400 bg-white rounded"
+              style={{ touchAction: 'none' }}
+            >
+              <canvas
+                ref={canvasRef}
+                width={600}
+                height={200}
+                className="cursor-crosshair w-full h-[200px]"
+                onMouseDown={startDrawing}
+                onMouseMove={continueDrawing}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={continueDrawing}
+                onTouchEnd={stopDrawing}
+                onTouchCancel={stopDrawing}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ touchAction: 'none' }}
+              />
             </div>
-          )}
-        </div>
-
-        <div 
-          className="border-2 border-gray-300 rounded-lg mb-4 bg-white relative"
-          style={{ touchAction: 'none' }}
-        >
-          <canvas
-            ref={canvasRef}
-            width={400}
-            height={200}
-            className="w-full h-[200px] cursor-crosshair block border-0"
-            onMouseDown={startDrawing}
-            onMouseMove={continueDrawing}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={continueDrawing}
-            onTouchEnd={stopDrawing}
-            onTouchCancel={stopDrawing}
-            onContextMenu={(e) => e.preventDefault()}
-            style={{ touchAction: 'none' }}
-          />
-        </div>
-
-        <div className="flex justify-between">
-          <button
-            onClick={clearSignature}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            ลบลายเซ็น
-          </button>
-          <div className="space-x-2">
-            <button
-              onClick={onClose}
-              disabled={isSaving}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ยกเลิก
-            </button>
-            <button
-              onClick={saveSignature}
-              disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? 'กำลังบันทึก...' : 'บันทึกลายเซ็น'}
-            </button>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm text-gray-600">กรุณาวาดลายเซ็นของคุณในกรอบด้านบน</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSignature}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                ลบ
+              </Button>
+            </div>
           </div>
+        </div>
+
+        {/* Approver Name Display */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>ผู้อนุมัติ:</strong> {approverName}
+          </p>
+        </div>
+
+        {/* Request Details */}
+        {requestDetails && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-700">{requestDetails}</p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={handleClose} disabled={isSaving}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={saveSignature}
+            disabled={!hasDrawnSignature || isSaving}
+            className="flex items-center gap-2"
+          >
+            <Check className="h-4 w-4" />
+            {isSaving ? 'กำลังบันทึก...' : 'ยืนยันลายเซ็น'}
+          </Button>
         </div>
       </div>
     </div>
