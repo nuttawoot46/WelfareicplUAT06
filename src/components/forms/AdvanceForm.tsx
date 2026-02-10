@@ -1027,6 +1027,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         advanceProjectLocation: data.advanceProjectLocation,
         advanceLocation: data.venue, // เพิ่มการส่งข้อมูลสถานที่
         advanceExpenseItems: data.advanceExpenseItems,
+        // Bank account information
+        bankAccountName: data.bankAccountName,
+        bankName: data.bankName,
+        bankAccountNumber: data.bankAccountNumber,
       };
 
       console.log('📤 Sending requestData to submitRequest:', requestData);
@@ -1239,10 +1243,12 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             {/* วันที่และจำนวนผู้เข้าร่วม */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="form-label">วันที่เริ่มกิจกรรม</label>
+                <label className="form-label cursor-pointer" onClick={() => (document.getElementById('advStartDate') as HTMLInputElement)?.showPicker?.()}>วันที่เริ่มกิจกรรม</label>
                 <Input
+                  id="advStartDate"
                   type="date"
-                  className="form-input"
+                  className="form-input cursor-pointer"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   {...register('startDate', {
                     required: 'กรุณาระบุวันที่เริ่มกิจกรรม'
                   })}
@@ -1253,10 +1259,12 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">วันที่สิ้นสุดกิจกรรม</label>
+                <label className="form-label cursor-pointer" onClick={() => (document.getElementById('advEndDate') as HTMLInputElement)?.showPicker?.()}>วันที่สิ้นสุดกิจกรรม</label>
                 <Input
+                  id="advEndDate"
                   type="date"
-                  className="form-input"
+                  className="form-input cursor-pointer"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   {...register('endDate')}
                 />
                 {errors.endDate && (
@@ -1553,7 +1561,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 text-right"
+                          className="w-32 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1581,7 +1589,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-welfare-blue/10 font-semibold text-right"
+                          className="w-32 bg-welfare-blue/10 font-semibold text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly

@@ -804,16 +804,16 @@ export const HRApprovalPage = () => {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Welfare Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Approved by Manager</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภทสวัสดิการ</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>ผู้จัดการอนุมัติ</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">PDF</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1008,16 +1008,16 @@ export const HRApprovalPage = () => {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Approved by Manager</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>ผู้จัดการอนุมัติ</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">PDF</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1195,18 +1195,18 @@ export const HRApprovalPage = () => {
                 <Table>
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Welfare Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Approved by Manager</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>HR Processed Date</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภทสวัสดิการ</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>ผู้จัดการอนุมัติ</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead>วันที่ HR ดำเนินการ</TableHead>
                       <TableHead className="w-[200px]">หมายเหตุ</TableHead>
-                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

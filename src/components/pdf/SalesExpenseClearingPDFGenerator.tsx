@@ -114,42 +114,42 @@ const createSalesExpenseClearingFormHTML = (
       </div>
 
       <!-- Employee Info Section -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 8px;">
         <div style="font-weight: bold; margin-bottom: 10px;">ข้อมูลผู้เคลียร์ค่าใช้จ่าย</div>
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">ชื่อ-นามสกุล:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeName}</span>
-          <span style="margin-left: 20px; font-weight: bold;">ตำแหน่ง:</span>
-          <span style="border-bottom: 1px dotted black; width: 150px; margin-left: 10px; padding-bottom: 2px;">${employeePosition}</span>
+          <span style="font-weight: bold;">ชื่อ-นามสกุล:</span>
+          <span style="margin-left: 8px;">${employeeName}</span>
+          <span style="margin-left: 40px; font-weight: bold;">ตำแหน่ง:</span>
+          <span style="margin-left: 8px;">${employeePosition}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeTeam}</span>
+          <span style="font-weight: bold;">แผนก:</span>
+          <span style="margin-left: 8px;">${employeeTeam}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">วันที่ยื่นคำร้อง:</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; padding-bottom: 2px;">${formatThaiDate(expenseClearingData.createdAt || '')}</span>
-          <span style="margin-left: 20px; font-weight: bold;">จำนวนเงินคืน:</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px; text-align: right; font-weight: bold; color: #16a34a;">
+          <span style="font-weight: bold;">วันที่ยื่นคำร้อง:</span>
+          <span style="margin-left: 8px;">${formatThaiDate(expenseClearingData.createdAt || '')}</span>
+          <span style="margin-left: 40px; font-weight: bold;">จำนวนเงินคืน:</span>
+          <span style="margin-left: 8px; font-weight: bold; color: #16a34a;">
             ${formatCurrency(totalRefund)} บาท
           </span>
         </div>
 
         ${expenseClearingData.originalAdvanceRunNumber || expenseClearingData.originalAdvanceRequestId ? `
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 160px; font-weight: bold; white-space: nowrap;">อ้างอิงเบิกเงินล่วงหน้า:</span>
-          <span style="border-bottom: 1px dotted black; width: 200px; padding-bottom: 2px;">${expenseClearingData.originalAdvanceRunNumber || '#' + expenseClearingData.originalAdvanceRequestId}</span>
+          <span style="font-weight: bold;">อ้างอิงเบิกเงินล่วงหน้า:</span>
+          <span style="margin-left: 8px;">${expenseClearingData.originalAdvanceRunNumber || '#' + expenseClearingData.originalAdvanceRequestId}</span>
         </div>
         ` : ''}
       </div>
 
       <!-- Activity Type Section -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 8px;">
         <div style="display: flex; margin-bottom: 10px;">
           <span style="font-weight: bold;">ประเภทกิจกรรม:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 8px;">
             ${expenseClearingData.advanceActivityType || '-'}
           </span>
         </div>
@@ -164,41 +164,39 @@ const createSalesExpenseClearingFormHTML = (
 
         <div style="display: flex; margin-bottom: 10px;">
           <span>วันที่เริ่มกิจกรรม</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 8px;">
             ${expenseClearingData.start_date ? formatThaiDate(expenseClearingData.start_date) : formatThaiDate(expenseClearingData.createdAt || '')}
           </span>
-          <span style="margin-left: 20px;">วันสิ้นสุดกิจกรรม</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 40px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="margin-left: 8px;">
             ${expenseClearingData.end_date ? formatThaiDate(expenseClearingData.end_date) : ''}
           </span>
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
           <span>จำนวนผู้เข้าร่วม</span>
-          <span style="border-bottom: 1px dotted black; width: 60px; margin-left: 10px; padding-bottom: 2px; text-align: center;">
-            ${expenseClearingData.advanceParticipants || ''}
-          </span>
+          <span style="margin-left: 8px;">${expenseClearingData.advanceParticipants || ''}</span>
           <span style="margin-left: 5px;">คน</span>
         </div>
       </div>
 
       <!-- Sales Information Section -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 8px;">
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">ชื่อดิลเลอร์:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${salesDealerName}</span>
+          <span style="font-weight: bold;">ชื่อดิลเลอร์:</span>
+          <span style="margin-left: 8px;">${salesDealerName}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">ชื่อซับดิลเลอร์:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${salesSubdealerName}</span>
+          <span style="font-weight: bold;">ชื่อซับดิลเลอร์:</span>
+          <span style="margin-left: 8px;">${salesSubdealerName}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">อำเภอ:</span>
-          <span style="border-bottom: 1px dotted black; width: 150px; padding-bottom: 2px;">${salesAmphur}</span>
-          <span style="margin-left: 20px; font-weight: bold;">จังหวัด:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; margin-left: 10px; padding-bottom: 2px;">${salesProvince}</span>
+          <span style="font-weight: bold;">อำเภอ:</span>
+          <span style="margin-left: 8px;">${salesAmphur}</span>
+          <span style="margin-left: 40px; font-weight: bold;">จังหวัด:</span>
+          <span style="margin-left: 8px;">${salesProvince}</span>
         </div>
       </div>
 

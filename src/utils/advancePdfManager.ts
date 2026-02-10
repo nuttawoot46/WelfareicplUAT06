@@ -158,13 +158,18 @@ export const addSignatureToAdvancePDF = async (
       createdAt: updatedRequestData.created_at,
       updatedAt: (updatedRequestData as any).updated_at || updatedRequestData.created_at,
       title: updatedRequestData.title,
+      runNumber: (updatedRequestData as any).run_number,
+      bankAccountName: (updatedRequestData as any).bank_account_name,
+      bankName: (updatedRequestData as any).bank_name,
+      bankAccountNumber: (updatedRequestData as any).bank_account_number,
       userSignature: updatedRequestData.user_signature,
-      managerSignature: updatedRequestData.manager_signature,
-      hrSignature: updatedRequestData.hr_signature,
-      managerApproverName: updatedRequestData.manager_approver_name,
-      managerApprovedAt: updatedRequestData.manager_approved_at,
-      hrApproverName: updatedRequestData.hr_approver_name,
-      hrApprovedAt: updatedRequestData.hr_approved_at,
+      managerSignature: updatedRequestData.manager_signature || (signatureType === 'manager' ? signature : undefined),
+      hrSignature: updatedRequestData.hr_signature || (signatureType === 'hr' ? signature : undefined),
+      managerApproverName: updatedRequestData.manager_approver_name || (signatureType === 'manager' ? approverName : undefined),
+      managerApproverPosition: (updatedRequestData as any).manager_approver_position,
+      managerApprovedAt: updatedRequestData.manager_approved_at || (signatureType === 'manager' ? new Date().toISOString() : undefined),
+      hrApproverName: updatedRequestData.hr_approver_name || (signatureType === 'hr' ? approverName : undefined),
+      hrApprovedAt: updatedRequestData.hr_approved_at || (signatureType === 'hr' ? new Date().toISOString() : undefined),
       // Advance payment specific fields - use safe access
       advanceDepartment: (updatedRequestData as any).advance_department,
       advanceDepartmentOther: (updatedRequestData as any).advance_department_other,
@@ -199,14 +204,27 @@ export const addSignatureToAdvancePDF = async (
       end_date: (updatedRequestData as any).end_date,
     };
 
-    // Generate new PDF with signatures
+    // Generate new PDF with signatures - use function params as fallback
+    const managerSig = updatedRequestData.manager_signature || (signatureType === 'manager' ? signature : undefined);
+    const hrSig = updatedRequestData.hr_signature || (signatureType === 'hr' ? signature : undefined);
+    const accountingSig = (updatedRequestData as any).accounting_signature || (signatureType === 'accounting' ? signature : undefined);
+
+    console.log('🔍 Signature values for PDF generation:', {
+      userSignature: updatedRequestData.user_signature ? 'present' : 'missing',
+      managerSig: managerSig ? `present (${managerSig.length} chars)` : 'missing',
+      hrSig: hrSig ? `present (${hrSig.length} chars)` : 'missing',
+      accountingSig: accountingSig ? 'present' : 'missing',
+      signatureType,
+      fallbackUsed: !updatedRequestData.manager_signature && signatureType === 'manager' ? 'YES - using function param' : 'NO - using DB value',
+    });
+
     const newPdfBase64 = await generateAdvancePDFAsBase64(
       advanceRequestForPDF,
       userForPDF,
       employeeData,
       updatedRequestData.user_signature,
-      updatedRequestData.manager_signature,
-      updatedRequestData.accounting_signature || updatedRequestData.hr_signature
+      managerSig,
+      accountingSig || hrSig
     );
 
     if (newPdfBase64) {
@@ -313,8 +331,6 @@ export const addSignatureToAdvancePDF = async (
       console.error('❌ Failed to generate PDF with signatures');
       return false;
     }
-
-    return false;
   } catch (error) {
     console.error(`Error adding ${signatureType} signature to Advance Payment PDF:`, error);
     return false;

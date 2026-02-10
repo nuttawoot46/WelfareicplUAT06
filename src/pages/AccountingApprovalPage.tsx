@@ -50,8 +50,8 @@ export const AccountingApprovalPage = () => {
     if (!user || (!['accounting', 'accountingandmanager', 'admin'].includes(profile?.role))) {
       addNotification({
         userId: user?.id || 'system',
-        title: 'Access Denied',
-        message: 'You do not have permission to view this page.',
+        title: 'ไม่มีสิทธิ์เข้าถึง',
+        message: 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
         type: 'error',
       });
       navigate('/dashboard', { replace: true });
@@ -127,8 +127,8 @@ export const AccountingApprovalPage = () => {
     if (requestsToApprove.length === 0) {
       addNotification({
         userId: user.id,
-        title: 'Info',
-        message: 'No pending requests selected for approval.',
+        title: 'แจ้งเตือน',
+        message: 'ไม่ได้เลือกคำร้องที่รอการอนุมัติ',
         type: 'info',
       });
       return;
@@ -158,8 +158,8 @@ export const AccountingApprovalPage = () => {
       
       addNotification({ 
         userId: user.id, 
-        title: 'Success', 
-        message: 'Requests rejected successfully.', 
+        title: 'สำเร็จ',
+        message: 'ปฏิเสธคำร้องเรียบร้อยแล้ว',
         type: 'success' 
       });
       setSelectedRequests([]);
@@ -168,8 +168,8 @@ export const AccountingApprovalPage = () => {
     } catch (error) {
       addNotification({ 
         userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to reject some requests.', 
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถปฏิเสธบางคำร้องได้',
         type: 'error' 
       });
     } finally {
@@ -257,8 +257,8 @@ export const AccountingApprovalPage = () => {
 
         addNotification({
           userId: user.id,
-          title: 'Success',
-          message: `${pendingBulkApproval.length} requests approved successfully with signature.`,
+          title: 'สำเร็จ',
+          message: `อนุมัติ ${pendingBulkApproval.length} คำร้องเรียบร้อยแล้ว พร้อมลายเซ็น`,
           type: 'success'
         });
 
@@ -326,8 +326,8 @@ export const AccountingApprovalPage = () => {
 
         addNotification({
           userId: user.id,
-          title: 'Success',
-          message: 'Request approved successfully with signature.',
+          title: 'สำเร็จ',
+          message: 'อนุมัติคำร้องเรียบร้อยแล้ว พร้อมลายเซ็น',
           type: 'success'
         });
 
@@ -341,8 +341,8 @@ export const AccountingApprovalPage = () => {
       console.error('Error in handleSignatureComplete:', error);
       addNotification({ 
         userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to approve request(s).', 
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถอนุมัติคำร้องได้',
         type: 'error' 
       });
       throw error;
@@ -359,8 +359,8 @@ export const AccountingApprovalPage = () => {
       
       addNotification({ 
         userId: user.id, 
-        title: 'Success', 
-        message: 'Request rejected successfully.', 
+        title: 'สำเร็จ',
+        message: 'ปฏิเสธคำร้องเรียบร้อยแล้ว',
         type: 'success' 
       });
       setIsModalOpen(false);
@@ -368,8 +368,8 @@ export const AccountingApprovalPage = () => {
     } catch (error) {
       addNotification({ 
         userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to reject request.', 
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถปฏิเสธคำร้องได้',
         type: 'error' 
       });
     } finally {
@@ -383,7 +383,7 @@ export const AccountingApprovalPage = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading authentication...</p>
+            <p className="text-gray-600">กำลังตรวจสอบสิทธิ์...</p>
           </div>
         </div>
       </Layout>
@@ -396,7 +396,7 @@ export const AccountingApprovalPage = () => {
         <LoadingPopup open={isLoading} />
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <p className="text-gray-600">Processing approval...</p>
+            <p className="text-gray-600">กำลังดำเนินการอนุมัติ...</p>
           </div>
         </div>
       </Layout>
@@ -405,7 +405,7 @@ export const AccountingApprovalPage = () => {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-4">Accounting Approval Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">แดชบอร์ดอนุมัติคำร้อง (บัญชี)</h1>
       
       <Card>
         <CardHeader>
@@ -441,7 +441,7 @@ export const AccountingApprovalPage = () => {
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      placeholder="Search by employee..." 
+                      placeholder="ค้นหาพนักงาน..." 
                       className="pl-8" 
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -451,18 +451,18 @@ export const AccountingApprovalPage = () => {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                         <Filter className="mr-2 h-4 w-4" />
-                        <span>Filter by date</span>
+                        <span>กรองตามวันที่</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-4">
-                        <h4 className="font-medium mb-2">Filters</h4>
+                        <h4 className="font-medium mb-2">ตัวกรอง</h4>
                         <div className="mt-4">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -485,14 +485,14 @@ export const AccountingApprovalPage = () => {
                     disabled={selectedRequests.length === 0 || isLoading}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve Selected ({selectedRequests.length})
+                    อนุมัติที่เลือก ({selectedRequests.length})
                   </Button>
                   <Button 
                     variant="destructive" 
                     onClick={handleBulkReject} 
                     disabled={selectedRequests.length === 0 || isLoading}
                   >
-                    Reject Selected ({selectedRequests.length})
+                    ปฏิเสธที่เลือก ({selectedRequests.length})
                   </Button>
                 </div>
               </div>
@@ -510,15 +510,15 @@ export const AccountingApprovalPage = () => {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Manager Approved</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Attachment</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>ผู้จัดการอนุมัติ</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead>เอกสารแนบ</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -597,7 +597,7 @@ export const AccountingApprovalPage = () => {
                                 size="sm"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                View
+                                ดูรายละเอียด
                               </Button>
                               {request.status === 'pending_accounting' && (
                                 <Button
@@ -606,7 +606,7 @@ export const AccountingApprovalPage = () => {
                                   disabled={isLoading}
                                   className="bg-green-600 hover:bg-green-700"
                                 >
-                                  Approve
+                                  อนุมัติ
                                 </Button>
                               )}
                             </div>
@@ -629,7 +629,7 @@ export const AccountingApprovalPage = () => {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search by employee..." 
+                    placeholder="ค้นหาพนักงาน..." 
                     className="pl-8" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -639,18 +639,18 @@ export const AccountingApprovalPage = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                       <Filter className="mr-2 h-4 w-4" />
-                      <span>Filter by date</span>
+                      <span>กรองตามวันที่</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <div className="p-4">
-                      <h4 className="font-medium mb-2">Filters</h4>
+                      <h4 className="font-medium mb-2">ตัวกรอง</h4>
                       <div className="mt-4">
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                              {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -672,15 +672,15 @@ export const AccountingApprovalPage = () => {
                 <Table>
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Accounting Decision</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Attachment</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>บัญชีดำเนินการ</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead>เอกสารแนบ</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -748,7 +748,7 @@ export const AccountingApprovalPage = () => {
                               size="sm"
                               onClick={() => handleViewDetails(request)}
                             >
-                              View
+                              ดูรายละเอียด
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -773,39 +773,39 @@ export const AccountingApprovalPage = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
+            <DialogTitle>รายละเอียดคำร้อง</DialogTitle>
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Employee</label>
+                  <label className="text-sm font-medium">พนักงาน</label>
                   <p className="text-sm text-muted-foreground">{selectedRequest.userName}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Department</label>
+                  <label className="text-sm font-medium">แผนก</label>
                   <p className="text-sm text-muted-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Type</label>
+                  <label className="text-sm font-medium">ประเภท</label>
                   <p className="text-sm text-muted-foreground">{getWelfareTypeLabel(selectedRequest.type)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Amount</label>
+                  <label className="text-sm font-medium">จำนวนเงิน</label>
                   <p className="text-sm text-muted-foreground">{selectedRequest.amount ? `฿${selectedRequest.amount.toLocaleString()}` : '-'}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Submission Date</label>
+                  <label className="text-sm font-medium">วันที่ยื่น</label>
                   <p className="text-sm text-muted-foreground">{format(new Date(selectedRequest.date), 'dd/MM/yyyy')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Status</label>
+                  <label className="text-sm font-medium">สถานะ</label>
                   <Badge variant="outline">{selectedRequest.status}</Badge>
                 </div>
               </div>
               {selectedRequest.details && (
                 <div>
-                  <label className="text-sm font-medium">Details</label>
+                  <label className="text-sm font-medium">รายละเอียด</label>
                   <p className="text-sm text-muted-foreground mt-1">{selectedRequest.details}</p>
                 </div>
               )}
@@ -813,7 +813,7 @@ export const AccountingApprovalPage = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Close
+              ปิด
             </Button>
             {selectedRequest?.status === 'pending_accounting' && (
               <>
@@ -822,7 +822,7 @@ export const AccountingApprovalPage = () => {
                   disabled={isLoading}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  Approve
+                  อนุมัติ
                 </Button>
                 <Button
                   variant="destructive"
@@ -833,7 +833,7 @@ export const AccountingApprovalPage = () => {
                   }}
                   disabled={isLoading}
                 >
-                  Reject
+                  ปฏิเสธ
                 </Button>
               </>
             )}
@@ -845,29 +845,29 @@ export const AccountingApprovalPage = () => {
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Request(s)</DialogTitle>
+            <DialogTitle>ปฏิเสธคำร้อง</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Reason for rejection</label>
+              <label className="text-sm font-medium">เหตุผลในการปฏิเสธ</label>
               <Input
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Enter reason for rejection..."
+                placeholder="กรุณาระบุเหตุผลในการปฏิเสธ..."
                 className="mt-1"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>
-              Cancel
+              ยกเลิก
             </Button>
             <Button
               variant="destructive"
               onClick={confirmRejection}
               disabled={!rejectionReason || isLoading}
             >
-              Confirm Rejection
+              ยืนยันการปฏิเสธ
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -883,7 +883,7 @@ export const AccountingApprovalPage = () => {
           setIsBulkApproval(false);
         }}
         onSave={handleSignatureComplete}
-        title={isBulkApproval ? `Approve ${pendingBulkApproval.length} Requests` : 'Approve Request'}
+        title={isBulkApproval ? `อนุมัติ ${pendingBulkApproval.length} คำร้อง` : 'อนุมัติคำร้อง'}
         approverName={profile?.display_name || user?.email || ''}
         requestDetails={isBulkApproval
           ? `อนุมัติคำร้องบัญชี ${pendingBulkApproval.length} รายการ`

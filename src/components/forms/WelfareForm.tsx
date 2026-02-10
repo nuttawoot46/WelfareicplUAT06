@@ -2002,39 +2002,43 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
               </div>
 
               {/* 2. เพิ่ม Field 'ยอดส่วนเกินทั้งหมด' ในหน้าฟอร์ม (JSX) */}
-              <div className="space-y-2">
-                <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
-                <Input
-                  type="text"
-                  className="form-input bg-gray-100 text-right"
-                  readOnly
-                  value={formatNumberWithCommas(watch('excessAmount'))}
-                />
-                <input type="hidden" {...register('excessAmount')} />
-              </div>
+              <input type="hidden" {...register('excessAmount')} />
+              <input type="hidden" {...register('companyPayment')} />
+              <input type="hidden" {...register('employeePayment')} />
+              {Number(watch('excessAmount')) > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <label className="form-label">ยอดส่วนเกินทั้งหมด</label>
+                    <Input
+                      type="text"
+                      className="form-input bg-gray-100 text-right"
+                      readOnly
+                      value={formatNumberWithCommas(watch('excessAmount'))}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="form-label">บริษัทจ่าย</label>
-                  <Input
-                    type="text"
-                    className="form-input bg-gray-100 text-right"
-                    readOnly
-                    value={formatNumberWithCommas(watch('companyPayment'))}
-                  />
-                  <input type="hidden" {...register('companyPayment')} />
-                </div>
-                <div className="space-y-2">
-                  <label className="form-label">พนักงานจ่าย</label>
-                  <Input
-                    type="text"
-                    className="form-input bg-gray-100 text-right"
-                    readOnly
-                    value={formatNumberWithCommas(watch('employeePayment'))}
-                  />
-                  <input type="hidden" {...register('employeePayment')} />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="form-label">บริษัทจ่าย</label>
+                      <Input
+                        type="text"
+                        className="form-input bg-gray-100 text-right"
+                        readOnly
+                        value={formatNumberWithCommas(watch('companyPayment'))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label">พนักงานจ่าย</label>
+                      <Input
+                        type="text"
+                        className="form-input bg-gray-100 text-right"
+                        readOnly
+                        value={formatNumberWithCommas(watch('employeePayment'))}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 

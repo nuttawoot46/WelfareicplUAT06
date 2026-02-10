@@ -208,6 +208,11 @@ export interface WelfareRequest {
   advanceEventDate?: string;
   advanceExpenseItems?: any[] | string;
 
+  // Bank account information
+  bankAccountName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+
   // Expense clearing specific fields
   originalAdvanceRequestId?: number;
   originalAdvanceRunNumber?: string;

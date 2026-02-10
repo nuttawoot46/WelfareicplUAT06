@@ -113,7 +113,7 @@ const N8nChatbot: React.FC<N8nChatbotProps> = ({
 
       defaultLanguage: 'th',
       showWelcomeScreen: false,
-      initialMessages: ['สวัสดี', 'ฉันชื่อ จินนี่ สามารถสอบถามข้อมูลสวัสดิการได้ 24 ชม.'],
+      initialMessages: ['สวัสดี', 'ฉันชื่อ ลัดดา สามารถสอบถามข้อมูลสวัสดิการได้ 24 ชม.'],
       i18n: {
         th: {
           title: 'สวัสดีชาว ICP Ladda',

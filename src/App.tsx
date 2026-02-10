@@ -151,9 +151,7 @@ const App = () => (
                   
                   <Route path="/notifications" element={
                     <ProtectedRoute>
-                      <MainLayout>
                         <Notifications />
-                      </MainLayout>
                     </ProtectedRoute>
                   } />
                   
@@ -191,9 +189,7 @@ const App = () => (
 
                   <Route path="/special-approve" element={
                     <ProtectedRoute>
-                      <MainLayout>
                         <SpecialApprovalPage />
-                      </MainLayout>
                     </ProtectedRoute>
                   } />
 
@@ -245,11 +241,9 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
-                  {/* Activity History */}
+                  {/* Activity History - redirect to notifications */}
                   <Route path="/activity-history" element={
-                    <ProtectedRoute>
-                      <ActivityHistoryPage />
-                    </ProtectedRoute>
+                    <Navigate to="/notifications" replace />
                   } />
 
                   {/* User Guide */}

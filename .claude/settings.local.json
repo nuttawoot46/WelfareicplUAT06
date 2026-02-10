@@ -23,7 +23,15 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(git checkout:*)",
-      "Bash(del next.config.js)"
+      "Bash(del next.config.js)",
+      "WebFetch(domain:pdfme.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:playground.pdfme.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(findstr:*)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []

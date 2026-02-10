@@ -240,19 +240,19 @@ export default function SpecialApprovalPage() {
             <Table>
               <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>พนักงาน</TableHead>
+                  <TableHead>ประเภท</TableHead>
                   <TableHead>หลักสูตร</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Submission Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>จำนวนเงิน</TableHead>
+                  <TableHead>วันที่ยื่น</TableHead>
+                  <TableHead>สถานะ</TableHead>
                   <TableHead>การดำเนินการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRequests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       <div className="flex flex-col items-center">
                         <FileText className="h-12 w-12 mb-4 opacity-50" />
                         <p>ไม่มีคำร้องที่รอการอนุมัติโดย กรรมการผู้จัดการ</p>
@@ -287,7 +287,7 @@ export default function SpecialApprovalPage() {
                             size="sm"
                             onClick={() => handleViewDetails(request)}
                           >
-                            View
+                            ดูรายละเอียด
                           </Button>
                           <Button
                             size="sm"

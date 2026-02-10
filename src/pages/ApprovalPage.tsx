@@ -72,8 +72,8 @@ export const ApprovalPage = () => {
     if (!user || (!['manager', 'admin', 'accountingandmanager'].includes(profile?.role))) {
       addNotification({
         userId: user?.id || 'system',
-        title: 'Access Denied',
-        message: 'You do not have permission to view this page.',
+        title: 'ไม่มีสิทธิ์เข้าถึง',
+        message: 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
         type: 'error',
       });
       navigate('/dashboard', { replace: true });
@@ -257,8 +257,8 @@ export const ApprovalPage = () => {
     if (requestsToApprove.length === 0) {
       addNotification({
         userId: user.id,
-        title: 'Info',
-        message: 'No pending requests selected for approval.',
+        title: 'แจ้งเตือน',
+        message: 'ไม่มีคำร้องที่เลือกสำหรับอนุมัติ',
         type: 'info',
       });
       return;
@@ -286,8 +286,8 @@ export const ApprovalPage = () => {
       if (requestsToReject.length === 0) {
         addNotification({
           userId: user.id,
-          title: 'Info',
-          message: 'No pending requests selected for rejection.',
+          title: 'แจ้งเตือน',
+          message: 'ไม่มีคำร้องที่เลือกสำหรับปฏิเสธ',
           type: 'info',
         });
         setIsLoading(false);
@@ -302,8 +302,8 @@ export const ApprovalPage = () => {
       // Note: The state will be updated automatically by the context
       addNotification({ 
         userId: user.id, 
-        title: 'Success', 
-        message: 'Requests rejected successfully.', 
+        title: 'สำเร็จ',
+        message: 'ปฏิเสธคำร้องสำเร็จ',
         type: 'success' 
       });
       setSelectedRequests([]);
@@ -312,8 +312,8 @@ export const ApprovalPage = () => {
     } catch (error) {
       addNotification({ 
         userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to reject some requests.', 
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ปฏิเสธคำร้องบางรายการล้มเหลว',
         type: 'error' 
       });
     } finally {
@@ -374,18 +374,18 @@ export const ApprovalPage = () => {
         const accountingCount = pendingBulkApproval.filter(req => accountingTypes.includes(req.type)).length;
         const hrCount = pendingBulkApproval.length - accountingCount;
         
-        let message = `${pendingBulkApproval.length} requests approved successfully with signature.`;
+        let message = `อนุมัติ ${pendingBulkApproval.length} คำร้องสำเร็จ พร้อมลายเซ็น`;
         if (accountingCount > 0 && hrCount > 0) {
-          message += ` ${accountingCount} sent to Accounting, ${hrCount} sent to HR.`;
+          message += ` ส่งไปบัญชี ${accountingCount} รายการ, ส่งไป HR ${hrCount} รายการ`;
         } else if (accountingCount > 0) {
-          message += ` Sent to Accounting.`;
+          message += ` ส่งต่อไปแผนกบัญชี`;
         } else {
-          message += ` Sent to HR.`;
+          message += ` ส่งต่อไป HR`;
         }
         
         addNotification({
           userId: user.id,
-          title: 'Success',
+          title: 'สำเร็จ',
           message: message,
           type: 'success'
         });
@@ -509,11 +509,11 @@ export const ApprovalPage = () => {
         }
         
         const accountingTypesForDest = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
-        const destination = accountingTypesForDest.includes(pendingApprovalRequest.type) ? 'Accounting' : 'HR';
+        const destination = accountingTypesForDest.includes(pendingApprovalRequest.type) ? 'บัญชี' : 'HR';
         addNotification({
           userId: user.id,
-          title: 'Success',
-          message: `Request approved successfully with signature and sent to ${destination}.`,
+          title: 'สำเร็จ',
+          message: `อนุมัติคำร้องสำเร็จ พร้อมลายเซ็น ส่งต่อไป${destination}`,
           type: 'success'
         });
 
@@ -598,11 +598,11 @@ export const ApprovalPage = () => {
       
     } catch (error) {
       console.error('Error in handleSignatureComplete:', error);
-      addNotification({ 
-        userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to approve request(s).', 
-        type: 'error' 
+      addNotification({
+        userId: user.id,
+        title: 'เกิดข้อผิดพลาด',
+        message: 'อนุมัติคำร้องล้มเหลว',
+        type: 'error'
       });
       // Don't reset states on error so user can try again
       throw error; // Re-throw to let SignaturePopup handle the error state
@@ -619,20 +619,20 @@ export const ApprovalPage = () => {
       await updateRequestStatus(requestId, 'rejected_manager', comment);
       
       // Note: The state will be updated automatically by the context
-      addNotification({ 
-        userId: user.id, 
-        title: 'Success', 
-        message: 'Request rejected successfully.', 
-        type: 'success' 
+      addNotification({
+        userId: user.id,
+        title: 'สำเร็จ',
+        message: 'ปฏิเสธคำร้องสำเร็จ',
+        type: 'success'
       });
       setIsModalOpen(false);
       setIsRejectionModalOpen(false);
     } catch (error) {
-      addNotification({ 
-        userId: user.id, 
-        title: 'Error', 
-        message: 'Failed to reject request.', 
-        type: 'error' 
+      addNotification({
+        userId: user.id,
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ปฏิเสธคำร้องล้มเหลว',
+        type: 'error'
       });
     } finally {
       setIsLoading(false);
@@ -645,7 +645,7 @@ export const ApprovalPage = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading authentication...</p>
+            <p className="text-gray-600">กำลังตรวจสอบสิทธิ์...</p>
           </div>
         </div>
       </Layout>
@@ -852,7 +852,7 @@ export const ApprovalPage = () => {
         <LoadingPopup open={isLoading} />
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <p className="text-gray-600">Processing approval...</p>
+            <p className="text-gray-600">กำลังดำเนินการอนุมัติ...</p>
           </div>
         </div>
       </Layout>
@@ -866,7 +866,7 @@ export const ApprovalPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            <span>Manager Approval Dashboard</span>
+            <span>แดชบอร์ดอนุมัติคำร้อง (ผู้จัดการ)</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -882,11 +882,11 @@ export const ApprovalPage = () => {
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" />
-                History
+                ประวัติ
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Reports
+                รายงาน
               </TabsTrigger>
             </TabsList>
             
@@ -900,7 +900,7 @@ export const ApprovalPage = () => {
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      placeholder="Search by employee..." 
+                      placeholder="ค้นหาพนักงาน..." 
                       className="pl-8" 
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -910,18 +910,18 @@ export const ApprovalPage = () => {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                         <Filter className="mr-2 h-4 w-4" />
-                        <span>Filter by date</span>
+                        <span>กรองตามวันที่</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-4">
-                        <h4 className="font-medium mb-2">Filters</h4>
+                        <h4 className="font-medium mb-2">ตัวกรอง</h4>
                         <div className="mt-4">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -944,14 +944,14 @@ export const ApprovalPage = () => {
                     disabled={selectedRequests.length === 0}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve ({selectedRequests.length})
+                    อนุมัติ ({selectedRequests.length})
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleBulkReject}
                     disabled={selectedRequests.length === 0}
                     variant="destructive"
                   >
-                    Reject ({selectedRequests.length})
+                    ปฏิเสธ ({selectedRequests.length})
                   </Button>
                 </div>
               </div>
@@ -969,22 +969,21 @@ export const ApprovalPage = () => {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Approved by Manager</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>สถานะ</TableHead>
                       <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">PDF</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องสวัสดิการที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
@@ -1009,21 +1008,7 @@ export const ApprovalPage = () => {
                           <TableCell>{request.amount ? `฿${request.amount.toLocaleString()}` : '-'}</TableCell>
                           <TableCell>{format(new Date(request.date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell>
-                            {request.managerApproverName ? (
-                              <div className="text-sm">
-                                <div className="font-medium">{request.managerApproverName}</div>
-                                {request.managerApprovedAt && (
-                                  <div className="text-muted-foreground">
-                                    {format(new Date(request.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
+                            <Badge
                               variant={
                                 request.status === 'approved' ? 'default' :
                                 request.status === 'pending_manager' ? 'secondary' :
@@ -1118,7 +1103,7 @@ export const ApprovalPage = () => {
                                 size="sm"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                View
+                                ดูรายละเอียด
                               </Button>
                               {request.status === 'pending_manager' && (
                                 <Button
@@ -1127,7 +1112,7 @@ export const ApprovalPage = () => {
                                   disabled={isLoading}
                                   className="bg-green-600 hover:bg-green-700"
                                 >
-                                  Approve
+                                  อนุมัติ
                                 </Button>
                               )}
                             </div>
@@ -1150,7 +1135,7 @@ export const ApprovalPage = () => {
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      placeholder="Search by employee..." 
+                      placeholder="ค้นหาพนักงาน..." 
                       className="pl-8" 
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -1160,18 +1145,18 @@ export const ApprovalPage = () => {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                         <Filter className="mr-2 h-4 w-4" />
-                        <span>Filter by date</span>
+                        <span>กรองตามวันที่</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-4">
-                        <h4 className="font-medium mb-2">Filters</h4>
+                        <h4 className="font-medium mb-2">ตัวกรอง</h4>
                         <div className="mt-4">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -1194,14 +1179,14 @@ export const ApprovalPage = () => {
                     disabled={selectedRequests.length === 0 || isLoading}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve Selected ({selectedRequests.length})
+                    อนุมัติที่เลือก ({selectedRequests.length})
                   </Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleBulkReject} 
+                  <Button
+                    variant="destructive"
+                    onClick={handleBulkReject}
                     disabled={selectedRequests.length === 0 || isLoading}
                   >
-                    Reject Selected ({selectedRequests.length})
+                    ปฏิเสธที่เลือก ({selectedRequests.length})
                   </Button>
                 </div>
               </div>
@@ -1219,22 +1204,21 @@ export const ApprovalPage = () => {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Approved by Manager</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>สถานะ</TableHead>
                       <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">PDF</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องบัญชีที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
@@ -1259,21 +1243,7 @@ export const ApprovalPage = () => {
                           <TableCell>{request.amount ? `฿${request.amount.toLocaleString()}` : '-'}</TableCell>
                           <TableCell>{format(new Date(request.date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell>
-                            {request.managerApproverName ? (
-                              <div className="text-sm">
-                                <div className="font-medium">{request.managerApproverName}</div>
-                                {request.managerApprovedAt && (
-                                  <div className="text-muted-foreground">
-                                    {format(new Date(request.managerApprovedAt), 'dd/MM/yyyy HH:mm')}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
+                            <Badge
                               variant={
                                 request.status === 'approved' ? 'default' :
                                 request.status === 'pending_manager' ? 'secondary' :
@@ -1368,7 +1338,7 @@ export const ApprovalPage = () => {
                                 size="sm"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                View
+                                ดูรายละเอียด
                               </Button>
                               {request.status === 'pending_manager' && (
                                 <Button
@@ -1377,7 +1347,7 @@ export const ApprovalPage = () => {
                                   disabled={isLoading}
                                   className="bg-green-600 hover:bg-green-700"
                                 >
-                                  Approve
+                                  อนุมัติ
                                 </Button>
                               )}
                             </div>
@@ -1395,7 +1365,7 @@ export const ApprovalPage = () => {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search by employee..." 
+                    placeholder="ค้นหาพนักงาน..." 
                     className="pl-8" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -1405,24 +1375,24 @@ export const ApprovalPage = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
                       <Filter className="mr-2 h-4 w-4" />
-                      <span>Filter by status, date</span>
+                      <span>กรองตามสถานะ, วันที่</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <div className="p-4">
-                      <h4 className="font-medium mb-2">Filters</h4>
+                      <h4 className="font-medium mb-2">ตัวกรอง</h4>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Status" />
+                          <SelectValue placeholder="สถานะ" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Statuses</SelectItem>
-                          <SelectItem value="pending_hr">Pending HR</SelectItem>
-                          <SelectItem value="pending_accounting">Pending Accounting</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="rejected_manager">Rejected by Manager</SelectItem>
-                          <SelectItem value="rejected_hr">Rejected by HR</SelectItem>
-                          <SelectItem value="rejected_accounting">Rejected by Accounting</SelectItem>
+                          <SelectItem value="all">สถานะทั้งหมด</SelectItem>
+                          <SelectItem value="pending_hr">รอ HR</SelectItem>
+                          <SelectItem value="pending_accounting">รอบัญชี</SelectItem>
+                          <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
+                          <SelectItem value="rejected_manager">ปฏิเสธโดยผู้จัดการ</SelectItem>
+                          <SelectItem value="rejected_hr">ปฏิเสธโดย HR</SelectItem>
+                          <SelectItem value="rejected_accounting">ปฏิเสธโดยบัญชี</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="mt-4">
@@ -1430,7 +1400,7 @@ export const ApprovalPage = () => {
                           <PopoverTrigger asChild>
                             <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                              {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -1452,17 +1422,17 @@ export const ApprovalPage = () => {
                 <Table>
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Welfare Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Submission Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Processed Date</TableHead>
+                      <TableHead>พนักงาน</TableHead>
+                      <TableHead>แผนก</TableHead>
+                      <TableHead>ประเภทสวัสดิการ</TableHead>
+                      <TableHead>จำนวนเงิน</TableHead>
+                      <TableHead>วันที่ยื่น</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead>วันที่ดำเนินการ</TableHead>
                       <TableHead className="w-[200px]">หมายเหตุ</TableHead>
-                      <TableHead className="text-center">Attachment</TableHead>
+                      <TableHead className="text-center">เอกสารแนบ</TableHead>
                       <TableHead className="text-center">เอกสารการอนุมัติ</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1483,27 +1453,27 @@ export const ApprovalPage = () => {
                           <TableCell>
                             {req.status === 'pending_hr' ? (
                               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                                Pending HR
+                                รอ HR
                               </Badge>
                             ) : req.status === 'pending_accounting' ? (
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                Pending Accounting
+                                รอบัญชี
                               </Badge>
                             ) : req.status === 'approved' ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                Approved
+                                อนุมัติแล้ว
                               </Badge>
                             ) : req.status === 'rejected_manager' ? (
                               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by Manager
+                                ปฏิเสธโดยผู้จัดการ
                               </Badge>
                             ) : req.status === 'rejected_hr' ? (
                               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by HR
+                                ปฏิเสธโดย HR
                               </Badge>
                             ) : req.status === 'rejected_accounting' ? (
                               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by Accounting
+                                ปฏิเสธโดยบัญชี
                               </Badge>
                             ) : (
                               <Badge variant="outline">
@@ -1519,7 +1489,7 @@ export const ApprovalPage = () => {
                             <div className="text-sm space-y-1">
                               {req.managerNotes && (
                                 <div>
-                                  <span className="font-medium">Manager:</span> {req.managerNotes}
+                                  <span className="font-medium">ผู้จัดการ:</span> {req.managerNotes}
                                 </div>
                               )}
                               {req.hrNotes && (
@@ -1529,7 +1499,7 @@ export const ApprovalPage = () => {
                               )}
                               {req.accountingNotes && (
                                 <div>
-                                  <span className="font-medium">Accounting:</span> {req.accountingNotes}
+                                  <span className="font-medium">บัญชี:</span> {req.accountingNotes}
                                 </div>
                               )}
                             </div>
@@ -1574,7 +1544,7 @@ export const ApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>View</Button>
+                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(req)}>ดูรายละเอียด</Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -1925,21 +1895,21 @@ export const ApprovalPage = () => {
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Request Details</DialogTitle>
+              <DialogTitle>รายละเอียดคำร้อง</DialogTitle>
             </DialogHeader>
             <div>
               <div className="space-y-2">
-                <p><strong>Employee:</strong> {selectedRequest.userName}</p>
-                <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
-                <p><strong>Welfare Type:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
-                <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
-                <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
-                <p><strong>Status:</strong> {selectedRequest.status}</p>
-                <p><strong>Approved By:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'Not approved yet'}</p>
-                <p><strong>Details:</strong> {selectedRequest.details}</p>
-                <p><strong>Title:</strong> {selectedRequest.title}</p>
-                <p><strong>Attachment:</strong> {selectedRequest.attachments && selectedRequest.attachments[0] ? (<a href={selectedRequest.attachments[0]} target="_blank" rel="noopener noreferrer">View Attachment</a>) : 'No attachment'}</p>
-                <p><strong>Attachment:</strong> {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
+                <p><strong>พนักงาน:</strong> {selectedRequest.userName}</p>
+                <p><strong>แผนก:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
+                <p><strong>ประเภทสวัสดิการ:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
+                <p><strong>จำนวนเงิน:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
+                <p><strong>วันที่:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
+                <p><strong>สถานะ:</strong> {selectedRequest.status}</p>
+                <p><strong>อนุมัติโดย:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'ยังไม่อนุมัติ'}</p>
+                <p><strong>รายละเอียด:</strong> {selectedRequest.details}</p>
+                <p><strong>หัวข้อ:</strong> {selectedRequest.title}</p>
+                <p><strong>เอกสารแนบ:</strong> {selectedRequest.attachments && selectedRequest.attachments[0] ? (<a href={selectedRequest.attachments[0]} target="_blank" rel="noopener noreferrer">ดูเอกสาร</a>) : 'ไม่มีเอกสารแนบ'}</p>
+                <p><strong>เอกสารแนบ:</strong> {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
                   <span className="flex flex-wrap gap-2">
                     {selectedRequest.attachments.map((file, idx) => (
                       <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
@@ -1948,8 +1918,8 @@ export const ApprovalPage = () => {
                       </a>
                     ))}
                   </span>
-                ) : 'No attachment'}</p>
-                <p><strong>Manager Notes:</strong> {selectedRequest.notes}</p>
+                ) : 'ไม่มีเอกสารแนบ'}</p>
+                <p><strong>หมายเหตุผู้จัดการ:</strong> {selectedRequest.notes}</p>
                 
                 {/* Signature Display Section */}
                 {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
@@ -1985,26 +1955,26 @@ export const ApprovalPage = () => {
                     onClick={() => downloadPDF(selectedRequest.id)}
                     disabled={isPDFLoading || isLoading}
                   >
-                    {isPDFLoading ? 'Downloading...' : 'Download PDF'}
+                    {isPDFLoading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด PDF'}
                   </Button>
-                  
+
                   {/* Preview Button - Show only if there are signatures */}
                   {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
-                    <Button 
+                    <Button
                       variant="default"
                       onClick={() => previewPDF(selectedRequest.id)}
                       className="bg-blue-600 hover:bg-blue-700"
                       disabled={isPDFLoading || isLoading}
                     >
-                      {isPDFLoading ? 'Loading...' : 'Preview PDF with Signatures'}
+                      {isPDFLoading ? 'กำลังโหลด...' : 'ดูตัวอย่าง PDF พร้อมลายเซ็น'}
                     </Button>
                   )}
                 </div>
                 
                 <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Rejection Reason (if applicable):</p>
-                  <Input 
-                    placeholder="Enter reason for rejection..." 
+                  <p className="text-sm font-medium mb-2">เหตุผลการปฏิเสธ (ถ้ามี):</p>
+                  <Input
+                    placeholder="ระบุเหตุผลการปฏิเสธ..."
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                   />
@@ -2014,17 +1984,17 @@ export const ApprovalPage = () => {
             <DialogFooter>
               {selectedRequest.status === 'pending_manager' && (
                 <>
-                  <Button 
+                  <Button
                     onClick={() => handleApprove(selectedRequest.id)}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve
+                    อนุมัติ
                   </Button>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     onClick={() => handleReject(selectedRequest.id, rejectionReason)}
                   >
-                    Reject
+                    ปฏิเสธ
                   </Button>
                 </>
               )}
@@ -2036,17 +2006,17 @@ export const ApprovalPage = () => {
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Rejection</DialogTitle>
+            <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>Please provide a reason for rejecting the selected requests.</p>
-          <Input 
-            value={rejectionReason} 
-            onChange={(e) => setRejectionReason(e.target.value)} 
-            placeholder="Rejection reason..."
+          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้องที่เลือก</p>
+          <Input
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="เหตุผลการปฏิเสธ..."
           />
           <DialogFooter>
-            <Button onClick={confirmRejection}>Confirm</Button>
-            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>Cancel</Button>
+            <Button onClick={confirmRejection}>ยืนยัน</Button>
+            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

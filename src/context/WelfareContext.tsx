@@ -172,6 +172,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               advanceDealerName: row.advance_dealer_name,
               advanceSubdealerName: row.advance_subdealer_name,
               advanceExpenseItems: row.advance_expense_items,
+              // Bank account information
+              bankAccountName: row.bank_account_name,
+              bankName: row.bank_name,
+              bankAccountNumber: row.bank_account_number,
               // Expense clearing specific fields
               originalAdvanceRequestId: row.original_advance_request_id,
               originalAdvanceRunNumber: row.original_advance_run_number,

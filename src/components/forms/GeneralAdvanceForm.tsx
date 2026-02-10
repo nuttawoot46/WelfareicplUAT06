@@ -879,10 +879,12 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
             {/* วันที่และจำนวนผู้เข้าร่วม */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="form-label">วันที่เริ่มกิจกรรม</label>
+                <label className="form-label cursor-pointer" onClick={() => (document.getElementById('genAdvStartDate') as HTMLInputElement)?.showPicker?.()}>วันที่เริ่มกิจกรรม</label>
                 <Input
+                  id="genAdvStartDate"
                   type="date"
-                  className="form-input"
+                  className="form-input cursor-pointer"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   {...register('startDate', {
                     required: 'กรุณาระบุวันที่เริ่มกิจกรรม'
                   })}
@@ -893,10 +895,12 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">วันที่สิ้นสุดกิจกรรม</label>
+                <label className="form-label cursor-pointer" onClick={() => (document.getElementById('genAdvEndDate') as HTMLInputElement)?.showPicker?.()}>วันที่สิ้นสุดกิจกรรม</label>
                 <Input
+                  id="genAdvEndDate"
                   type="date"
-                  className="form-input"
+                  className="form-input cursor-pointer"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   {...register('endDate')}
                 />
                 {errors.endDate && (
@@ -1037,7 +1041,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 text-right"
+                          className="w-32 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1065,7 +1069,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-welfare-blue/10 font-semibold text-right"
+                          className="w-32 bg-welfare-blue/10 font-semibold text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly

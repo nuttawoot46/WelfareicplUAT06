@@ -4,6 +4,7 @@ import { UserManagement } from './admin/UserManagement';
 import { SupportManagement } from './admin/SupportManagement';
 import { AnnouncementManagement } from './admin/AnnouncementManagement';
 import { FormManagement } from './admin/FormManagement';
+import { PdfTemplateManagement } from './admin/PdfTemplateManagement';
 import React, { Suspense } from 'react';
 
 const AdminReport = React.lazy(() => import('./AdminReport'));
@@ -20,6 +21,7 @@ const Admin = () => {
             <Route path="support" element={<SupportManagement />} />
             <Route path="announcements" element={<AnnouncementManagement />} />
             <Route path="forms" element={<FormManagement />} />
+            <Route path="pdf-templates" element={<PdfTemplateManagement />} />
             <Route
               path="report"
               element={

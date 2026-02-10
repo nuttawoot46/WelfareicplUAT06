@@ -559,9 +559,14 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                             } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
                               pdfUrl = request.pdf_request_manager;
                               pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
-                            } else if ((request.status === 'pending_accounting' || request.status === 'completed') && request.pdf_request_hr) {
-                              pdfUrl = request.pdf_request_hr;
-                              pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
+                            } else if (request.status === 'pending_accounting' || request.status === 'completed') {
+                              if (request.pdf_request_hr) {
+                                pdfUrl = request.pdf_request_hr;
+                                pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
+                              } else if (request.pdf_request_manager) {
+                                pdfUrl = request.pdf_request_manager;
+                                pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
+                              }
                             } else if (request.pdf_url) {
                               pdfUrl = request.pdf_url;
                             }

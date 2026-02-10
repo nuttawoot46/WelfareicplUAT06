@@ -198,16 +198,16 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
       <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
       
       <Tabs defaultValue="advance" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-1">
-          <TabsTrigger 
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 border border-gray-200 p-1.5 rounded-xl h-auto">
+          <TabsTrigger
             value="advance"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+            className="rounded-lg border border-transparent bg-white/60 text-gray-600 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-blue-600 transition-all"
           >
             เบิกค่าใช้จ่าย
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="clearing"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"
+            className="rounded-lg border border-transparent bg-white/60 text-gray-600 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-emerald-600 transition-all"
           >
             เคลียร์ค่าใช้จ่าย
           </TabsTrigger>

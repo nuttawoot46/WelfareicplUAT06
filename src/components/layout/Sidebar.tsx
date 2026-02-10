@@ -320,14 +320,14 @@ export function Sidebar() {
             </Link>
           )}
 
-          {/* Notifications */}
+          {/* Notifications & Activity History */}
           <Link to="/notifications" className={cn(
             "nav-link group",
             isActive('/notifications') ? "nav-link-active" : "text-white/90 hover:text-white"
           )}>
             <Bell className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">การแจ้งเตือน</span>
+              <span className="transition-all duration-300 text-white font-medium">แจ้งเตือน / ประวัติ</span>
             )}
           </Link>
 
@@ -471,6 +471,13 @@ export function Sidebar() {
                     <Layout className="h-4 w-4" />
                     <span>จัดการฟอร์ม</span>
                   </Link>
+                  <Link to="/admin/pdf-templates" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    <span>จัดการเทมเพลต PDF</span>
+                  </Link>
                   <Link to="/admin/report" className={cn(
                     "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
                     isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
@@ -484,18 +491,6 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Activity History - visible to all roles except superadmin (who uses /superadmin/audit) */}
-          {!isSuperAdmin && (
-            <Link to="/activity-history" className={cn(
-              "nav-link group",
-              isActive('/activity-history') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <Activity className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">ประวัติกิจกรรม</span>
-              )}
-            </Link>
-          )}
 
           {/* User Guide */}
           <Link to="/user-guide" className={cn(

@@ -113,7 +113,7 @@ const createSalesAdvanceFormHTML = (
         </div>
 
         <!-- Center Title -->
-        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -2.5cm;">
+        <div style="text-align: center; flex: 1; margin: 0 20px; margin-left: -0.5cm;">
           <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">ใบขออนุมัติ</div>
           <div style="font-size: 14px; margin-bottom: 5px; color: #0066cc;">เบิกเงินล่วงหน้า (ฝ่ายขาย)</div>
           <div style="font-size: 12px;">วันที่ ${currentDate}</div>
@@ -126,37 +126,37 @@ const createSalesAdvanceFormHTML = (
       </div>
 
       <!-- Employee Info Section -->
-      <div style="margin-bottom: 20px; padding: 15px 0;">
+      <div style="margin-bottom: 8px;">
         <div style="font-weight: bold; margin-bottom: 10px;">ข้อมูลผู้ขอเบิก (ฝ่ายขาย)</div>
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">ชื่อ-นามสกุล:</span>
-          <span style="border-bottom: none; flex: 1; padding-bottom: 2px;">${employeeName}</span>
-          <span style="margin-left: 20px; font-weight: bold;">ตำแหน่ง:</span>
-          <span style="border-bottom: none; width: 150px; margin-left: 10px; padding-bottom: 2px;">${employeePosition}</span>
+          <span style="font-weight: bold;">ชื่อ-นามสกุล:</span>
+          <span style="margin-left: 8px;">${employeeName}</span>
+          <span style="margin-left: 40px; font-weight: bold;">ตำแหน่ง:</span>
+          <span style="margin-left: 8px;">${employeePosition}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: none; flex: 1; padding-bottom: 2px;">${advanceData.advanceDepartment || ''}</span>
-          <span style="margin-left: 20px; font-weight: bold;">เขตการขาย:</span>
-          <span style="border-bottom: none; width: 150px; margin-left: 10px; padding-bottom: 2px;">${salesDistrict}</span>
+          <span style="font-weight: bold;">แผนก:</span>
+          <span style="margin-left: 8px;">${advanceData.advanceDepartment || ''}</span>
+          <span style="margin-left: 40px; font-weight: bold;">เขตการขาย:</span>
+          <span style="margin-left: 8px;">${salesDistrict}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">วันที่ยื่นคำร้อง:</span>
-          <span style="border-bottom: none; width: 120px; padding-bottom: 2px;">${formatThaiDate(advanceData.createdAt || '')}</span>
-          <span style="margin-left: 20px; font-weight: bold;">จำนวนเงิน:</span>
-          <span style="border-bottom: none; width: 120px; margin-left: 10px; padding-bottom: 2px; text-align: right; font-weight: bold; color: #0066cc;">
+          <span style="font-weight: bold;">วันที่ยื่นคำร้อง:</span>
+          <span style="margin-left: 8px;">${formatThaiDate(advanceData.createdAt || '')}</span>
+          <span style="margin-left: 40px; font-weight: bold;">จำนวนเงิน:</span>
+          <span style="margin-left: 8px; font-weight: bold; color: #0066cc;">
             ${formatCurrency(displayAmount)} บาท
           </span>
         </div>
       </div>
 
       <!-- Activity Type Section -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 8px;">
         <div style="display: flex; margin-bottom: 10px;">
           <span style="font-weight: bold;">ประเภทกิจกรรม:</span>
-          <span style="border-bottom: none; flex: 1; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 8px;">
             ${advanceData.advanceActivityType || '-'}
           </span>
         </div>
@@ -171,41 +171,39 @@ const createSalesAdvanceFormHTML = (
 
         <div style="display: flex; margin-bottom: 10px;">
           <span>วันที่เริ่มกิจกรรม</span>
-          <span style="border-bottom: none; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 8px;">
             ${advanceData.start_date ? formatThaiDate(advanceData.start_date) : formatThaiDate(advanceData.createdAt || '')}
           </span>
-          <span style="margin-left: 20px;">วันสิ้นสุดกิจกรรม</span>
-          <span style="border-bottom: none; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 40px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="margin-left: 8px;">
             ${advanceData.end_date ? formatThaiDate(advanceData.end_date) : ''}
           </span>
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
           <span>จำนวนผู้เข้าร่วม</span>
-          <span style="border-bottom: none; width: 60px; margin-left: 10px; padding-bottom: 2px; text-align: center;">
-            ${advanceData.advanceParticipants || ''}
-          </span>
+          <span style="margin-left: 8px;">${advanceData.advanceParticipants || ''}</span>
           <span style="margin-left: 5px;">คน</span>
         </div>
       </div>
 
       <!-- Sales Information Section -->
-      <div style="margin-bottom: 20px; padding: 15px 0;">
+      <div style="margin-bottom: 8px;">
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">ชื่อดิลเลอร์:</span>
-          <span style="border-bottom: none; flex: 1; padding-bottom: 2px;">${salesDealerName}</span>
+          <span style="font-weight: bold;">ชื่อดิลเลอร์:</span>
+          <span style="margin-left: 8px;">${salesDealerName}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">ชื่อซับดิลเลอร์:</span>
-          <span style="border-bottom: none; flex: 1; padding-bottom: 2px;">${salesSubdealerName}</span>
+          <span style="font-weight: bold;">ชื่อซับดิลเลอร์:</span>
+          <span style="margin-left: 8px;">${salesSubdealerName}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 120px; font-weight: bold;">อำเภอ:</span>
-          <span style="border-bottom: none; width: 150px; padding-bottom: 2px;">${salesAmphur}</span>
-          <span style="margin-left: 20px; font-weight: bold;">จังหวัด:</span>
-          <span style="border-bottom: none; flex: 1; margin-left: 10px; padding-bottom: 2px;">${salesProvince}</span>
+          <span style="font-weight: bold;">อำเภอ:</span>
+          <span style="margin-left: 8px;">${salesAmphur}</span>
+          <span style="margin-left: 40px; font-weight: bold;">จังหวัด:</span>
+          <span style="margin-left: 8px;">${salesProvince}</span>
         </div>
       </div>
 
@@ -217,10 +215,10 @@ const createSalesAdvanceFormHTML = (
           <thead>
             <tr style="background: #e3f2fd;">
               <th style="border: 1px solid black; padding: 6px; text-align: center; width: 8%;">ลำดับ</th>
-              <th style="border: 1px solid black; padding: 6px; text-align: left; width: 37%;">ชื่อรายการ</th>
-              <th style="border: 1px solid black; padding: 6px; text-align: right; width: 22%;">จำนวนเงินเบิก</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 37%;">ชื่อรายการ</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 22%;">จำนวนเงินเบิก</th>
               <th style="border: 1px solid black; padding: 6px; text-align: center; width: 10%;">% ภาษี</th>
-              <th style="border: 1px solid black; padding: 6px; text-align: right; width: 23%;">ยอดเงินสุทธิ</th>
+              <th style="border: 1px solid black; padding: 6px; text-align: center; width: 23%;">ยอดเงินสุทธิ</th>
             </tr>
           </thead>
           <tbody>
@@ -233,12 +231,12 @@ const createSalesAdvanceFormHTML = (
     return `
                 <tr>
                   <td style="border: 1px solid black; padding: 5px; text-align: center;">${index + 1}</td>
-                  <td style="border: 1px solid black; padding: 5px;">${item.name || 'รายการไม่ระบุ'}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: right;">
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">${item.name || 'รายการไม่ระบุ'}</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">
                     ${formatCurrency(requestAmount)}
                   </td>
                   <td style="border: 1px solid black; padding: 5px; text-align: center;">${taxRate}%</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: right; font-weight: bold;">
+                  <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                     ${formatCurrency(netAmount)}
                   </td>
                 </tr>
@@ -251,11 +249,11 @@ const createSalesAdvanceFormHTML = (
             ` : ''}
             <tr style="background: #bbdefb; font-weight: bold;">
               <td style="border: 1px solid black; padding: 8px; text-align: center;" colspan="2">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 8px; text-align: right; color: #1565c0;">
+              <td style="border: 1px solid black; padding: 8px; text-align: left; color: #1565c0;">
                 ${formatCurrency(totalAmount)}
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: center;">-</td>
-              <td style="border: 1px solid black; padding: 8px; text-align: right; color: #1565c0; font-size: 12px;">
+              <td style="border: 1px solid black; padding: 8px; text-align: left; color: #1565c0; font-size: 12px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => {
     return sum + (Number(item.netAmount) || 0);
   }, 0))}
@@ -263,6 +261,23 @@ const createSalesAdvanceFormHTML = (
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Bank Account Section -->
+      <div style="margin-bottom: 32px;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #0066cc;">ข้อมูลบัญชีธนาคาร (สำหรับโอนเงิน)</div>
+        <div style="margin-bottom: 8px;">
+          <span style="font-weight: bold;">ชื่อบัญชี:</span>
+          <span style="margin-left: 8px;">${advanceData.bankAccountName || '-'}</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <span style="font-weight: bold;">ธนาคาร:</span>
+          <span style="margin-left: 8px;">${advanceData.bankName || '-'}</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <span style="font-weight: bold;">เลขที่บัญชี:</span>
+          <span style="margin-left: 8px;">${advanceData.bankAccountNumber || '-'}</span>
+        </div>
       </div>
 
       <!-- Signature Section -->
