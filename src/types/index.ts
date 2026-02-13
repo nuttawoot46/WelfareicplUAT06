@@ -32,14 +32,17 @@ export interface Employee {
   budget_wedding?: number;
   budget_fitness?: number;
   manager_id?: number; // ID reference to the employee's manager
+  executive_id?: number; // ID reference to the employee's executive (for MR → ME chain)
 }
 
 export type StatusType =
+  | 'pending_executive' // สำหรับ Marketing Representative → Marketing Executive
   | 'pending_manager'
   | 'pending_hr'
   | 'pending_accounting'
   | 'pending_special_approval' // สำหรับ Internal Training > 10,000 บาท
   | 'completed'
+  | 'rejected_executive'
   | 'rejected_manager'
   | 'rejected_hr'
   | 'rejected_accounting'
@@ -110,6 +113,13 @@ export interface WelfareRequest {
   managerApproverName?: string; // Name of manager who approved
   managerApproverPosition?: string; // Position of manager who approved
   managerApprovedAt?: string; // Date and time when manager approved
+  // Executive approval fields (for Marketing Representative → Marketing Executive)
+  executiveId?: number; // ID of the executive assigned to this request
+  executiveApproverId?: string; // ID of executive who approved
+  executiveApproverName?: string; // Name of executive who approved
+  executiveApproverPosition?: string; // Position of executive who approved
+  executiveApprovedAt?: string; // Date and time when executive approved
+  executiveSignature?: string; // Executive's digital signature (Base64)
   // Special approval fields (for Internal Training > 10,000 บาท)
   specialApproverId?: string; // ID of special approver (kanin.s@icpladda.com)
   specialApproverName?: string; // Name of special approver

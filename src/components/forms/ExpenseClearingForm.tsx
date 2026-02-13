@@ -338,9 +338,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       if (!user?.email) return;
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('Employee')
-          .select('id, Name, Position, Team')
+          .select('id, Name, Position, Team, sales_zone') as any)
           .eq('email_user', user.email)
           .single();
 
@@ -352,23 +352,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
             setValue('advanceDepartment', data.Team);
           }
 
-          // Fetch district code from sales_data based on employee name
-          if (data.Name) {
-            const { data: salesData, error: salesError } = await supabase
-              .from('sales_data' as any)
-              .select('code')
-              .eq('name', data.Name)
-              .single();
-
-            if (!salesError && salesData) {
-              const districtCode = (salesData as any).code;
-              if (districtCode) {
-                setValue('advanceDistrict', districtCode);
-                console.log('✅ Auto-populated district code:', districtCode, 'for employee:', data.Name);
-              }
-            } else {
-              console.log('ℹ️ No district code found for employee:', data.Name);
-            }
+          // Auto-populate district from sales_zone in Employee table
+          if (data.sales_zone) {
+            setValue('advanceDistrict', data.sales_zone);
           }
         }
       } catch (error) {
@@ -451,6 +437,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           .select('id, amount, created_at, details, advance_activity_type, status, run_number')
           .eq('employee_id', employeeData.id)
           .eq('request_type', 'advance')
+          .eq('status', 'completed')
           .order('created_at', { ascending: false });
 
         if (!error && data) {
@@ -1188,7 +1175,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               ) : (
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <p className="text-gray-600 text-base">
-                    ไม่พบคำขอเบิกเงินล่วงหน้าที่ได้รับการอนุมัติแล้ว กรุณากรอกข้อมูลใหม่ทั้งหมดในส่วนข้อมูลทั่วไปด้านล่าง
+                    ไม่พบคำขอเบิกเงินล่วงหน้าที่ได้รับการอนุมัติแล้ว
                   </p>
                 </div>
               )}
@@ -1639,7 +1626,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1667,7 +1654,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1695,7 +1682,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1721,7 +1708,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-gray-100 text-right"
+                          className="w-28 bg-gray-100 text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.taxAmount`))}
                           readOnly
@@ -1735,7 +1722,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-blue-50 font-semibold text-right"
+                          className="w-28 bg-blue-50 font-semibold text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.netAmount`))}
                           readOnly
@@ -1749,7 +1736,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className={`w-28 text-right ${
+                          className={`w-28 text-left ${
                             (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0
                               ? 'bg-green-50'
                               : 'bg-red-50'
@@ -1783,7 +1770,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1795,7 +1782,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1807,7 +1794,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1819,7 +1806,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1831,7 +1818,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1843,7 +1830,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const total = calculateTotalRefund(); // Calculate in real-time
                         const isNegative = total < 0;

@@ -127,7 +127,7 @@ const createAdvanceFormHTML = (
           <span style="margin-left: 40px; font-weight: bold;">ตำแหน่ง:</span>
           <span style="margin-left: 8px;">${employeePosition}</span>
           <span style="margin-left: 40px; font-weight: bold;">แผนก:</span>
-          <span style="margin-left: 8px;">${advanceData.advanceDepartment || ''}</span>
+          <span style="margin-left: 8px;">${advanceData.advanceDepartment === 'อื่นๆ' ? advanceData.advanceDepartmentOther || 'อื่นๆ' : advanceData.advanceDepartment || ''}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">

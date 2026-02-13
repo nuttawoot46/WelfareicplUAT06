@@ -165,7 +165,7 @@ export const ApprovalPage = () => {
           if (!accountingTypes.includes(req.type)) return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by manager (approved or rejected)
-          const processedStatuses = ['pending_hr', 'pending_accounting', 'approved', 'rejected_manager', 'rejected_hr', 'rejected_accounting'];
+          const processedStatuses = ['pending_executive', 'pending_hr', 'pending_accounting', 'approved', 'rejected_executive', 'rejected_manager', 'rejected_hr', 'rejected_accounting'];
           if (!processedStatuses.includes(req.status)) return false;
         }
         
@@ -871,20 +871,20 @@ export const ApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="pending-welfare" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger value="pending-welfare" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                 <Clock className="h-4 w-4" />
                 สวัสดิการ
               </TabsTrigger>
-              <TabsTrigger value="pending-accounting" className="flex items-center gap-2">
+              <TabsTrigger value="pending-accounting" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                 <FileText className="h-4 w-4" />
                 บัญชี
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
+              <TabsTrigger value="history" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                 <History className="h-4 w-4" />
                 ประวัติ
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
+              <TabsTrigger value="reports" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
                 <BarChart3 className="h-4 w-4" />
                 รายงาน
               </TabsTrigger>
@@ -1017,10 +1017,12 @@ export const ApprovalPage = () => {
                                 request.status.includes('rejected') ? 'destructive' : 'secondary'
                               }
                             >
-                              {request.status === 'pending_manager' ? 'รอผู้จัดการ' :
+                              {request.status === 'pending_executive' ? 'รอ Executive' :
+                               request.status === 'pending_manager' ? 'รอผู้จัดการ' :
                                request.status === 'pending_hr' ? 'รอ HR' :
                                request.status === 'pending_accounting' ? 'รอบัญชี' :
                                request.status === 'approved' ? 'อนุมัติ' :
+                               request.status === 'rejected_executive' ? 'ปฏิเสธโดย Executive' :
                                request.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
                                request.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
@@ -1252,10 +1254,12 @@ export const ApprovalPage = () => {
                                 request.status.includes('rejected') ? 'destructive' : 'secondary'
                               }
                             >
-                              {request.status === 'pending_manager' ? 'รอผู้จัดการ' :
+                              {request.status === 'pending_executive' ? 'รอ Executive' :
+                               request.status === 'pending_manager' ? 'รอผู้จัดการ' :
                                request.status === 'pending_hr' ? 'รอ HR' :
                                request.status === 'pending_accounting' ? 'รอบัญชี' :
                                request.status === 'approved' ? 'อนุมัติ' :
+                               request.status === 'rejected_executive' ? 'ปฏิเสธโดย Executive' :
                                request.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
                                request.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :

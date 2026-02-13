@@ -91,7 +91,7 @@ const createSalesAdvanceFormHTML = (
   return `
     <div style="
       width: 210mm;
-      min-height: 297mm;
+      height: 297mm;
       padding: 15mm;
       font-family: 'Sarabun', Arial, sans-serif;
       font-size: 12px;
@@ -99,6 +99,8 @@ const createSalesAdvanceFormHTML = (
       background: white;
       color: black;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     ">
       <!-- Header Section -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
@@ -137,7 +139,7 @@ const createSalesAdvanceFormHTML = (
 
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">แผนก:</span>
-          <span style="margin-left: 8px;">${advanceData.advanceDepartment || ''}</span>
+          <span style="margin-left: 8px;">${advanceData.advanceDepartment === 'อื่นๆ' ? advanceData.advanceDepartmentOther || 'อื่นๆ' : advanceData.advanceDepartment || ''}</span>
           <span style="margin-left: 40px; font-weight: bold;">เขตการขาย:</span>
           <span style="margin-left: 8px;">${salesDistrict}</span>
         </div>
@@ -281,13 +283,13 @@ const createSalesAdvanceFormHTML = (
       </div>
 
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; margin-top: auto;">
         <!-- Left Signature - Employee -->
-        <div style="text-align: center; width: 200px;">
+        <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้ขอเบิก</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${userSignature ? `
-              <img src="${userSignature}" alt="User Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${userSignature}" alt="User Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
@@ -298,12 +300,28 @@ const createSalesAdvanceFormHTML = (
           </div>
         </div>
 
+        <!-- Center Signature - Executive (ME) -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">ผู้ตรวจสอบ (Executive)</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${advanceData.executiveSignature ? `
+              <img src="${advanceData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${advanceData.executiveApproverName || ''} )</div>
+            <div>ผู้ตรวจสอบ</div>
+            <div>ตำแหน่ง: ${advanceData.executiveApproverPosition || 'Marketing Executive'}</div>
+            <div>วันที่: ${advanceData.executiveApprovedAt ? formatThaiDate(advanceData.executiveApprovedAt) : ''}</div>
+          </div>
+        </div>
+
         <!-- Right Signature - Manager -->
-        <div style="text-align: center; width: 200px;">
+        <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 
 export function Sidebar() {
@@ -36,6 +37,7 @@ export function Sidebar() {
   const userRole = profile?.role?.toLowerCase() || '';
   const isAdmin = userRole === 'admin';
   const isSuperAdmin = userRole === 'superadmin';
+  const [isExecutive, setIsExecutive] = useState(false);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
 
@@ -85,6 +87,29 @@ export function Sidebar() {
       setAvatarUrl(profile.avatar_url || null);
     }
   }, [profile?.avatar_url]);
+
+  // Check if user is an executive (has employees with executive_id pointing to them)
+  useEffect(() => {
+    const checkExecutiveStatus = async () => {
+      if (!profile?.employee_id) return;
+      try {
+        const { data, error } = await (supabase
+          .from('Employee')
+          .select('id') as any)
+          .eq('executive_id', profile.employee_id)
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setIsExecutive(true);
+        } else {
+          setIsExecutive(false);
+        }
+      } catch {
+        setIsExecutive(false);
+      }
+    };
+    checkExecutiveStatus();
+  }, [profile?.employee_id]);
 
   return (
     <>
@@ -290,6 +315,19 @@ export function Sidebar() {
               <CheckSquare className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
                 <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (ผู้จัดการ)</span>
+              )}
+            </Link>
+          )}
+
+          {/* Executive Approval Page - Position-based */}
+          {isExecutive && (
+            <Link to="/executive-approve" className={cn(
+              "nav-link group",
+              isActive('/executive-approve') ? "nav-link-active" : "text-white/90 hover:text-white"
+            )}>
+              <CheckSquare className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (Marketing Executive)</span>
               )}
             </Link>
           )}

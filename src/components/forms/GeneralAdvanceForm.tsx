@@ -137,6 +137,22 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
   const { user, profile } = useAuth();
   const { submitRequest, refreshRequests } = useWelfare();
   const [files, setFiles] = useState<string[]>([]);
+
+  // Document type files & checkbox state for advance form
+  type GeneralAdvanceDocType = 'invoice' | 'bankbook';
+  const GENERAL_ADVANCE_DOC_TYPES: { key: GeneralAdvanceDocType; label: string }[] = [
+    { key: 'invoice', label: 'ใบแจ้งหนี้' },
+    { key: 'bankbook', label: 'บุ๊คแบงค์' },
+  ];
+
+  const [documentFiles, setDocumentFiles] = useState<Record<GeneralAdvanceDocType, string[]>>({
+    invoice: [],
+    bankbook: [],
+  });
+  const [documentSelections, setDocumentSelections] = useState<Record<GeneralAdvanceDocType, boolean>>({
+    invoice: false,
+    bankbook: false,
+  });
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
@@ -475,6 +491,73 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
     }
   };
 
+  // Handle checkbox toggle for document type
+  const handleDocCheckboxChange = (docType: GeneralAdvanceDocType) => {
+    setDocumentSelections(prev => ({
+      ...prev,
+      [docType]: !prev[docType]
+    }));
+    // Clear files if unchecked
+    if (documentSelections[docType]) {
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: []
+      }));
+    }
+  };
+
+  // Upload handler for specific document type
+  const handleDocTypeFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: GeneralAdvanceDocType) => {
+    const fileInput = e.target;
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    try {
+      const uploadPromises = Array.from(fileInput.files).map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${user?.id || 'anonymous'}/${docType}/${fileName}`;
+        const { data, error } = await supabase.storage
+          .from('welfare-attachments')
+          .upload(filePath, file);
+        if (error) throw error;
+        const { data: { publicUrl } } = supabase.storage
+          .from('welfare-attachments')
+          .getPublicUrl(data.path);
+        return publicUrl;
+      });
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: [...prev[docType], ...uploadedUrls]
+      }));
+      toast({ title: "อัพโหลดสำเร็จ", description: "อัพโหลดไฟล์เรียบร้อยแล้ว" });
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      toast({ title: "เกิดข้อผิดพลาด", description: `ไม่สามารถอัปโหลดไฟล์ได้: ${error.message}`, variant: "destructive" });
+    } finally {
+      fileInput.value = '';
+    }
+  };
+
+  // Remove handler for specific document type
+  const handleRemoveDocTypeFile = async (docType: GeneralAdvanceDocType, index: number) => {
+    try {
+      const fileUrl = documentFiles[docType][index];
+      const filePath = fileUrl.split('/').slice(-3).join('/');
+      const { error } = await supabase.storage
+        .from('welfare-attachments')
+        .remove([filePath]);
+      if (error) throw error;
+      setDocumentFiles(prev => ({
+        ...prev,
+        [docType]: prev[docType].filter((_, i) => i !== index)
+      }));
+      toast({ title: "ลบไฟล์สำเร็จ", description: "ลบไฟล์เรียบร้อยแล้ว" });
+    } catch (error: any) {
+      console.error('Error removing file:', error);
+      toast({ title: "เกิดข้อผิดพลาด", description: `ไม่สามารถลบไฟล์ได้: ${error.message}`, variant: "destructive" });
+    }
+  };
+
   // ฟังก์ชันสำหรับลบไฟล์ที่อัพโหลด
   const handleRemoveFile = async (index: number) => {
     try {
@@ -691,7 +774,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
         amount: Number(data.amount || 0),
         date: data.startDate || new Date().toISOString(),
         details: data.details || '',
-        attachments: files,
+        attachments: [...files, ...documentFiles.invoice, ...documentFiles.bankbook],
         notes: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -913,7 +996,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                 <Input
                   type="number"
                   min="1"
-                  placeholder="80"
+                  placeholder=""
                   className="form-input"
                   {...register('advanceParticipants', {
                     min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' }
@@ -1230,53 +1313,90 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
             </div>
           </div>
 
-          {/* แนบไฟล์ */}
+          {/* แนบเอกสารประกอบ */}
           <div className="space-y-4">
-            <label className="form-label">แนบไฟล์เอกสาร</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <div className="text-center">
-                <Paperclip className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-base font-medium text-gray-900">
-                      คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
-                    </span>
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
+            <p className="text-base text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
+
+            <div className="grid grid-cols-1 gap-4">
+              {GENERAL_ADVANCE_DOC_TYPES.map((docType) => (
+                <div key={docType.key} className="border rounded-lg p-4 bg-white">
+                  {/* Checkbox for document type */}
+                  <div className="flex items-center space-x-3 mb-3">
                     <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileChange}
+                      type="checkbox"
+                      id={`doc-${docType.key}`}
+                      checked={documentSelections[docType.key]}
+                      onChange={() => handleDocCheckboxChange(docType.key)}
+                      className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                     />
-                  </label>
-                  <p className="text-sm text-gray-500 mt-1">
-                    ใบแจ้งหนี้ บุคแบงค์
-                  </p>
+                    <label
+                      htmlFor={`doc-${docType.key}`}
+                      className="text-base font-medium text-gray-700 cursor-pointer"
+                    >
+                      {docType.label}
+                    </label>
+                  </div>
+
+                  {/* File upload area - shown when checkbox is checked */}
+                  {documentSelections[docType.key] && (
+                    <div className="mt-2 space-y-2">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                        <label htmlFor={`file-${docType.key}`} className="cursor-pointer block text-center">
+                          <Paperclip className="mx-auto h-6 w-6 text-gray-400" />
+                          <span className="mt-1 block text-sm text-gray-600">
+                            คลิกเพื่อเลือกไฟล์
+                          </span>
+                          <input
+                            id={`file-${docType.key}`}
+                            type="file"
+                            className="sr-only"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            onChange={(e) => handleDocTypeFileChange(e, docType.key)}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Show uploaded files for this document type */}
+                      {documentFiles[docType.key].length > 0 && (
+                        <div className="space-y-1">
+                          {documentFiles[docType.key].map((fileUrl, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
+                              <div className="flex items-center space-x-2">
+                                <Check className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm text-blue-700 truncate max-w-[150px]">
+                                  ไฟล์ {index + 1}
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveDocTypeFile(docType.key, index)}
+                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
             </div>
 
-            {/* แสดงรายการไฟล์ที่อัพโหลด */}
-            {files.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-base font-medium text-gray-700">ไฟล์ที่แนบ:</h4>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <span className="text-base text-gray-600 truncate">
-                        ไฟล์ที่ {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+            {/* Summary of uploaded documents */}
+            {Object.values(documentFiles).some(f => f.length > 0) && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-base font-medium text-blue-800 mb-2">สรุปเอกสารที่แนบ:</h4>
+                <div className="space-y-1">
+                  {GENERAL_ADVANCE_DOC_TYPES.filter(dt => documentFiles[dt.key].length > 0).map(dt => (
+                    <div key={dt.key} className="flex items-center text-sm text-blue-700">
+                      <Check className="h-3 w-3 mr-2" />
+                      {dt.label}: {documentFiles[dt.key].length} ไฟล์
                     </div>
                   ))}
                 </div>

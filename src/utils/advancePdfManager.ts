@@ -1,5 +1,6 @@
 import { WelfareRequest, User } from '@/types';
 import { generateAdvancePDF } from '@/components/pdf/AdvancePDFGenerator';
+import { generateSalesAdvancePDF } from '@/components/pdf/SalesAdvancePDFGenerator';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -349,7 +350,9 @@ const generateAdvancePDFAsBase64 = async (
   accountingSignature?: string
 ): Promise<string | null> => {
   try {
-    const pdfBlob = await generateAdvancePDF(
+    // Use sales-specific PDF generator for 'advance' (ฝ่ายขาย), general for 'general-advance'
+    const pdfGenerator = advanceData.type === 'advance' ? generateSalesAdvancePDF : generateAdvancePDF;
+    const pdfBlob = await pdfGenerator(
       advanceData,
       userData,
       employeeData,

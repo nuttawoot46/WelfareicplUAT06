@@ -33,9 +33,11 @@ import { GeneralAccountingReviewPage } from "./pages/GeneralAccountingReviewPage
 
 import { SupportPage } from "./pages/SupportPage";
 import SpecialApprovalPage from "./pages/SpecialApprovalPage";
+import { ExecutiveApprovalPage } from "./pages/ExecutiveApprovalPage";
 import UserGuidePage from "./pages/UserGuidePage";
 import LineCallbackPage from "./pages/auth/LineCallbackPage";
 import { ActivityHistoryPage } from "./pages/ActivityHistoryPage";
+import TestPDFPage from "./pages/TestPDFPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -187,6 +189,14 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/executive-approve" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <ExecutiveApprovalPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/special-approve" element={
                     <ProtectedRoute>
                         <SpecialApprovalPage />
@@ -257,6 +267,15 @@ const App = () => (
                   <Route path="/auth/line/callback" element={
                     <ProtectedRoute>
                       <LineCallbackPage />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Test PDF Page (ลบทิ้งหลังทดสอบเสร็จ) */}
+                  <Route path="/test-pdf" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <TestPDFPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 

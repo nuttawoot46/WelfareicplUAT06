@@ -38,12 +38,14 @@ interface ActivityItem {
 
 // Status label mapping
 const STATUS_LABELS: Record<string, string> = {
+  pending_executive: 'รอ Executive อนุมัติ',
   pending_manager: 'รอหัวหน้าอนุมัติ',
   pending_hr: 'รอ HR อนุมัติ',
   pending_accounting: 'รอบัญชีอนุมัติ',
   pending_special_approval: 'รออนุมัติพิเศษ',
   completed: 'อนุมัติแล้ว',
   approved: 'อนุมัติแล้ว',
+  rejected_executive: 'Executive ปฏิเสธ',
   rejected_manager: 'หัวหน้าปฏิเสธ',
   rejected_hr: 'HR ปฏิเสธ',
   rejected_accounting: 'บัญชีปฏิเสธ',

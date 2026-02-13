@@ -335,33 +335,18 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       if (!user?.email) return;
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('Employee')
-          .select('id, Name, Position, Team')
+          .select('id, Name, Position, Team, sales_zone') as any)
           .eq('email_user', user.email)
           .single();
 
         if (!error && data) {
           setEmployeeData(data);
-          
-          // Fetch district code from sales_data based on employee name
-          if (data.Name) {
-            const { data: salesData, error: salesError } = await supabase
-              .from('sales_data' as any)
-              .select('code')
-              .eq('name', data.Name)
-              .single();
 
-            if (!salesError && salesData) {
-              // Auto-populate the district field with the code
-              const districtCode = (salesData as any).code;
-              if (districtCode) {
-                setValue('advanceDistrict', districtCode);
-                console.log('✅ Auto-populated district code:', districtCode, 'for employee:', data.Name);
-              }
-            } else {
-              console.log('ℹ️ No district code found for employee:', data.Name);
-            }
+          // Auto-populate district from sales_zone in Employee table
+          if (data.sales_zone) {
+            setValue('advanceDistrict', data.sales_zone);
           }
         }
       } catch (error) {
@@ -1160,6 +1145,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุเขต"
                   className="form-input"
+                  readOnly={!!employeeData?.sales_zone}
                   {...register('advanceDistrict')}
                 />
               </div>

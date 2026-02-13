@@ -1,5 +1,6 @@
 import { WelfareRequest, User } from '@/types';
 import { generateExpenseClearingPDF } from '@/components/pdf/ExpenseClearingPDFGenerator';
+import { generateSalesExpenseClearingPDF } from '@/components/pdf/SalesExpenseClearingPDFGenerator';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -310,7 +311,9 @@ const generateExpenseClearingPDFAsBase64 = async (
   hrSignature?: string
 ): Promise<string | null> => {
   try {
-    const pdfBlob = await generateExpenseClearingPDF(
+    // Use sales-specific PDF generator for 'expense-clearing' (ฝ่ายขาย), general for 'general-expense-clearing'
+    const pdfGenerator = expenseClearingData.type === 'expense-clearing' ? generateSalesExpenseClearingPDF : generateExpenseClearingPDF;
+    const pdfBlob = await pdfGenerator(
       expenseClearingData,
       userData,
       employeeData,

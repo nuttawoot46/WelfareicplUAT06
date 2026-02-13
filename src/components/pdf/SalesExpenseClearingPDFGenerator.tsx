@@ -79,7 +79,7 @@ const createSalesExpenseClearingFormHTML = (
   return `
     <div style="
       width: 210mm;
-      min-height: 297mm;
+      height: 297mm;
       padding: 15mm;
       font-family: 'Sarabun', Arial, sans-serif;
       font-size: 12px;
@@ -87,6 +87,8 @@ const createSalesExpenseClearingFormHTML = (
       background: white;
       color: black;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     ">
       <!-- Header Section -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
@@ -119,19 +121,19 @@ const createSalesExpenseClearingFormHTML = (
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">ชื่อ-นามสกุล:</span>
           <span style="margin-left: 8px;">${employeeName}</span>
-          <span style="margin-left: 40px; font-weight: bold;">ตำแหน่ง:</span>
+          <span style="margin-left: 2cm; font-weight: bold;">ตำแหน่ง:</span>
           <span style="margin-left: 8px;">${employeePosition}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">แผนก:</span>
-          <span style="margin-left: 8px;">${employeeTeam}</span>
+          <span style="margin-left: 8px;">${expenseClearingData.advanceDepartment === 'อื่นๆ' ? expenseClearingData.advanceDepartmentOther || employeeTeam : expenseClearingData.advanceDepartment || employeeTeam}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">วันที่ยื่นคำร้อง:</span>
           <span style="margin-left: 8px;">${formatThaiDate(expenseClearingData.createdAt || '')}</span>
-          <span style="margin-left: 40px; font-weight: bold;">จำนวนเงินคืน:</span>
+          <span style="margin-left: 2cm; font-weight: bold;">จำนวนเงินคืน:</span>
           <span style="margin-left: 8px; font-weight: bold; color: #16a34a;">
             ${formatCurrency(totalRefund)} บาท
           </span>
@@ -167,7 +169,7 @@ const createSalesExpenseClearingFormHTML = (
           <span style="margin-left: 8px;">
             ${expenseClearingData.start_date ? formatThaiDate(expenseClearingData.start_date) : formatThaiDate(expenseClearingData.createdAt || '')}
           </span>
-          <span style="margin-left: 40px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="margin-left: 2cm;">วันสิ้นสุดกิจกรรม</span>
           <span style="margin-left: 8px;">
             ${expenseClearingData.end_date ? formatThaiDate(expenseClearingData.end_date) : ''}
           </span>
@@ -195,51 +197,51 @@ const createSalesExpenseClearingFormHTML = (
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">อำเภอ:</span>
           <span style="margin-left: 8px;">${salesAmphur}</span>
-          <span style="margin-left: 40px; font-weight: bold;">จังหวัด:</span>
+          <span style="margin-left: 2cm; font-weight: bold;">จังหวัด:</span>
           <span style="margin-left: 8px;">${salesProvince}</span>
         </div>
       </div>
 
       <!-- Expense Clearing Summary -->
-      <div style="margin-bottom: 20px;">
+      <div style="margin-top: 24px; margin-bottom: 20px;">
         <div style="font-weight: bold; margin-bottom: 10px;">สรุปการใช้จ่ายและเคลียร์ค่าใช้จ่าย</div>
 
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
             <tr style="background: #e3f2fd; height: 40px;">
               <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 30px; height: 40px;">ลำดับ</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: left; vertical-align: middle; height: 40px;">ชื่อรายการ</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; height: 40px;">ชื่อรายการ</th>
               <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 50px; height: 40px;">อัตราภาษี</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">จำนวนเบิก</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">จำนวนใช้<br/>(ก่อน VAT)</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 60px; height: 40px;">ภาษีมูลค่าเพิ่ม</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 60px; height: 40px;">ภาษีหัก ณ ที่จ่าย</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">รวมจำนวนเงินทั้งสิ้น</th>
-              <th style="border: 1px solid black; padding: 4px; text-align: right; vertical-align: middle; width: 70px; height: 40px;">คืนเงิน(+)<br/>เบิกเงิน(-)</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 70px; height: 40px;">จำนวนเบิก</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 70px; height: 40px;">จำนวนใช้<br/>(ก่อน VAT)</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 60px; height: 40px;">ภาษีมูลค่าเพิ่ม</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 60px; height: 40px;">ภาษีหัก ณ ที่จ่าย</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 70px; height: 40px;">รวมจำนวนเงินทั้งสิ้น</th>
+              <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 70px; height: 40px;">คืนเงิน(+)<br/>เบิกเงิน(-)</th>
             </tr>
           </thead>
           <tbody>
             ${expenseItems.map((item, index) => `
               <tr style="height: 28px;">
                 <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${index + 1}</td>
-                <td style="border: 1px solid black; padding: 3px; vertical-align: middle; height: 28px;">${item.name || 'รายการไม่ระบุ'}${item.otherDescription ? ` (${item.otherDescription})` : ''}</td>
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">${item.name || 'รายการไม่ระบุ'}${item.otherDescription ? ` (${item.otherDescription})` : ''}</td>
                 <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${item.taxRate || 0}%</td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.requestAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: #fef3c7; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: #fef3c7; height: 28px;">
                   ${formatCurrency(Number(item.usedAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.vatAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.taxAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: #dbeafe; font-weight: bold; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: #dbeafe; font-weight: bold; height: 28px;">
                   ${formatCurrency(Number(item.netAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; background: ${(Number(item.refund) || 0) >= 0 ? '#dcfce7' : '#fee2e2'}; font-weight: bold; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: ${(Number(item.refund) || 0) >= 0 ? '#dcfce7' : '#fee2e2'}; font-weight: bold; height: 28px;">
                   ${formatCurrency(Number(item.refund) || 0)}
                 </td>
               </tr>
@@ -251,22 +253,22 @@ const createSalesExpenseClearingFormHTML = (
             ` : ''}
             <tr style="background: #bbdefb; font-weight: bold; height: 32px;">
               <td style="border: 1px solid black; padding: 6px; text-align: center; vertical-align: middle; height: 32px;" colspan="3">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: #1565c0; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: #1565c0; height: 32px;">
                 ${formatCurrency(totalRequested)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: #fd7e14; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: #fd7e14; height: 32px;">
                 ${formatCurrency(totalUsed)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.vatAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.taxAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.netAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; color: ${totalRefund >= 0 ? '#16a34a' : '#dc2626'}; font-size: 11px; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: ${totalRefund >= 0 ? '#16a34a' : '#dc2626'}; font-size: 11px; height: 32px;">
                 ${formatCurrency(totalRefund)}
               </td>
             </tr>
@@ -275,13 +277,13 @@ const createSalesExpenseClearingFormHTML = (
       </div>
 
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; margin-top: auto;">
         <!-- Left Signature - User -->
-        <div style="text-align: center; width: 200px;">
+        <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้เคลียร์ค่าใช้จ่าย</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${userSignature ? `
-              <img src="${userSignature}" alt="User Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${userSignature}" alt="User Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
@@ -292,19 +294,35 @@ const createSalesExpenseClearingFormHTML = (
           </div>
         </div>
 
-        <!-- Right Signature - Manager -->
-        <div style="text-align: center; width: 200px;">
-          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
-            ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 150px; max-height: 50px;" />
+        <!-- Center Signature - Executive (ME) -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">ผู้ตรวจสอบ (Executive)</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${expenseClearingData.executiveSignature ? `
+              <img src="${expenseClearingData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
-            <div>( ${expenseClearingData.managerApproverName || '..............................'} )</div>
+            <div>( ${expenseClearingData.executiveApproverName || ''} )</div>
+            <div>ผู้ตรวจสอบ</div>
+            <div>ตำแหน่ง: ${expenseClearingData.executiveApproverPosition || 'Marketing Executive'}</div>
+            <div>วันที่: ${expenseClearingData.executiveApprovedAt ? formatThaiDate(expenseClearingData.executiveApprovedAt) : ''}</div>
+          </div>
+        </div>
+
+        <!-- Right Signature - Manager -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${managerSignature ? `
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${expenseClearingData.managerApproverName || ''} )</div>
             <div>ผู้อนุมัติ</div>
             <div>ตำแหน่ง: ผู้จัดการ</div>
-            <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : '......./......./........'}</div>
+            <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
           </div>
         </div>
       </div>

@@ -24,6 +24,7 @@ interface Profile {
   budget_wedding?: number;
   budget_fitness?: number;
   budget_training?: number;
+  executive_id?: number; // ID of the executive supervisor (for MR → ME chain)
   // Add other budget fields as needed
 }
 
@@ -216,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             budget_wedding: employeeData.budget_wedding,
             budget_fitness: employeeData.budget_fitness,
             budget_training: employeeData.budget_training,
+            executive_id: employeeData.executive_id,
             // Add other budget fields as needed
           };
           

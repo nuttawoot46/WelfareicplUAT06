@@ -136,6 +136,13 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               })(),
               managerSignature: row.manager_signature,
               hrSignature: row.hr_signature,
+              // Executive approval fields
+              executiveId: row.executive_id,
+              executiveApproverId: row.executive_approver_id?.toString(),
+              executiveApproverName: row.executive_approver_name,
+              executiveApproverPosition: row.executive_approver_position,
+              executiveApprovedAt: row.executive_approved_at,
+              executiveSignature: row.executive_signature,
               // Training-specific fields
               course_name: row.course_name,
               organizer: row.organizer,
@@ -406,18 +413,20 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('📥 WelfareContext - Received requestData:', requestData);
       console.log('📥 WelfareContext - Amount received:', requestData.amount, typeof requestData.amount);
       let managerId: number | null = null;
+      let executiveId: number | null = null;
       if (user?.id) {
         try {
           const userId = parseInt(user.id, 10);
           if (!isNaN(userId)) {
             const { data: employeeData, error: employeeError } = await supabase
               .from('Employee')
-              .select('manager_id')
+              .select('manager_id, executive_id')
               .eq('id', userId)
-              .single();
+              .single() as { data: any; error: any };
 
             if (!employeeError && employeeData) {
               managerId = employeeData.manager_id as number;
+              executiveId = employeeData.executive_id as number | null;
             }
           }
         } catch (error) {
@@ -432,12 +441,18 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } else if (typeof requestData.attachments === 'string') {
         attachmentsToSave = JSON.stringify([requestData.attachments]);
       }
+      // Determine initial status: if employee has executive_id and type is sales advance/expense-clearing → pending_executive
+      const salesExecutiveTypes = ['advance', 'expense-clearing'];
+      const initialStatus = (executiveId && salesExecutiveTypes.includes(requestData.type))
+        ? 'pending_executive'
+        : 'pending_manager';
+
       // สร้าง object สำหรับ insert
       const requestDataObj = {
         employee_id: (requestData as any).employeeId || Number(requestData.userId),
         employee_name: requestData.userName,
         request_type: requestData.type,
-        status: 'pending_manager',
+        status: initialStatus,
         amount: requestData.amount,
         created_at: new Date().toISOString(),
         details: requestData.details,
@@ -452,6 +467,7 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
           : null,
         title: requestData.title,
         manager_id: managerId,
+        executive_id: executiveId,
         start_date: requestData.start_date || null,
         end_date: requestData.end_date || null,
         total_days: requestData.total_days || null,

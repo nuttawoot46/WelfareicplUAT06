@@ -305,6 +305,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           .select('id, amount, created_at, details, status, run_number')
           .eq('employee_id', employeeData.id)
           .eq('request_type', 'general-advance')
+          .eq('status', 'completed')
           .order('created_at', { ascending: false });
         if (!error && data) {
           setAvailableAdvanceRequests(data);
@@ -763,7 +764,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
               ) : (
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <p className="text-gray-600 text-base">
-                    ไม่พบคำขอเบิกเงินล่วงหน้าทั่วไป กรุณากรอกข้อมูลใหม่ทั้งหมดในส่วนข้อมูลทั่วไปด้านล่าง
+                    ไม่พบคำขอเบิกเงินล่วงหน้าที่ได้รับการอนุมัติแล้ว
                   </p>
                 </div>
               )}
@@ -836,7 +837,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 <Input
                   type="number"
                   min="1"
-                  placeholder="80"
+                  placeholder=""
                   className="form-input"
                   {...register('advanceParticipants', {
                     min: { value: 1, message: 'จำนวนผู้เข้าร่วมต้องมากกว่า 0' }
@@ -964,7 +965,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -987,7 +988,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1010,7 +1011,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-right"
+                          className="w-28 text-left"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1033,7 +1034,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-gray-100 text-right"
+                          className="w-28 bg-gray-100 text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.taxAmount`) || 0)}
                           readOnly
@@ -1044,7 +1045,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-blue-50 font-semibold text-right"
+                          className="w-28 bg-blue-50 font-semibold text-left"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.netAmount`) || 0)}
                           readOnly
@@ -1055,7 +1056,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className={`w-28 text-right ${
+                          className={`w-28 text-left ${
                             (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0
                               ? 'bg-green-50'
                               : 'bg-red-50'
@@ -1085,7 +1086,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                   <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1097,7 +1098,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1109,7 +1110,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1121,7 +1122,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1133,7 +1134,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1145,7 +1146,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-left">
                       {(() => {
                         const total = calculateTotalRefund();
                         const isNegative = total < 0;
@@ -1214,7 +1215,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
             <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">แนบเอกสารประกอบ</h3>
             <p className="text-base text-gray-600">เลือกประเภทเอกสารที่ต้องการแนบ แล้วอัพโหลดไฟล์</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {DOCUMENT_TYPES.map((docType) => (
                 <div key={docType.key} className="border rounded-lg p-4 bg-white">
                   {/* Checkbox for document type */}
