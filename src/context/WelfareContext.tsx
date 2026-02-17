@@ -187,6 +187,9 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               originalAdvanceRequestId: row.original_advance_request_id,
               originalAdvanceRunNumber: row.original_advance_run_number,
               expenseClearingItems: row.expense_clearing_items,
+              // Childbirth fields
+              birth_type: row.birth_type,
+              childbirths: row.childbirths,
               // Run number
               runNumber: row.run_number,
               // PDF fields

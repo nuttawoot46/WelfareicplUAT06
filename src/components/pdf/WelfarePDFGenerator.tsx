@@ -57,6 +57,22 @@ const createWelfareFormHTML = (
 
   const checkbox = (checked: boolean) => checked ? '☑' : '☐';
 
+  // Parse childbirths to determine birth types
+  const birthTypes: string[] = (() => {
+    if (!welfareData.childbirths) return welfareData.birth_type ? [welfareData.birth_type] : [];
+    try {
+      const parsed = typeof welfareData.childbirths === 'string'
+        ? JSON.parse(welfareData.childbirths)
+        : welfareData.childbirths;
+      if (Array.isArray(parsed)) {
+        return parsed.map((c: any) => c.birthType).filter(Boolean);
+      }
+      return [];
+    } catch { return []; }
+  })();
+  const hasNatural = birthTypes.includes('natural');
+  const hasCesarean = birthTypes.includes('cesarean');
+
   return `
     <div style="
       width: 210mm;
@@ -121,11 +137,11 @@ const createWelfareFormHTML = (
           <!-- Row 2 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 50%; display: flex; align-items: flex-start;">
-              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' ? '☑' : '☐'}</span>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' && hasNatural ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการคลอดบุตร คลอดปกติ 4,000 บาท</span>
             </div>
             <div style="width: 50%; display: flex; align-items: flex-start;">
-              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' && welfareData.birth_type === 'cesarean' ? '☑' : '☐'}</span>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'childbirth' && hasCesarean ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">ผ่าคลอด 6,000 บาท</span>
             </div>
           </div>
@@ -172,38 +188,6 @@ const createWelfareFormHTML = (
           </div>
         </div>
 
-        <!-- Childbirth Details Section -->
-        ${welfareData.type === 'childbirth' && welfareData.childbirths ? `
-        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
-          <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px;">รายละเอียดบุตร</div>
-          ${(() => {
-            try {
-              const childbirths = typeof welfareData.childbirths === 'string'
-                ? JSON.parse(welfareData.childbirths)
-                : welfareData.childbirths;
-
-              return childbirths.map((child: any, index: number) => `
-                <div style="margin-bottom: 8px; padding: 10px; background-color: white; border: 1px solid #ddd; border-radius: 4px;">
-                  <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <span style="font-weight: bold; margin-right: 10px;">บุตรคนที่ ${index + 1}:</span>
-                    <span>${child.childName || '-'}</span>
-                  </div>
-                  <div style="display: flex; align-items: center;">
-                    <span style="font-weight: bold; margin-right: 10px;">ประเภทการคลอด:</span>
-                    <span>${child.birthType === 'natural' ? 'คลอดธรรมชาติ (4,000 บาท)' : 'ผ่าคลอด (6,000 บาท)'}</span>
-                  </div>
-                </div>
-              `).join('');
-            } catch (e) {
-              return '<div>ไม่สามารถแสดงข้อมูลบุตรได้</div>';
-            }
-          })()}
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-            <span style="font-weight: bold;">จำนวนเงินรวม: </span>
-            <span>${Number(welfareData.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</span>
-          </div>
-        </div>
-        ` : ''}
 
         <!-- Details Section -->
         <div style="margin-bottom: 25px;">

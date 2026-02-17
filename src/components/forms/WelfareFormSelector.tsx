@@ -509,14 +509,14 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
         <TabsList className={cn("grid w-full mb-6 bg-gray-100 border border-gray-200 p-1.5 rounded-xl h-auto", showEmploymentTab ? "grid-cols-2" : "grid-cols-1")}>
           <TabsTrigger
             value="welfare"
-            className="rounded-lg border border-transparent bg-white/60 text-gray-600 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-blue-600 transition-all"
+            className="rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-green-600 transition-all"
           >
             สวัสดิการ
           </TabsTrigger>
           {showEmploymentTab && (
             <TabsTrigger
               value="employment"
-              className="rounded-lg border border-transparent bg-white/60 text-gray-600 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-emerald-600 transition-all"
+              className="rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-green-600 transition-all"
             >
               ขออนุมัติจ้างงาน
             </TabsTrigger>
