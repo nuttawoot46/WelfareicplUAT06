@@ -10,7 +10,8 @@ import { WelfareType, ParticipantGroup, ParticipantMember, FitnessParticipant } 
 import { useAuth } from '@/context/AuthContext';
 import { useWelfare } from '@/context/WelfareContext';
 import { useInternalTraining } from '@/context/InternalTrainingContext';
-import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, AlertCircle, Plus, X, Paperclip, Download, Info } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -1727,7 +1728,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   <>คลอดธรรมชาติ 4,000 บาท, ผ่าคลอด 6,000 บาท</>
                 ) : (
                   <>
-                    วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท/ปี`}
+                    วงเงินสูงสุด: {isMonthly ? `${maxAmount} บาท/เดือน` : `${maxAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท${type === 'wedding' ? '' : '/ปี'}`}
                     {condition && <> ({condition})</>}
                   </>
                 )}
@@ -1742,6 +1743,136 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             </p>
           </div>
         )}
+
+        {/* Welfare details popover */}
+        {['dental', 'glasses', 'fitness', 'childbirth', 'wedding', 'funeral'].includes(type) && (
+          <div className="mb-6">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" className="text-sm gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+                  <Info className="h-4 w-4" />
+                  ดูรายละเอียดสวัสดิการ
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[420px] max-h-[400px] overflow-y-auto text-sm" align="start">
+                {(type === 'dental' || type === 'glasses') && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา</h4>
+                    <p className="font-medium text-welfare-blue">จ่ายตามจริง ไม่เกิน 2,000 บาท ต่อปี (รวมกัน)</p>
+                    <p>พนักงานรายเดือนที่ทำงานกับบริษัทฯ มาแล้วอย่างน้อย 180 วัน</p>
+                    <div>
+                      <p className="font-medium mt-2">ด้านทันตกรรม:</p>
+                      <p>ทันตกรรมทั่วไปเพื่อการรักษาสุขภาพฟัน ได้แก่ อุดฟัน ถอนฟัน ขูดหินปูน รักษาโรคเหงือก รักษารากฟัน ผ่าฟันคุด เอ็กซเรย์ฟัน เคลือบฟลูออไรด์ รวมถึงทันตกรรมเพื่อความสวยงาม ได้แก่ ฟอกสีฟัน วีเนียร์ฟันขาว ครอบฟัน จัดฟัน (รีเทนเนอร์เบิกได้) ศัลยกรรมเหงือก ฟันปลอม</p>
+                    </div>
+                    <div>
+                      <p className="font-medium mt-2">ด้านสายตา:</p>
+                      <p>ตัดแว่นเลนส์สายตาสั้น-ยาว เลนส์กรองแสงสีฟ้า คอนแทคเลนส์สายตา ทำเลสิก เท่านั้น ไม่สามารถใช้กับแว่นกันแดด น้ำยาล้างคอนแทคเลนส์ หรือการซ่อมแซมแว่นตา</p>
+                    </div>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-muted-foreground">เอกสาร: แบบฟอร์มเบิกเงิน, ใบรับรองแพทย์ตัวจริง, ใบเสร็จตัวจริงที่ระบุชื่อพนักงาน, สำเนาบัญชีธนาคาร</p>
+                    </div>
+                  </div>
+                )}
+                {type === 'fitness' && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">เงินสนับสนุนค่าออกกำลังกาย</h4>
+                    <p className="font-medium text-welfare-blue">จ่ายตามจริง ไม่เกิน 300 บาท/เดือน (สูงสุด 3,600 บาท/ปี)</p>
+                    <p>พนักงานรายเดือนได้รับสิทธิตั้งแต่วันแรกที่เริ่มงาน</p>
+                    <div>
+                      <p className="font-medium mt-2">ใช้ได้กับ:</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        <li>ค่าบริการเล่นกีฬา: ฟุตบอล บาสเกตบอล แบดมินตัน เทนนิส ซอฟต์เทนนิส วอลเลย์บอล ว่ายน้ำ เซปักตะกร้อ เทเบิลเทนนิส เทควันโด จักรยาน มวย กอล์ฟ</li>
+                        <li>ค่าสมัครฟิตเนส</li>
+                        <li>การเข้าร่วมกิจกรรมวิ่งมาราธอน</li>
+                      </ul>
+                    </div>
+                    <p className="mt-1">กรณีจ่ายค่าสมัครฟิตเนสเกิน 1 เดือน สามารถเบิก 300 บาท x จำนวนเดือน (ไม่เกิน 12 เดือน/ใบเสร็จ) บริษัททยอยจ่ายเดือนละ 300 บาท</p>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-muted-foreground">เอกสาร: แบบฟอร์มเบิกเงิน, ใบเสร็จตัวจริงที่ระบุชื่อพนักงาน</p>
+                    </div>
+                  </div>
+                )}
+                {type === 'childbirth' && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">เงินช่วยเหลือค่าคลอดบุตร</h4>
+                    <p className="font-medium text-welfare-blue">คลอดปกติ 4,000 บาท / ผ่าคลอด 6,000 บาท</p>
+                    <p>พนักงานรายเดือนที่ทำงานกับบริษัทฯ มาแล้วอย่างน้อย 180 วัน</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>พนักงานทั้งชายและหญิงได้รับสิทธิ เฉพาะบุตรที่ถูกต้องตามกฎหมาย ไม่เกิน 3 คน</li>
+                      <li>กรณีพนักงานชาย-หญิงสมรสกัน ได้รับสิทธิเพียงท่านเดียว</li>
+                    </ul>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-muted-foreground">เอกสาร: แบบฟอร์มขอรับเงินช่วยเหลือ, ใบรับรองแพทย์, สำเนาสูติบัตร</p>
+                    </div>
+                  </div>
+                )}
+                {type === 'wedding' && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">เงินช่วยเหลือการสมรส</h4>
+                    <p className="font-medium text-welfare-blue">3,000 บาท (ใช้สิทธิได้ 1 ครั้ง ตลอดอายุการทำงาน)</p>
+                    <p>พนักงานรายเดือนที่ทำงานกับบริษัทฯ มาแล้วอย่างน้อย 180 วัน</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>ให้สิทธิแก่พนักงานทุกคน ไม่จำกัดเพศของคู่สมรส</li>
+                      <li>กรณีพนักงานสมรสกันเอง ให้สิทธิเพียงท่านเดียว</li>
+                    </ul>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-muted-foreground">เอกสาร: แบบฟอร์มขอรับเงินช่วยเหลือ, หลักฐานการสมรส เช่น การ์ดแต่งงาน รูปถ่าย หรือสำเนาทะเบียนสมรส</p>
+                    </div>
+                  </div>
+                )}
+                {type === 'funeral' && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">เงินช่วยเหลือกรณีเสียชีวิต</h4>
+                    <p>พนักงานรายเดือนได้รับสิทธิตั้งแต่วันแรกที่เริ่มงาน</p>
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-1 pr-2">กรณี</th>
+                            <th className="text-left py-1 pr-2">พวงหรีด</th>
+                            <th className="text-left py-1 pr-2">เจ้าภาพ</th>
+                            <th className="text-left py-1">เงินช่วยเหลือ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b">
+                            <td className="py-1 pr-2">พนักงาน</td>
+                            <td className="py-1 pr-2">1,500-3,000 บาท</td>
+                            <td className="py-1 pr-2">3,000 บาท</td>
+                            <td className="py-1">6,000 บาท</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="py-1 pr-2">บิดา/มารดา</td>
+                            <td className="py-1 pr-2">1,500-3,000 บาท</td>
+                            <td className="py-1 pr-2">3,000 บาท</td>
+                            <td className="py-1">3,000 บาท</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="py-1 pr-2">สามี/ภรรยา</td>
+                            <td className="py-1 pr-2">1,500-3,000 บาท</td>
+                            <td className="py-1 pr-2">3,000 บาท</td>
+                            <td className="py-1">6,000 บาท</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1 pr-2">บุตร</td>
+                            <td className="py-1 pr-2">1,500-3,000 บาท</td>
+                            <td className="py-1 pr-2">3,000 บาท</td>
+                            <td className="py-1">4,000 บาท</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs mt-1">กรณีไม่สามารถจัดงานหรือบริษัทไม่สามารถเดินทางไปร่วมเป็นเจ้าภาพได้ จะมอบวงเงินเจ้าภาพรวมกับเงินช่วยเหลือให้พนักงาน</p>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-muted-foreground">เอกสาร: แบบฟอร์ม, หลักฐานการเสียชีวิต, สำเนาใบมรณบัตร, เอกสารแสดงความสัมพันธ์</p>
+                    </div>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
         {type === 'training' && (
           <div className="space-y-4 mb-6">
 

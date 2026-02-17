@@ -161,17 +161,17 @@ const parseTrainingObjectives = (topicsSource?: string): string[] => {
           return String(item);
         }).filter(Boolean);
 
-        return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives].slice(0, 2);
+        return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives.slice(0, 2 - objectives.length)];
       }
     } else {
       // If not JSON, split by common delimiters
       const objectives = topicsData.split(/[,\n;]/).map(s => s.trim()).filter(Boolean);
-      return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives].slice(0, 2);
+      return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives.slice(0, 2 - objectives.length)];
     }
   } catch (e) {
     // If parsing fails, split by delimiters
     const objectives = topicsSource.split(/[,\n;]/).map(s => s.trim()).filter(Boolean);
-    return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives].slice(0, 2);
+    return objectives.length >= 2 ? objectives : [...objectives, ...defaultObjectives.slice(0, 2 - objectives.length)];
   }
 
   return defaultObjectives;
@@ -314,12 +314,11 @@ const createTrainingFormHTML = (
         <!-- Training Objectives -->
         <div style="margin-bottom: 12px; font-size: 9pt; color: #000;">
           <div style="margin-bottom: 5px;">โดยมีวัตถุประสงค์ของจะเข้ารับอบรม ดังนี้</div>
+          ${objectives.map((obj, i) => `
           <div style="margin-bottom: 4px; border-bottom: 1px dotted #000; padding-bottom: 8px;">
-            1. ${objectives?.[0]?.trim() || ''}
+            ${i + 1}. ${obj?.trim() || ''}
           </div>
-          <div style="margin-bottom: 8px; border-bottom: 1px dotted #000; padding-bottom: 8px;">
-            2. ${objectives?.[1]?.trim() || ''}
-          </div>
+          `).join('')}
         </div>
 
         <!-- Cost Information -->
@@ -415,11 +414,11 @@ const createTrainingFormHTML = (
           </div>
         </div>
         <!-- Signature Sections -->
-        <div style="margin-top: 20mm; margin-left: -8mm; margin-right: -8mm;">
+        <div style="margin-top: auto; margin-left: calc(-8mm - 2px); margin-right: calc(-8mm - 2px); margin-bottom: calc(-8mm - 2px);">
           <table style="width: 100%; border-collapse: collapse; font-size: 9pt; color: #000;">
             <tr>
               <!-- Employee Signature -->
-              <td style="border: 2px solid #000; padding: 8px; width: 50%; vertical-align: top;">
+              <td style="border: 1px solid #000; padding: 8px; width: 50%; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                     <span style="margin-right: 8px;">อนุมัติ</span>
@@ -465,7 +464,7 @@ const createTrainingFormHTML = (
               </td>
 
               <!-- Manager Signature -->
-              <td style="border: 2px solid #000; padding: 8px; width: 50%; vertical-align: top;">
+              <td style="border: 1px solid #000; padding: 8px; width: 50%; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                     <span style="margin-right: 8px;">อนุมัติ</span>
@@ -507,7 +506,7 @@ const createTrainingFormHTML = (
 
             <tr>
               <!-- HR Signature -->
-              <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
+              <td style="border: 1px solid #000; padding: 8px; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                     <span style="margin-right: 8px;">อนุมัติ</span>
@@ -548,7 +547,7 @@ const createTrainingFormHTML = (
               </td>
 
               <!-- Deputy Managing Director Signature -->
-              <td style="border: 2px solid #000; padding: 8px; vertical-align: top;">
+              <td style="border: 1px solid #000; padding: 8px; vertical-align: top;">
                 <div style="text-align: center; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                     <span style="margin-right: 8px;">อนุมัติ</span>
