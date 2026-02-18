@@ -293,7 +293,7 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       return (
         <>
           ใช้ไป: {used.toLocaleString()} บาท | คงเหลือ: {remaining.toLocaleString()} บาท{' '}
-          <span className="text-red-500 font-bold">(ค่าตัดแว่นสายตาและค่ารักษาทัตกรรมใช้วงเงินเดียวกัน)</span>
+          <span className="text-red-500 font-bold">(ค่าตัดแว่นสายตาและค่ารักษาทันตกรรมใช้วงเงินเดียวกัน)</span>
         </>
       );
     }
@@ -316,18 +316,11 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
       color: 'text-welfare-teal',
     },
     {
-      id: 'glasses',
-      title: 'ค่าตัดแว่นสายตา',
-      description: getBudgetDescription('glasses'),
+      id: 'dental',
+      title: 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา',
+      description: getBudgetDescription('dental'),
       icon: <GlassesIcon />,
       color: 'text-welfare-blue',
-    },
-    {
-      id: 'dental',
-      title: 'ค่ารักษาทัตกรรม',
-      description: getBudgetDescription('dental'),
-      icon: <DentalIcon />,
-      color: 'text-welfare-orange',
     },
     {
       id: 'fitness',
@@ -483,10 +476,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
                 </CardDescription>
               </CardHeader>
               <CardFooter>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className={cn(
-                    isDisabled ? "text-gray-400 cursor-not-allowed" : option.color
+                    isDisabled ? "text-gray-400 cursor-not-allowed" : "text-blue-600"
                   )}
                   onClick={() => !isDisabled && handleSelect(option.id)}
                   disabled={isDisabled}
@@ -509,14 +502,14 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
         <TabsList className={cn("grid w-full mb-6 bg-gray-100 border border-gray-200 p-1.5 rounded-xl h-auto", showEmploymentTab ? "grid-cols-2" : "grid-cols-1")}>
           <TabsTrigger
             value="welfare"
-            className="rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-green-600 transition-all"
+            className="rounded-lg border border-transparent bg-gray-200 text-gray-500 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-blue-600 transition-all"
           >
             สวัสดิการ
           </TabsTrigger>
           {showEmploymentTab && (
             <TabsTrigger
               value="employment"
-              className="rounded-lg border border-transparent bg-blue-500 text-white font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-green-600 transition-all"
+              className="rounded-lg border border-transparent bg-gray-200 text-gray-500 font-semibold text-base py-3 shadow-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-blue-600 transition-all"
             >
               ขออนุมัติจ้างงาน
             </TabsTrigger>

@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, Check, X } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { usePDFOperations } from '@/hooks/usePDFOperations';
@@ -577,17 +577,17 @@ export const ExecutiveApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pending" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 p-1 rounded-lg gap-1">
+              <TabsTrigger value="pending" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <Clock className="h-4 w-4" />
                 รอการอนุมัติ
                 {pendingRequests.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-orange-100 text-orange-700">
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] text-center">
                     {pendingRequests.length}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
+              <TabsTrigger value="history" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <History className="h-4 w-4" />
                 ประวัติ
               </TabsTrigger>
@@ -865,99 +865,92 @@ export const ExecutiveApprovalPage = () => {
       {/* Detail Modal */}
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>รายละเอียดคำร้อง</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <p><strong>พนักงาน:</strong> {selectedRequest.userName}</p>
-              <p><strong>แผนก:</strong> {selectedRequest.userDepartment || selectedRequest.department_user || '-'}</p>
-              <p><strong>ประเภท:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
-              <p>
-                <strong>จำนวนเงิน:</strong>{' '}
-                {selectedRequest.amount?.toLocaleString('th-TH', {
-                  style: 'currency',
-                  currency: 'THB',
-                })}
-              </p>
-              <p><strong>วันที่ยื่น:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
-              <p><strong>สถานะ:</strong> {renderStatusBadge(selectedRequest.status)}</p>
-              {selectedRequest.runNumber && (
-                <p><strong>เลขที่เอกสาร:</strong> {selectedRequest.runNumber}</p>
-              )}
-              <p><strong>รายละเอียด:</strong> {selectedRequest.details || '-'}</p>
-
-              {/* Attachments */}
-              <p>
-                <strong>เอกสารแนบ:</strong>{' '}
-                {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
-                  <span className="flex flex-wrap gap-2">
+          <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+            {/* Header สรุปข้อมูล */}
+            <div className="px-6 pt-6 pb-3 border-b bg-gray-50/80 rounded-t-lg flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <DialogHeader className="p-0 space-y-0">
+                  <DialogTitle className="text-lg">{selectedRequest.userName} — {getWelfareTypeLabel(selectedRequest.type)}</DialogTitle>
+                </DialogHeader>
+                {renderStatusBadge(selectedRequest.status)}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                <span>แผนก: <strong className="text-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</strong></span>
+                <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.date), 'dd/MM/yyyy')}</strong></span>
+                <span>จำนวนเงิน: <strong className="text-blue-700 text-base">{selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</strong></span>
+                {selectedRequest.runNumber && <span>เลขที่: <strong className="text-foreground">{selectedRequest.runNumber}</strong></span>}
+                {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    เอกสารแนบ:
                     {selectedRequest.attachments.map((file, idx) => (
-                      <a
-                        key={idx}
-                        href={file}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:underline"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>ไฟล์ {idx + 1}</span>
+                      <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                        <FileText className="h-3.5 w-3.5" />ไฟล์ {idx + 1}
                       </a>
                     ))}
                   </span>
-                ) : (
-                  'ไม่มีเอกสารแนบ'
                 )}
-              </p>
-
-              {/* PDF link */}
-              {(selectedRequest.pdfUrl || selectedRequest.pdf_url) && (
-                <p>
-                  <strong>PDF:</strong>{' '}
-                  <a
-                    href={selectedRequest.pdfUrl || selectedRequest.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    ดูเอกสาร PDF
-                  </a>
-                </p>
-              )}
-
-              {/* Rejection reason input (only for pending requests) */}
-              {selectedRequest.status === 'pending_executive' && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">เหตุผลการปฏิเสธ (ถ้ามี):</p>
-                  <Textarea
-                    placeholder="ระบุเหตุผลการปฏิเสธ..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              )}
+              </div>
             </div>
-            <DialogFooter>
-              {selectedRequest.status === 'pending_executive' && (
-                <>
-                  <Button
-                    onClick={() => handleApprove(selectedRequest.id)}
-                    className="bg-green-600 hover:bg-green-700"
-                    disabled={isLoading}
-                  >
-                    อนุมัติ
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                    disabled={isLoading}
-                  >
-                    ปฏิเสธ
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
+
+            {/* PDF Preview */}
+            <div className="flex-1 min-h-0 px-6 py-3">
+              {(() => {
+                const pdfUrl = selectedRequest.pdfUrl || selectedRequest.pdf_url || selectedRequest.pdf_request_manager || selectedRequest.pdf_request_hr;
+                if (pdfUrl) {
+                  return (
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full h-full rounded-lg border"
+                      title="PDF Preview"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-full h-full flex items-center justify-center border rounded-lg bg-gray-50">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium">ไม่มี PDF สำหรับแสดงตัวอย่าง</p>
+                      <p className="text-sm mt-1">PDF จะถูกสร้างหลังจากมีการอนุมัติ</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer — ปุ่ม Action */}
+            {selectedRequest.status === 'pending_executive' && (
+              <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="ระบุเหตุผลการปฏิเสธ (ถ้ามี)..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      onClick={() => handleApprove(selectedRequest.id)}
+                      className="bg-green-600 hover:bg-green-700 px-6"
+                      disabled={isLoading}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      อนุมัติ
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
+                      disabled={isLoading}
+                      className="px-6"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      ปฏิเสธ
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

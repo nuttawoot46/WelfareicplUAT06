@@ -41,19 +41,34 @@ export const generateAnnouncementHtmlWithAI = async (
     general: 'ทั่วไป'
   };
 
-  const prompt = `สร้างไฟล์ HTML สวยงามสำหรับประกาศดังนี้:
+  const prompt = `สร้างไฟล์ HTML สวยงามสำหรับประกาศของบริษัท ICP Ladda Co., Ltd. ดังนี้:
 
 หัวข้อ: ${data.title}
 เนื้อหา: ${data.content}
+ระดับความสำคัญ: ${priorityLabels[data.priority]}
+ประเภท: ${typeLabels[data.type]}
+${data.start_date ? `วันที่เริ่ม: ${data.start_date}` : ''}
+${data.end_date ? `วันที่สิ้นสุด: ${data.end_date}` : ''}
+${data.youtube_embed_url ? `YouTube: ${data.youtube_embed_url}` : ''}
 
-กรุณาสร้าง HTML ที่:
-1. มีการออกแบบที่สวยงาม ทันสมัย และเป็นมืออาชีพ
-2. ใช้ gradient สีสันสดใส
-3. มี animation เยอะๆ
-4. รองรับ responsive design
-5. ใช้ฟอนต์ที่เหมาะกับภาษาไทย (Sarabun หรือ Prompt)
-9. ใช้ CSS ที่ทันสมัย 
-10. เพิ่มเอฟเฟกต์พิเศษที่อลังการ
+=== Corporate Identity (CI) ของบริษัท ICP Ladda ===
+- สีหลัก (Primary): #004F9F (ICP Blue)
+- สีรอง (Secondary): #0066CC (Light Blue)
+- สีเข้ม (Dark): #003D7A
+- สีเสริม: ขาว #FFFFFF, เทาอ่อน #F5F5F5
+- โลโก้บริษัท: แสดงชื่อ "ICP Ladda" ที่ Header ด้วยสีหลัก
+- ฟอนต์: ใช้ Google Fonts "Sarabun" สำหรับเนื้อหา และ "Kanit" สำหรับหัวข้อ
+
+=== แนวทางการออกแบบ ===
+1. Header: พื้นหลัง gradient จากสี #004F9F ไป #0066CC พร้อมชื่อบริษัท "ICP Ladda Co., Ltd." สีขาว
+2. ใช้โทนสีน้ำเงิน #004F9F เป็นหลักทั้งหมด ห้ามใช้สีอื่นเป็นสีหลัก
+3. ปุ่มและ accent ใช้สี #004F9F หรือ #0066CC
+4. การ์ดเนื้อหา: พื้นขาว มี border-radius, box-shadow นุ่มนวล
+5. มีการออกแบบที่สวยงาม ทันสมัย เป็นมืออาชีพ
+6. รองรับ responsive design
+7. ใช้ CSS animation เล็กน้อย (fade-in, slide-up) ไม่อลังการเกินไป
+8. Footer: แสดง "ICP Ladda Co., Ltd." พร้อมที่อยู่ "42 อาคาร ไอ ซี พี ชั้น 5 ถนนสุรวงศ์ แขวงสี่พระยา เขตบางรัก กรุงเทพฯ 10500"
+${data.youtube_embed_url ? '9. ฝัง YouTube video แบบ responsive (16:9 ratio)' : ''}
 
 ส่งคืนเฉพาะโค้ด HTML เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม`;
 
@@ -80,7 +95,7 @@ export const generateAnnouncementHtmlWithAI = async (
         : [
           {
             role: 'system',
-            content: 'คุณเป็นผู้เชี่ยวชาญด้านการออกแบบ HTML/CSS ที่สร้างหน้าเว็บที่สวยงามและทันสมัย'
+            content: 'คุณเป็นผู้เชี่ยวชาญด้านการออกแบบ HTML/CSS ของบริษัท ICP Ladda Co., Ltd. สร้างหน้าเว็บที่สวยงาม ทันสมัย โดยใช้สีน้ำเงิน #004F9F เป็นสีหลักเสมอ ฟอนต์ Kanit สำหรับหัวข้อ และ Sarabun สำหรับเนื้อหา'
           },
           {
             role: 'user',

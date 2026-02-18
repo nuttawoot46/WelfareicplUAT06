@@ -1612,7 +1612,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           step="0.01"
                           min="0"
                           max="100"
-                          className="w-20 bg-gray-100"
+                          className="w-full bg-gray-100 text-right"
                           placeholder="0"
                           value={watch(`expenseClearingItems.${index}.taxRate`) || 0}
                           readOnly
@@ -1626,7 +1626,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-left"
+                          className="w-full text-right"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1654,7 +1654,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-left"
+                          className="w-full text-right"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1682,7 +1682,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 text-left"
+                          className="w-full text-right"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1708,7 +1708,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-gray-100 text-left"
+                          className="w-full bg-gray-100 text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.taxAmount`))}
                           readOnly
@@ -1722,7 +1722,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-28 bg-blue-50 font-semibold text-left"
+                          className="w-full bg-gray-100 font-semibold text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`expenseClearingItems.${index}.netAmount`))}
                           readOnly
@@ -1736,7 +1736,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className={`w-28 text-left ${
+                          className={`w-full text-right ${
                             (watch(`expenseClearingItems.${index}.refund`) || 0) >= 0
                               ? 'bg-green-50'
                               : 'bg-red-50'
@@ -1770,7 +1770,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   <tr className="bg-green-50 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1782,7 +1782,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1794,7 +1794,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1806,7 +1806,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1818,7 +1818,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1830,7 +1830,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const total = calculateTotalRefund(); // Calculate in real-time
                         const isNegative = total < 0;

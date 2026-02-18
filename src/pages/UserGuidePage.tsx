@@ -664,11 +664,11 @@ const FAQSection = () => (
 
     <AccordionItem value="faq-2" className="border rounded-lg px-4 mb-3 shadow-sm">
       <AccordionTrigger className="hover:no-underline">
-        <span className="font-medium text-left">ค่าแว่นกับค่ารักษาทัตกรรม ใช้วงเงินร่วมกันหรือไม่?</span>
+        <span className="font-medium text-left">ค่าแว่นกับค่ารักษาทันตกรรม ใช้วงเงินร่วมกันหรือไม่?</span>
       </AccordionTrigger>
       <AccordionContent>
         <p className="text-gray-600">
-          ใช่ ค่าตัดแว่นสายตา (glasses) และค่ารักษาทัตกรรม (dental) ใช้วงเงินร่วมกัน 2,000 บาท ต่อปี หากเบิกค่าแว่นไปแล้ว 1,500 บาท จะเหลือเบิกค่ารักษาทัตกรรมได้อีก 500 บาท
+          ใช่ ค่าตัดแว่นสายตา (glasses) และค่ารักษาทันตกรรม (dental) ใช้วงเงินร่วมกัน 2,000 บาท ต่อปี หากเบิกค่าแว่นไปแล้ว 1,500 บาท จะเหลือเบิกค่ารักษาทันตกรรมได้อีก 500 บาท
         </p>
       </AccordionContent>
     </AccordionItem>

@@ -20,12 +20,12 @@ export const HolidayList: React.FC<HolidayListProps> = ({ holidays, year }) => {
 
   return (
     <div className="m-portlet">
-      <div className="m-portlet__head bg-green-500 rounded-t-lg">
+      <div className="m-portlet__head bg-[#004F9F] rounded-t-lg">
         <div className="m-portlet__head-caption p-4">
           <div className="m-portlet__head-title flex items-center gap-2">
             <span className="m-portlet__head-icon">
               <svg
-                className="w-6 h-6 text-black"
+                className="w-6 h-6 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ export const HolidayList: React.FC<HolidayListProps> = ({ holidays, year }) => {
                 />
               </svg>
             </span>
-            <h3 className="m-portlet__head-text text-black font-semibold text-lg">
+            <h3 className="m-portlet__head-text text-white font-semibold text-lg">
               Holiday (วันหยุดประจำปี {year + 543})
             </h3>
           </div>
@@ -46,7 +46,7 @@ export const HolidayList: React.FC<HolidayListProps> = ({ holidays, year }) => {
       </div>
 
       <div className="m-portlet__body p-4">
-        <details className="group">
+        <details className="group" open>
           <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2">
             <svg
               className="w-4 h-4 transition-transform group-open:rotate-90"
@@ -76,7 +76,6 @@ export const HolidayList: React.FC<HolidayListProps> = ({ holidays, year }) => {
                     className="m-list-timeline__item flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
                       <span className="text-gray-700">
                         <strong className="text-gray-900">
                           {formatDate(holiday.date)}

@@ -67,7 +67,7 @@ export const getWelfareTypeLabel = (type: string): string => {
     'childbirth': 'ค่าคลอดบุตร',
     'funeral': 'ค่าช่วยเหลืองานศพ',
     'glasses': 'ค่าตัดแว่นสายตา',
-    'dental': 'ค่ารักษาทัตกรรม',
+    'dental': 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา',
     'fitness': 'ค่าออกกำลังกาย',
     'medical': 'ของเยี่ยมกรณีเจ็บป่วย',
     'internal_training': 'อบรมภายใน',

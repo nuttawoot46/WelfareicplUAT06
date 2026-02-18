@@ -53,7 +53,7 @@ export function WelfareTypeChart() {
       type: 'glasses',
     },
     {
-      name: 'ค่ารักษาทัตกรรม',
+      name: 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา',
       value: getWelfareLimit('dental').amount,
       type: 'dental',
     },

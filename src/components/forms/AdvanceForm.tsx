@@ -1547,7 +1547,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 text-left"
+                          className="w-full text-right"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1575,7 +1575,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-welfare-blue/10 font-semibold text-left"
+                          className="w-full bg-gray-100 font-semibold text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly
@@ -1611,7 +1611,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   {/* Row รวม */}
                   <tr className="bg-welfare-blue/10 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1623,7 +1623,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-right">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {

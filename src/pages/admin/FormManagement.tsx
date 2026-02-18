@@ -12,7 +12,7 @@ const formLabels: Record<string, { title: string; category: string }> = {
   // Welfare forms
   'training': { title: 'ค่าอบรม', category: 'สวัสดิการ' },
   'glasses': { title: 'ค่าตัดแว่นสายตา', category: 'สวัสดิการ' },
-  'dental': { title: 'ค่ารักษาทัตกรรม', category: 'สวัสดิการ' },
+  'dental': { title: 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา', category: 'สวัสดิการ' },
   'fitness': { title: 'ค่าออกกำลังกาย', category: 'สวัสดิการ' },
   'medical': { title: 'ของเยี่ยมกรณีเจ็บป่วย', category: 'สวัสดิการ' },
   'wedding': { title: 'สวัสดิการงานสมรส', category: 'สวัสดิการ' },
