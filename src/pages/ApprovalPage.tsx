@@ -1040,7 +1040,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องสวัสดิการที่รอการอนุมัติ</div>
                 ) : (
@@ -1115,7 +1115,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -1353,7 +1353,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องบัญชีที่รอการอนุมัติ</div>
                 ) : (
@@ -1428,7 +1428,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -1658,7 +1658,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีประวัติการอนุมัติ</div>
                 ) : (
@@ -1717,7 +1717,7 @@ export const ApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -2111,7 +2111,7 @@ export const ApprovalPage = () => {
                     </CardHeader>
                     <CardContent>
                       {/* Mobile Card View */}
-                      <div className="md:hidden space-y-3">
+                      <div className="lg:hidden space-y-3">
                         {getIndividualEmployeeReport().map((employee) => (
                           <div key={employee.name} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
                             <div className="flex items-start justify-between">
@@ -2140,7 +2140,7 @@ export const ApprovalPage = () => {
                       </div>
 
                       {/* Desktop Table View */}
-                      <div className="overflow-x-auto hidden md:block">
+                      <div className="overflow-x-auto hidden lg:block">
                         <Table>
                           <TableHeader className="bg-gradient-to-r from-blue-600 to-blue-700 [&_th]:text-white">
                             <TableRow>

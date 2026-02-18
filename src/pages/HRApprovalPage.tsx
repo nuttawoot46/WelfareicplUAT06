@@ -810,7 +810,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องสวัสดิการที่รอการอนุมัติจาก HR</div>
                 ) : (
@@ -850,7 +850,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -1055,7 +1055,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องบัญชีที่รอการอนุมัติจาก HR</div>
                 ) : (
@@ -1095,7 +1095,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -1292,7 +1292,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="lg:hidden space-y-3">
                 {filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">ไม่มีประวัติการอนุมัติ</div>
                 ) : (
@@ -1343,7 +1343,7 @@ export const HRApprovalPage = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="rounded-md border overflow-x-auto hidden md:block">
+              <div className="rounded-md border overflow-x-auto hidden lg:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
