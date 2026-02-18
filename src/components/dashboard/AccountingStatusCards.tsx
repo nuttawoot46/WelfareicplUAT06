@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clipboard, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Receipt } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { useAccountingRequests } from '@/hooks/useAccountingRequests';
 
@@ -16,36 +16,41 @@ export function AccountingStatusCards() {
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-5">
       <StatusCard
-        title="รออนุมัติโดยหัวหน้า"
+        title="รอดำเนินการ"
         count={pendingManagerCount}
         status="pending_manager"
-        icon={<Clipboard className="h-5 w-5" />}
+        icon={<Clock className="h-5 w-5" />}
+        description="รายการ - รออนุมัติหัวหน้า"
       />
       <StatusCard
         title="รอตรวจสอบโดยบัญชี"
         count={pendingAccountingCount}
         status="pending_accounting"
-        icon={<Clipboard className="h-5 w-5 text-amber-700" />}
+        icon={<Receipt className="h-5 w-5" />}
+        description="รายการ - กำลังดำเนินการ"
       />
       <StatusCard
         title="เสร็จสมบูรณ์"
         count={completedCount}
         status="completed"
-        icon={<CheckCircle2 className="h-5 w-5 text-green-700" />}
+        icon={<CheckCircle2 className="h-5 w-5" />}
+        description="รายการ - เดือนนี้"
       />
       <StatusCard
         title="ปฏิเสธโดยหัวหน้า"
         count={rejectedManagerCount}
         status="rejected_manager"
-        icon={<XCircle className="h-5 w-5 text-red-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
       <StatusCard
         title="ปฏิเสธโดยบัญชี"
         count={rejectedAccountingCount}
         status="rejected_accounting"
-        icon={<XCircle className="h-5 w-5 text-pink-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
     </div>
   );

@@ -44,7 +44,7 @@ const AccountingDashboard = () => {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 mb-6 md:mb-8">
         <AccountingStatusChart />
       </div>
 

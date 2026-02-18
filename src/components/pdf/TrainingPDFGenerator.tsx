@@ -375,7 +375,7 @@ const createTrainingFormHTML = (
           </tr>
           <tr>
             <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: left; font-weight: normal;">
-              บริษัทจ่าย (งบคงเหลือก่อนเบิก+ส่วนเกิน 50%)
+              บริษัทจ่าย (งบคงเหลือก่อนเบิก+ส่วนเกิน${welfareData.manager_waiver_type === 'full' ? ' - อนุโลมทั้งหมด' : welfareData.manager_waiver_type === 'partial' ? ' - อนุโลมบางส่วน' : ' 50%'})
             </td>
             <td style="border: 1px solid #000; padding: 4px 4px 10px 4px; text-align: right; font-weight: normal;">
               ${financials.companyPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท

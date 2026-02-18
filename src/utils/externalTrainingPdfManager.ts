@@ -184,7 +184,20 @@ export const addSignatureToExternalTrainingPDF = async (
       training_topics: updatedRequestData.training_topics,
       start_date: updatedRequestData.start_date,
       end_date: updatedRequestData.end_date,
-      total_days: updatedRequestData.total_days
+      total_days: updatedRequestData.total_days,
+      // Financial fields
+      total_amount: (updatedRequestData as any).total_amount,
+      tax7_percent: (updatedRequestData as any).tax7_percent,
+      withholding_tax3_percent: (updatedRequestData as any).withholding_tax3_percent,
+      net_amount: (updatedRequestData as any).net_amount,
+      excess_amount: (updatedRequestData as any).excess_amount,
+      company_payment: (updatedRequestData as any).company_payment,
+      employee_payment: (updatedRequestData as any).employee_payment,
+      is_vat_included: (updatedRequestData as any).is_vat_included,
+      // Manager waiver fields
+      manager_waiver_type: (updatedRequestData as any).manager_waiver_type,
+      manager_waiver_amount: (updatedRequestData as any).manager_waiver_amount,
+      manager_waiver_reason: (updatedRequestData as any).manager_waiver_reason,
     };
 
     // Generate new PDF with signatures

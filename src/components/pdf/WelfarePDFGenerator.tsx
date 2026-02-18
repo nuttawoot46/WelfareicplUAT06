@@ -159,14 +159,14 @@ const createWelfareFormHTML = (
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
               <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'dental' || welfareData.type === 'glasses' ? '☑' : '☐'}</span>
-              <span style="line-height: 1.4;">สวัสดิการค่ารักษาทัตกรรมหรือ/และค่าตัดแว่นสายตาสายตา (ตามจริง ไม่เกิน 2,000 บาท)</span>
+              <span style="line-height: 1.4;">สวัสดิการค่ารักษาทันตกรรมหรือ/และค่าตัดแว่นสายตา (ตามจริง ไม่เกิน 2,000 บาท)</span>
             </div>
           </div>
           
           <!-- Row 5 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.details?.includes('พนักงาน') ? '☑' : '☐'}</span>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.funeral_type === 'employee_spouse' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานศพ พนักงาน/สามีหรือภรรยาของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 6,000 บาท + พวงหรีด 1 พวง</span>
             </div>
           </div>
@@ -174,7 +174,7 @@ const createWelfareFormHTML = (
           <!-- Row 6 -->
           <div style="display: flex; margin-bottom: 10px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.details?.includes('บุตร') ? '☑' : '☐'}</span>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && welfareData.funeral_type === 'child' ? '☑' : '☐'}</span>
               <span style="line-height: 1.4;">สวัสดิการงานศพ บุตร ของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 4,000 + พวงหรีด 1 พวง</span>
             </div>
           </div>
@@ -182,8 +182,8 @@ const createWelfareFormHTML = (
           <!-- Row 7 -->
           <div style="display: flex; margin-bottom: 15px; font-size: 12px;">
             <div style="width: 100%; display: flex; align-items: flex-start;">
-              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && (welfareData.details?.includes('บิดา') || welfareData.details?.includes('มารดา')) ? '☑' : '☐'}</span>
-              <span style="line-height: 1.4;">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 2,000 บาท + พวงหรีด 1 พวง</span>
+              <span style="margin-right: 10px; font-size: 16px;">${welfareData.type === 'funeral' && (welfareData.funeral_type === 'father' || welfareData.funeral_type === 'mother' || welfareData.funeral_type === 'parent') ? '☑' : '☐'}</span>
+              <span style="line-height: 1.4;">สวัสดิการงานศพ บิดา/มารดา ของพนักงาน ค่าเจ้าภาพ 3,000 เงินช่วยเหลือ 3,000 บาท + พวงหรีด 1 พวง</span>
             </div>
           </div>
         </div>

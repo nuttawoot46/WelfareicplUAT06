@@ -21,7 +21,7 @@ const welfareTypeLabels: Record<WelfareType, string> = {
   childbirth: 'ค่าคลอดบุตร',
   funeral: 'ค่าช่วยเหลืองานศพ',
   glasses: 'ค่าตัดแว่นสายตา',
-  dental: 'ค่ารักษาทัตกรรม',
+  dental: 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา',
   fitness: 'ค่าออกกำลังกาย',
 };
 
@@ -103,6 +103,21 @@ export function RequestReviewCard({ request }: RequestReviewCardProps) {
           <p className="text-sm text-muted-foreground pl-2 border-l-2 ml-1 mt-1">{request.details}</p>
         </div>
         
+        {/* แสดงข้อมูลอนุโลมส่วนเกิน (ถ้ามี) */}
+        {request.type === 'training' && request.manager_waiver_type && request.manager_waiver_type !== 'none' && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm space-y-1">
+            <p className="font-medium text-orange-800">หัวหน้าอนุโลมส่วนเกิน</p>
+            <p>รูปแบบ: <strong>{request.manager_waiver_type === 'full' ? 'บริษัทจ่ายส่วนเกินทั้งหมด' : 'กำหนดจำนวนเอง'}</strong></p>
+            {request.manager_waiver_type === 'partial' && (
+              <p>จำนวนที่อนุโลม: <strong>{Number(request.manager_waiver_amount || 0).toLocaleString('th-TH')} บาท</strong></p>
+            )}
+            <p>บริษัทจ่าย: <strong>{Number(request.company_payment || 0).toLocaleString('th-TH')} บาท</strong> / พนักงานจ่าย: <strong>{Number(request.employee_payment || 0).toLocaleString('th-TH')} บาท</strong></p>
+            {request.manager_waiver_reason && (
+              <p>เหตุผล: {request.manager_waiver_reason}</p>
+            )}
+          </div>
+        )}
+
         <div>
           <p className="text-sm font-medium">เอกสารแนบ:</p>
           {renderAttachments()}

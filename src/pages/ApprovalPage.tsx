@@ -27,6 +27,9 @@ import { getWelfareTypeLabel } from '@/lib/utils';
 
 
 
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { sendLineNotification } from '@/services/lineApi';
 
@@ -56,12 +59,22 @@ export const ApprovalPage = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const { downloadPDF, previewPDF, isLoading: isPDFLoading } = usePDFOperations();
 
+  // Waiver states (อนุโลมส่วนเกินค่าอบรม)
+  const [isWaiverDialogOpen, setIsWaiverDialogOpen] = useState(false);
+  const [waiverType, setWaiverType] = useState<'none' | 'full' | 'partial'>('none');
+  const [waiverAmount, setWaiverAmount] = useState<number>(0);
+  const [waiverReason, setWaiverReason] = useState('');
+
   // Cleanup function to reset states
   const resetApprovalStates = () => {
     setPendingApprovalRequest(null);
     setPendingBulkApproval([]);
     setIsBulkApproval(false);
     setIsSignaturePopupOpen(false);
+    setIsWaiverDialogOpen(false);
+    setWaiverType('none');
+    setWaiverAmount(0);
+    setWaiverReason('');
   };
 
 
@@ -184,7 +197,20 @@ export const ApprovalPage = () => {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [combinedRequests, profile?.role, teamMemberIds, statusFilter, dateFilter, searchTerm, activeTab]);
 
-  // (ถ้ามี logic อื่นๆ ที่ต้องใช้ approverIds ให้คงไว้)
+  // Count pending requests per tab (ไม่ขึ้นกับ search/date filter)
+  const pendingCounts = useMemo(() => {
+    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+    let base = combinedRequests;
+    if ((profile?.role === 'manager' || profile?.role === 'accountingandmanager') && teamMemberIds.length > 0) {
+      base = combinedRequests.filter(req => req.userId && teamMemberIds.includes(parseInt(req.userId, 10)));
+    }
+    const pendingManager = base.filter(req => req.status === 'pending_manager');
+    return {
+      welfare: pendingManager.filter(req => !accountingTypes.includes(req.type)).length,
+      accounting: pendingManager.filter(req => accountingTypes.includes(req.type)).length,
+    };
+  }, [combinedRequests, profile?.role, teamMemberIds]);
+
   useEffect(() => {
     const approverIds = combinedRequests
       .filter(req => req.approverId)
@@ -323,18 +349,33 @@ export const ApprovalPage = () => {
 
   const handleApprove = async (requestId: number) => {
     if (!user) return;
-    
+
     // Find the request to approve
     const request = combinedRequests.find(req => req.id === requestId);
     if (!request) {
       console.error('Request not found:', requestId);
       return;
     }
-    
-    // Set pending request and open signature popup
+
     setPendingApprovalRequest(request);
-    setIsSignaturePopupOpen(true);
     setIsModalOpen(false);
+
+    // ถ้าเป็น training ที่มีส่วนเกิน → แสดง dialog อนุโลมก่อน
+    const hasExcess = request.type === 'training' && (request.excess_amount || 0) > 0;
+    if (hasExcess) {
+      setWaiverType('none');
+      setWaiverAmount(0);
+      setWaiverReason('');
+      setIsWaiverDialogOpen(true);
+    } else {
+      setIsSignaturePopupOpen(true);
+    }
+  };
+
+  // เมื่อหัวหน้ายืนยันตัวเลือกอนุโลม → เปิด signature popup
+  const handleWaiverConfirm = () => {
+    setIsWaiverDialogOpen(false);
+    setIsSignaturePopupOpen(true);
   };
 
   const handleSignatureComplete = async (signature: string) => {
@@ -489,18 +530,50 @@ export const ApprovalPage = () => {
         // Determine next status based on request type
         const accountingTypesForStatus = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
         const nextStatus = accountingTypesForStatus.includes(pendingApprovalRequest.type) ? 'pending_accounting' : 'pending_hr';
-        
+
+        // คำนวณ company_payment / employee_payment ใหม่ตามการอนุโลม
+        const hasExcess = pendingApprovalRequest.type === 'training' && (pendingApprovalRequest.excess_amount || 0) > 0;
+        const excessAmount = pendingApprovalRequest.excess_amount || 0;
+        let updatedCompanyPayment = pendingApprovalRequest.company_payment;
+        let updatedEmployeePayment = pendingApprovalRequest.employee_payment;
+
+        if (hasExcess && waiverType !== 'none') {
+          if (waiverType === 'full') {
+            // บริษัทจ่ายส่วนเกินทั้งหมด
+            updatedCompanyPayment = excessAmount;
+            updatedEmployeePayment = 0;
+          } else if (waiverType === 'partial') {
+            // กำหนดเอง: บริษัทจ่ายเพิ่มตาม waiverAmount
+            const originalCompany = excessAmount / 2;
+            const extraCompany = Math.min(waiverAmount, excessAmount / 2); // ไม่เกินส่วนของพนักงาน
+            updatedCompanyPayment = originalCompany + extraCompany;
+            updatedEmployeePayment = excessAmount - updatedCompanyPayment;
+            if ((updatedEmployeePayment || 0) < 0) updatedEmployeePayment = 0;
+          }
+        }
+
+        const updateData: any = {
+          status: nextStatus,
+          manager_approver_id: user.id,
+          manager_approver_name: profile?.display_name || user.email,
+          manager_approver_position: profile?.position || '',
+          manager_approved_at: currentDateTime,
+          manager_signature: signature,
+          updated_at: currentDateTime,
+        };
+
+        // เพิ่ม waiver fields เฉพาะเมื่อมีส่วนเกิน
+        if (hasExcess) {
+          updateData.manager_waiver_type = waiverType;
+          updateData.manager_waiver_amount = waiverType === 'partial' ? waiverAmount : (waiverType === 'full' ? excessAmount : 0);
+          updateData.manager_waiver_reason = waiverReason || null;
+          updateData.company_payment = updatedCompanyPayment;
+          updateData.employee_payment = updatedEmployeePayment;
+        }
+
         const { error } = await supabase
           .from('welfare_requests')
-          .update({
-            status: nextStatus,
-            manager_approver_id: user.id,
-            manager_approver_name: profile?.display_name || user.email,
-            manager_approver_position: profile?.position || '',
-            manager_approved_at: currentDateTime,
-            manager_signature: signature,
-            updated_at: currentDateTime
-          })
+          .update(updateData)
           .eq('id', pendingApprovalRequest.id);
           
         if (error) {
@@ -871,20 +944,30 @@ export const ApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
-              <TabsTrigger value="pending-welfare" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+            <TabsList className="grid w-full grid-cols-4 p-1 rounded-lg gap-1">
+              <TabsTrigger value="pending-welfare" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <Clock className="h-4 w-4" />
                 สวัสดิการ
+                {pendingCounts.welfare > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] text-center">
+                    {pendingCounts.welfare}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="pending-accounting" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+              <TabsTrigger value="pending-accounting" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <FileText className="h-4 w-4" />
                 บัญชี
+                {pendingCounts.accounting > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] text-center">
+                    {pendingCounts.accounting}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+              <TabsTrigger value="history" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <History className="h-4 w-4" />
                 ประวัติ
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
+              <TabsTrigger value="reports" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <BarChart3 className="h-4 w-4" />
                 รายงาน
               </TabsTrigger>
@@ -956,8 +1039,8 @@ export const ApprovalPage = () => {
                 </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
@@ -1193,8 +1276,8 @@ export const ApprovalPage = () => {
                 </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
@@ -1422,8 +1505,8 @@ export const ApprovalPage = () => {
                 </Popover>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead>พนักงาน</TableHead>
@@ -1897,112 +1980,111 @@ export const ApprovalPage = () => {
 
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>รายละเอียดคำร้อง</DialogTitle>
-            </DialogHeader>
-            <div>
-              <div className="space-y-2">
-                <p><strong>พนักงาน:</strong> {selectedRequest.userName}</p>
-                <p><strong>แผนก:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
-                <p><strong>ประเภทสวัสดิการ:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
-                <p><strong>จำนวนเงิน:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
-                <p><strong>วันที่:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
-                <p><strong>สถานะ:</strong> {selectedRequest.status}</p>
-                <p><strong>อนุมัติโดย:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'ยังไม่อนุมัติ'}</p>
-                <p><strong>รายละเอียด:</strong> {selectedRequest.details}</p>
-                <p><strong>หัวข้อ:</strong> {selectedRequest.title}</p>
-                <p><strong>เอกสารแนบ:</strong> {selectedRequest.attachments && selectedRequest.attachments[0] ? (<a href={selectedRequest.attachments[0]} target="_blank" rel="noopener noreferrer">ดูเอกสาร</a>) : 'ไม่มีเอกสารแนบ'}</p>
-                <p><strong>เอกสารแนบ:</strong> {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
-                  <span className="flex flex-wrap gap-2">
+          <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+            {/* Header สรุปข้อมูล */}
+            <div className="px-6 pt-6 pb-3 border-b bg-gray-50/80 rounded-t-lg flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <DialogHeader className="p-0 space-y-0">
+                  <DialogTitle className="text-lg">{selectedRequest.userName} — {getWelfareTypeLabel(selectedRequest.type)}</DialogTitle>
+                </DialogHeader>
+                <Badge
+                  className={`text-sm px-3 py-1 ${
+                    selectedRequest.status === 'pending_manager' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                    selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                    selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                    selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
+                    'bg-green-100 text-green-800 border-green-300'
+                  }`}
+                  variant="outline"
+                >
+                  {selectedRequest.status === 'pending_executive' ? 'รอ Executive' :
+                   selectedRequest.status === 'pending_manager' ? 'รอผู้จัดการ' :
+                   selectedRequest.status === 'pending_hr' ? 'รอ HR' :
+                   selectedRequest.status === 'pending_accounting' ? 'รอบัญชี' :
+                   selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
+                   selectedRequest.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
+                   selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
+                   selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                   selectedRequest.status}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                <span>แผนก: <strong className="text-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</strong></span>
+                <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.date), 'dd/MM/yyyy')}</strong></span>
+                <span>จำนวนเงิน: <strong className="text-blue-700 text-base">{selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</strong></span>
+                {selectedRequest.runNumber && <span>เลขที่: <strong className="text-foreground">{selectedRequest.runNumber}</strong></span>}
+                {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    เอกสารแนบ:
                     {selectedRequest.attachments.map((file, idx) => (
-                      <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                        <FileText className="h-4 w-4" />
-                        <span>ไฟล์ {idx + 1}</span>
+                      <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                        <FileText className="h-3.5 w-3.5" />ไฟล์ {idx + 1}
                       </a>
                     ))}
                   </span>
-                ) : 'ไม่มีเอกสารแนบ'}</p>
-                <p><strong>หมายเหตุผู้จัดการ:</strong> {selectedRequest.notes}</p>
-                
-                {/* Signature Display Section */}
-                {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
-                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-medium mb-3">ลายเซ็นอนุมัติ</h4>
-                    
-                    {/* Manager Signature */}
-                    {selectedRequest.managerSignature && (
-                      <SignatureDisplay
-                        signature={selectedRequest.managerSignature}
-                        approverName={selectedRequest.managerApproverName}
-                        approvedAt={selectedRequest.managerApprovedAt}
-                        role="manager"
-                      />
-                    )}
-
-                    {/* HR Signature */}
-                    {selectedRequest.hrSignature && (
-                      <SignatureDisplay
-                        signature={selectedRequest.hrSignature}
-                        approverName={selectedRequest.hrApproverName}
-                        approvedAt={selectedRequest.hrApprovedAt}
-                        role="hr"
-                      />
-                    )}
-                  </div>
                 )}
-
-                {/* PDF Download Button */}
-                <div className="mt-4 flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => downloadPDF(selectedRequest.id)}
-                    disabled={isPDFLoading || isLoading}
-                  >
-                    {isPDFLoading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด PDF'}
-                  </Button>
-
-                  {/* Preview Button - Show only if there are signatures */}
-                  {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
-                    <Button
-                      variant="default"
-                      onClick={() => previewPDF(selectedRequest.id)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      disabled={isPDFLoading || isLoading}
-                    >
-                      {isPDFLoading ? 'กำลังโหลด...' : 'ดูตัวอย่าง PDF พร้อมลายเซ็น'}
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">เหตุผลการปฏิเสธ (ถ้ามี):</p>
-                  <Input
-                    placeholder="ระบุเหตุผลการปฏิเสธ..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                  />
-                </div>
               </div>
             </div>
-            <DialogFooter>
-              {selectedRequest.status === 'pending_manager' && (
-                <>
-                  <Button
-                    onClick={() => handleApprove(selectedRequest.id)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    อนุมัติ
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                  >
-                    ปฏิเสธ
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
+
+            {/* PDF Preview */}
+            <div className="flex-1 min-h-0 px-6 py-3">
+              {(() => {
+                const pdfUrl = selectedRequest.pdf_request_manager || selectedRequest.pdfUrl || selectedRequest.pdf_url;
+                if (pdfUrl) {
+                  return (
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full h-full rounded-lg border"
+                      title="PDF Preview"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-full h-full flex items-center justify-center border rounded-lg bg-gray-50">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium">ไม่มี PDF สำหรับแสดงตัวอย่าง</p>
+                      <p className="text-sm mt-1">PDF จะถูกสร้างหลังจากมีการอนุมัติ</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer — ปุ่ม Action */}
+            {selectedRequest.status === 'pending_manager' && (
+              <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="ระบุเหตุผลการปฏิเสธ (ถ้ามี)..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      onClick={() => handleApprove(selectedRequest.id)}
+                      className="bg-green-600 hover:bg-green-700 px-6"
+                      disabled={isLoading}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      อนุมัติ
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
+                      disabled={isLoading}
+                      className="px-6"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      ปฏิเสธ
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}
@@ -2025,6 +2107,91 @@ export const ApprovalPage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Waiver Dialog (อนุโลมส่วนเกินค่าอบรม) */}
+      <Dialog open={isWaiverDialogOpen} onOpenChange={(open) => { if (!open) setIsWaiverDialogOpen(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ส่วนเกินค่าอบรม</DialogTitle>
+          </DialogHeader>
+          {pendingApprovalRequest && (
+            <div className="space-y-4">
+              {/* แสดงข้อมูลส่วนเกิน */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm space-y-1">
+                <p><span className="font-medium">ค่าใช้จ่ายทั้งหมด:</span> {Number(pendingApprovalRequest.amount || 0).toLocaleString('th-TH')} บาท</p>
+                <p><span className="font-medium">ส่วนเกินงบประมาณ:</span> <span className="text-red-600 font-semibold">{Number(pendingApprovalRequest.excess_amount || 0).toLocaleString('th-TH')} บาท</span></p>
+                <p className="text-muted-foreground">ตามปกติ: บริษัทจ่าย {(Number(pendingApprovalRequest.excess_amount || 0) / 2).toLocaleString('th-TH')} / พนักงานจ่าย {(Number(pendingApprovalRequest.excess_amount || 0) / 2).toLocaleString('th-TH')}</p>
+              </div>
+
+              {/* ตัวเลือกการอนุโลม */}
+              <div className="space-y-2">
+                <Label className="font-medium">เลือกรูปแบบ</Label>
+                <RadioGroup value={waiverType} onValueChange={(val) => setWaiverType(val as 'none' | 'full' | 'partial')}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="waiver-none" />
+                    <Label htmlFor="waiver-none">ตามปกติ (50/50) - บริษัทและพนักงานแบ่งจ่ายคนละครึ่ง</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="full" id="waiver-full" />
+                    <Label htmlFor="waiver-full">บริษัทจ่ายส่วนเกินทั้งหมด</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="partial" id="waiver-partial" />
+                    <Label htmlFor="waiver-partial">กำหนดจำนวนเอง</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Input สำหรับ partial */}
+              {waiverType === 'partial' && (
+                <div className="space-y-2">
+                  <Label htmlFor="waiver-amount">จำนวนเงินที่บริษัทจ่ายเพิ่ม (บาท)</Label>
+                  <Input
+                    id="waiver-amount"
+                    type="number"
+                    min={0}
+                    max={Number(pendingApprovalRequest.excess_amount || 0) / 2}
+                    value={waiverAmount || ''}
+                    onChange={(e) => setWaiverAmount(Number(e.target.value))}
+                    placeholder={`สูงสุด ${(Number(pendingApprovalRequest.excess_amount || 0) / 2).toLocaleString('th-TH')} บาท`}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    บริษัทจ่ายรวม: {((Number(pendingApprovalRequest.excess_amount || 0) / 2) + Math.min(waiverAmount, Number(pendingApprovalRequest.excess_amount || 0) / 2)).toLocaleString('th-TH')} บาท
+                    {' / '}
+                    พนักงานจ่าย: {(Number(pendingApprovalRequest.excess_amount || 0) - ((Number(pendingApprovalRequest.excess_amount || 0) / 2) + Math.min(waiverAmount, Number(pendingApprovalRequest.excess_amount || 0) / 2))).toLocaleString('th-TH')} บาท
+                  </p>
+                </div>
+              )}
+
+              {/* แสดงสรุปเมื่อเลือก full */}
+              {waiverType === 'full' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                  <p className="text-green-700">บริษัทจ่ายส่วนเกินทั้งหมด: <span className="font-semibold">{Number(pendingApprovalRequest.excess_amount || 0).toLocaleString('th-TH')} บาท</span></p>
+                  <p className="text-green-700">พนักงานจ่าย: <span className="font-semibold">0 บาท</span></p>
+                </div>
+              )}
+
+              {/* เหตุผล */}
+              {waiverType !== 'none' && (
+                <div className="space-y-2">
+                  <Label htmlFor="waiver-reason">เหตุผลการอนุโลม</Label>
+                  <Textarea
+                    id="waiver-reason"
+                    value={waiverReason}
+                    onChange={(e) => setWaiverReason(e.target.value)}
+                    placeholder="ระบุเหตุผลการอนุโลม..."
+                    rows={2}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsWaiverDialogOpen(false)}>ยกเลิก</Button>
+            <Button onClick={handleWaiverConfirm}>ยืนยันและลงลายเซ็น</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Signature Popup */}
       <SignaturePopup
         isOpen={isSignaturePopupOpen}

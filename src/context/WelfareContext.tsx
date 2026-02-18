@@ -154,9 +154,14 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               tax7_percent: row.tax7_percent,
               withholding_tax3_percent: row.withholding_tax3_percent,
               net_amount: row.net_amount,
+              excess_amount: row.excess_amount,
               company_payment: row.company_payment,
               employee_payment: row.employee_payment,
               is_vat_included: row.is_vat_included,
+              // Manager waiver fields (อนุโลมส่วนเกิน)
+              manager_waiver_type: row.manager_waiver_type,
+              manager_waiver_amount: row.manager_waiver_amount,
+              manager_waiver_reason: row.manager_waiver_reason,
               // Advance payment specific fields
               advanceDepartment: row.advance_department,
               advanceDepartmentOther: row.advance_department_other,
@@ -379,8 +384,9 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // ตรวจสอบประเภทงานศพที่ใช้ไปแล้ว (แต่ละประเภทใช้ได้ 1 ครั้งตลอดการทำงาน)
+  // บิดา/มารดา แยกสิทธิ์กันคนละครั้ง (father, mother)
   const getFuneralUsedTypes = (userId: string): { usedTypes: string[]; availableTypes: string[] } => {
-    const ALL_FUNERAL_TYPES = ['employee_spouse', 'child', 'parent'];
+    const ALL_FUNERAL_TYPES = ['employee_spouse', 'child', 'father', 'mother'];
 
     // Status ที่ถูกปฏิเสธ (ไม่นับรวม)
     const rejectedStatuses = ['rejected_manager', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval'];
@@ -397,7 +403,13 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const usedTypes: string[] = [];
     funeralRequests.forEach(request => {
       if (request.funeral_type && !usedTypes.includes(request.funeral_type)) {
-        usedTypes.push(request.funeral_type);
+        // Backward compat: ข้อมูลเก่าที่เป็น 'parent' ให้นับเป็นทั้ง father และ mother
+        if (request.funeral_type === 'parent') {
+          if (!usedTypes.includes('father')) usedTypes.push('father');
+          if (!usedTypes.includes('mother')) usedTypes.push('mother');
+        } else {
+          usedTypes.push(request.funeral_type);
+        }
       }
     });
 

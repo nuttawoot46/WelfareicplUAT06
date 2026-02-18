@@ -50,7 +50,7 @@ interface FormValues {
     childName?: string;
     birthType: 'natural' | 'caesarean';
   }[];
-  funeralType?: 'employee_spouse' | 'child' | 'parent';
+  funeralType?: 'employee_spouse' | 'child' | 'father' | 'mother';
   // Fitness specific fields (ค่าออกกำลังกาย)
   fitnessParticipants?: FitnessParticipant[];
   fitnessSplitEqually?: boolean;
@@ -157,7 +157,7 @@ const getFormTitle = (type: WelfareType): string => {
     childbirth: 'แบบฟอร์มขอสวัสดิการค่าคลอดบุตร',
     funeral: 'แบบฟอร์มขอสวัสดิการค่าช่วยเหลืองานศพ',
     glasses: 'แบบฟอร์มขอสวัสดิการค่าตัดแว่นสายตา',
-    dental: 'แบบฟอร์มขอสวัสดิการค่ารักษาทัตกรรม',
+    dental: 'แบบฟอร์มขอสวัสดิการค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา',
     fitness: 'แบบฟอร์มขอสวัสดิการค่าออกกำลังกาย',
     medical: 'แบบฟอร์มขอสวัสดิการค่าของเยี่ยมกรณีเจ็บป่วย',
     internal_training: 'ฟอร์มเบิกค่าอบรม (ภายใน)',
@@ -384,6 +384,14 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
       const childbirthInfo = getChildbirthCount(String(profile.employee_id));
       setChildbirthLimit(childbirthInfo);
     }
+
+    // ค่าแต่งงาน fix จำนวนเงิน 3000 บาท และภาษี 0
+    if (type === 'wedding' && !editIdNum) {
+      setValue('amount', 3000);
+      setValue('tax7Percent', 0);
+      setValue('withholdingTax3Percent', 0);
+      calculateNonTrainingAmounts(3000, 0, 0);
+    }
   }, [type, profile, trainingBudget, welfareRequests]); // เพิ่ม welfareRequests เพื่ออัพเดทจำนวนบุตรหลังส่งคำร้อง
 
   // 2. แยก useEffect สำหรับ fetch edit data - run ครั้งเดียวเมื่อ editIdNum มีค่า
@@ -410,7 +418,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
           endDate: dbData.end_date || '',
           totalDays: dbData.total_days || 0,
           birthType: dbData.birth_type || '',
-          funeralType: (dbData.funeral_type as 'employee_spouse' | 'child' | 'parent') || undefined,
+          funeralType: (dbData.funeral_type as 'employee_spouse' | 'child' | 'father' | 'mother') || undefined,
           trainingTopics: dbData.training_topics ? JSON.parse(dbData.training_topics) : [],
           totalAmount: dbData.total_amount || 0,
           tax7Percent: dbData.tax7_percent || 0,
@@ -1037,7 +1045,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
         // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
         const { data: currentRequest, error: fetchError } = await supabase
           .from('welfare_requests')
-          .select('status')
+          .select('status, user_signature, run_number')
           .eq('id', editIdNum)
           .single();
         if (fetchError || !currentRequest) {
@@ -1114,6 +1122,77 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
           throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
         }
 
+        // Regenerate PDF with updated data
+        try {
+          const existingSignature = currentRequest.user_signature || userSignature;
+          const pdfRequestData = {
+            id: editIdNum,
+            userId: user.id,
+            userName: employeeData?.Name || profile?.display_name || user.email || 'Unknown',
+            userDepartment: employeeData?.Team || 'Unknown Department',
+            department_request: employeeData?.Team || 'Unknown Department',
+            type: type,
+            status: 'pending_manager' as const,
+            amount: Number(data.netAmount || data.amount || 0),
+            date: data.startDate || new Date().toISOString(),
+            details: data.details || '',
+            attachments: files,
+            notes: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            start_date: data.startDate,
+            end_date: data.endDate,
+            total_days: data.totalDays,
+            birth_type: data.birthType,
+            childbirths: data.childbirths ? JSON.stringify(data.childbirths) : null,
+            funeral_type: data.funeralType,
+            training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
+            total_amount: data.totalAmount,
+            tax7_percent: data.tax7Percent,
+            withholding_tax3_percent: data.withholdingTax3Percent,
+            net_amount: data.netAmount,
+            excess_amount: data.excessAmount,
+            company_payment: data.companyPayment,
+            employee_payment: data.employeePayment,
+            course_name: data.courseName,
+            organizer: data.organizer,
+            is_vat_included: data.isVatIncluded,
+            userSignature: existingSignature,
+            title: data.title || '',
+            runNumber: currentRequest.run_number,
+            attachmentSelections: data.attachmentSelections,
+          };
+
+          let blob: Blob;
+          if (type === 'training') {
+            blob = await generateTrainingPDF(
+              pdfRequestData as any,
+              user as any,
+              employeeData,
+              existingSignature,
+              remainingBudget
+            );
+          } else {
+            blob = await generateWelfarePDF(
+              pdfRequestData as any,
+              user as any,
+              employeeData
+            );
+          }
+
+          const employeeId = employeeData?.id || user?.id?.slice(-8) || 'user';
+          const timestamp = Date.now();
+          const filename = `welfare_${type}_emp${employeeId}_${timestamp}.pdf`;
+          const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
+
+          if (pdfUrl) {
+            await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', editIdNum);
+          }
+          console.log('Edit mode: PDF regenerated successfully', pdfUrl);
+        } catch (pdfError) {
+          console.error('Edit mode: PDF regeneration error:', pdfError);
+        }
+
         await refreshRequests();
 
         toast({
@@ -1170,7 +1249,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
           // ตรวจสอบสถานะคำร้องก่อนอนุญาตให้แก้ไข
           const { data: currentRequest, error: fetchError } = await supabase
             .from('welfare_requests')
-            .select('status')
+            .select('status, run_number')
             .eq('id', editIdNum)
             .single();
 
@@ -1235,13 +1314,76 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             throw new Error('ไม่สามารถแก้ไขคำร้องได้ กรุณาลองใหม่');
           }
 
-          // ตรวจสอบค่าในฐานข้อมูลหลัง update
-          const { data: verifyData } = await supabase
-            .from('welfare_requests')
-            .select('id, amount, net_amount')
-            .eq('id', editIdNum)
-            .single();
-          console.log('VERIFY AFTER UPDATE:', verifyData);
+          // Regenerate PDF with updated data
+          try {
+            const empData = pendingFormData.employeeData;
+            const pdfRequestData = {
+              id: editIdNum,
+              userId: user.id,
+              userName: empData?.Name || profile?.display_name || user.email || 'Unknown',
+              userDepartment: empData?.Team || 'Unknown Department',
+              department_request: empData?.Team || 'Unknown Department',
+              type: type,
+              status: 'pending_manager' as const,
+              amount: Number(data.netAmount || data.amount || 0),
+              date: data.startDate || new Date().toISOString(),
+              details: data.details || '',
+              attachments: files,
+              notes: '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              start_date: data.startDate,
+              end_date: data.endDate,
+              total_days: data.totalDays,
+              birth_type: data.birthType,
+              childbirths: data.childbirths ? JSON.stringify(data.childbirths) : null,
+              funeral_type: data.funeralType,
+              training_topics: data.trainingTopics ? JSON.stringify(data.trainingTopics) : null,
+              total_amount: data.totalAmount,
+              tax7_percent: data.tax7Percent,
+              withholding_tax3_percent: data.withholdingTax3Percent,
+              net_amount: data.netAmount,
+              excess_amount: data.excessAmount,
+              company_payment: data.companyPayment,
+              employee_payment: data.employeePayment,
+              course_name: data.courseName,
+              organizer: data.organizer,
+              is_vat_included: data.isVatIncluded,
+              userSignature: signatureData,
+              title: data.title || '',
+              runNumber: currentRequest.run_number,
+              attachmentSelections: data.attachmentSelections,
+            };
+
+            let blob: Blob;
+            if (type === 'training') {
+              blob = await generateTrainingPDF(
+                pdfRequestData as any,
+                user as any,
+                empData,
+                signatureData,
+                remainingBudget
+              );
+            } else {
+              blob = await generateWelfarePDF(
+                pdfRequestData as any,
+                user as any,
+                empData
+              );
+            }
+
+            const employeeId = empData?.id || user?.id?.slice(-8) || 'user';
+            const timestamp = Date.now();
+            const filename = `welfare_${type}_emp${employeeId}_${timestamp}.pdf`;
+            const pdfUrl = await uploadPDFToSupabase(blob, filename, user?.id);
+
+            if (pdfUrl) {
+              await supabase.from('welfare_requests').update({ pdf_url: pdfUrl }).eq('id', editIdNum);
+            }
+            console.log('Edit mode (signature): PDF regenerated successfully', pdfUrl);
+          } catch (pdfError) {
+            console.error('Edit mode (signature): PDF regeneration error:', pdfError);
+          }
 
           await refreshRequests();
 
@@ -1254,7 +1396,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
             title: 'แก้ไขคำร้องสำเร็จ',
             description: 'ข้อมูลคำร้องได้รับการแก้ไขเรียบร้อยแล้ว',
           });
-          setTimeout(onBack, 1000); // ลดเวลาเพื่อให้ UX ดีขึ้น
+          setTimeout(onBack, 1000);
           return;
         }
 
@@ -2175,17 +2317,18 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
 
           {/* Funeral specific fields */}
           {type === 'funeral' && (() => {
-            const funeralInfo = profile?.employee_id ? getFuneralUsedTypes(String(profile.employee_id)) : { usedTypes: [], availableTypes: ['employee_spouse', 'child', 'parent'] };
+            const funeralInfo = profile?.employee_id ? getFuneralUsedTypes(String(profile.employee_id)) : { usedTypes: [], availableTypes: ['employee_spouse', 'child', 'father', 'mother'] };
 
             // จำนวนเงินสำหรับแต่ละประเภทงานศพ
             const funeralAmounts: Record<string, number> = {
               'employee_spouse': 9000, // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 6,000
               'child': 7000,           // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 4,000
-              'parent': 5000           // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 2,000
+              'father': 6000,          // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 3,000
+              'mother': 6000           // ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 3,000
             };
 
             const handleFuneralTypeChange = (value: string) => {
-              setValue('funeralType', value as 'employee_spouse' | 'child' | 'parent');
+              setValue('funeralType', value as 'employee_spouse' | 'child' | 'father' | 'mother');
               // Auto-fill amount based on selected type
               if (funeralAmounts[value]) {
                 setValue('amount', funeralAmounts[value]);
@@ -2196,7 +2339,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="form-label">ประเภทสวัสดิการงานศพ</label>
-                  
+
 
                   <Select
                     onValueChange={handleFuneralTypeChange}
@@ -2228,12 +2371,21 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                         </div>
                       </SelectItem>
                       <SelectItem
-                        value="parent"
-                        disabled={funeralInfo.usedTypes.includes('parent')}
+                        value="father"
+                        disabled={funeralInfo.usedTypes.includes('father')}
                       >
                         <div className="flex flex-col">
-                          <span>บิดา/มารดา ของพนักงาน {funeralInfo.usedTypes.includes('parent') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
-                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 2,000 บาท + พวงหรีด 1 พวง</span>
+                          <span>บิดา ของพนักงาน {funeralInfo.usedTypes.includes('father') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
+                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 3,000 บาท + พวงหรีด 1 พวง</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem
+                        value="mother"
+                        disabled={funeralInfo.usedTypes.includes('mother')}
+                      >
+                        <div className="flex flex-col">
+                          <span>มารดา ของพนักงาน {funeralInfo.usedTypes.includes('mother') ? '(ใช้สิทธิ์แล้ว)' : ''}</span>
+                          <span className="text-xs text-gray-500">ค่าเจ้าภาพ 3,000 + เงินช่วยเหลือ 3,000 บาท + พวงหรีด 1 พวง</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -2264,12 +2416,12 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                           <li className="font-semibold">รวม: 7,000 บาท + พวงหรีด</li>
                         </>
                       )}
-                      {watch('funeralType') === 'parent' && (
+                      {(watch('funeralType') === 'father' || watch('funeralType') === 'mother') && (
                         <>
                           <li>ค่าเจ้าภาพ: 3,000 บาท</li>
-                          <li>เงินช่วยเหลือ: 2,000 บาท</li>
+                          <li>เงินช่วยเหลือ: 3,000 บาท</li>
                           <li>พวงหรีด: 1 พวง</li>
-                          <li className="font-semibold">รวม: 5,000 บาท + พวงหรีด</li>
+                          <li className="font-semibold">รวม: 6,000 บาท + พวงหรีด</li>
                         </>
                       )}
                     </ul>
@@ -3296,18 +3448,18 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   id="amount"
                   type="number"
                   step="0.01"
-                  className={`form-input ${type === 'childbirth' ? 'bg-gray-100' : ''}`}
+                  className={`form-input ${type === 'childbirth' || type === 'wedding' ? 'bg-gray-100' : ''}`}
                   placeholder="ระบุจำนวนเงิน"
-                  defaultValue={0}
-                  readOnly={type === 'childbirth'}
+                  defaultValue={type === 'wedding' ? 3000 : 0}
+                  readOnly={type === 'childbirth' || type === 'wedding'}
                   {...register('amount', {
                     required: 'กรุณาระบุจำนวนเงิน',
                     min: {
                       value: 1,
                       message: 'จำนวนเงินต้องมากกว่า 0'
                     },
-                    // ค่าคลอดบุตรและค่าช่วยเหลืองานศพไม่จำกัดวงเงิน
-                    ...(type !== 'childbirth' && type !== 'funeral' && {
+                    // ค่าคลอดบุตร, ค่าช่วยเหลืองานศพ, และค่าแต่งงาน ไม่ต้อง validate วงเงิน
+                    ...(type !== 'childbirth' && type !== 'funeral' && type !== 'wedding' && {
                       max: {
                         value: Math.min(maxAmount || 100000, remainingBudget || 0),
                         message: `จำนวนเงินต้องไม่เกิน ${Math.min(maxAmount || 100000, remainingBudget || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`
@@ -3332,7 +3484,8 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
 
 
 
-              {/* VAT and Tax fields for non-training types */}
+              {/* VAT and Tax fields for non-training types (hide for wedding) */}
+              {type !== 'wedding' && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="form-label"><span className="text-red-500">(ถ้ามี)</span> ภาษีมูลค่าเพิ่ม 7%</label>
@@ -3396,6 +3549,7 @@ export function WelfareForm({ type, onBack, editId, onSuccess }: WelfareFormProp
                   />
                 </div>
               </div>
+              )}
             </>
           )}
 

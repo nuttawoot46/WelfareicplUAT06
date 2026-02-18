@@ -365,9 +365,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl font-bold">ประวัติการยื่นเบิกบัญชี</CardTitle>
-              <CardDescription className="mt-1">
-                ข้อมูลการเบิกเงินล่วงหน้าของคุณ • เอกสารสีเขียวคือ PDF ที่ HR อนุมัติแล้ว สามารถดาวน์โหลดเพื่อปริ้นได้
-              </CardDescription>
+              
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <select
@@ -475,19 +473,19 @@ const AccountingStatusChart: React.FC = React.memo(() => {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="text-xs md:text-sm">
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
-                    <TableHead className="w-[120px]">เลขที่เอกสาร</TableHead>
-                    <TableHead className="w-[120px]">วันที่ยื่น</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead className="text-right">จำนวนเงิน</TableHead>
-                    <TableHead className="text-center">สถานะ</TableHead>
-                    <TableHead className="text-center">เอกสารแนบ</TableHead>
-                    <TableHead className="text-center">PDF</TableHead>
-                    <TableHead className="w-[200px]">หมายเหตุ</TableHead>
-                    <TableHead className="w-[100px] text-center">รายละเอียด</TableHead>
+                    <TableHead className="w-[120px] whitespace-nowrap">เลขที่เอกสาร</TableHead>
+                    <TableHead className="w-[120px] whitespace-nowrap">วันที่ยื่น</TableHead>
+                    <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">จำนวนเงิน</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">สถานะ</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">เอกสารแนบ</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">PDF</TableHead>
+                    <TableHead className="w-[200px] whitespace-nowrap">หมายเหตุ</TableHead>
+                    <TableHead className="w-[100px] text-center whitespace-nowrap">รายละเอียด</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

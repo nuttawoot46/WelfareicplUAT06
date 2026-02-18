@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clipboard, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Search, ShieldCheck, Receipt } from 'lucide-react';
 import { StatusCard } from './StatusCard';
 import { useWelfareRequests } from '@/hooks/useWelfareRequests';
 
@@ -20,60 +20,69 @@ export function WelfareStatusCards() {
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-5">
       <StatusCard
-        title="รออนุมัติโดยหัวหน้า"
+        title="รอดำเนินการ"
         count={pendingManagerCount}
         status="pending_manager"
-        icon={<Clipboard className="h-5 w-5" />}
+        icon={<Clock className="h-5 w-5" />}
+        description="รายการ - รออนุมัติหัวหน้า"
       />
       <StatusCard
-        title="รอตรวจสอบโดย HR"
+        title="รอตรวจสอบ HR"
         count={pendingHRCount}
         status="pending_hr"
-        icon={<Clipboard className="h-5 w-5 text-amber-700" />}
+        icon={<Search className="h-5 w-5" />}
+        description="รายการ - กำลังดำเนินการ"
       />
       <StatusCard
-        title="รอตรวจสอบโดย ผู้บริหาร"
+        title="รอตรวจสอบผู้บริหาร"
         count={pendingSpecialCount}
         status="pending_special_approval"
-        icon={<Clipboard className="h-5 w-5 text-amber-700" />}  
+        icon={<ShieldCheck className="h-5 w-5" />}
+        description="รายการ"
       />
       <StatusCard
-        title="รออนุมัติโดยบัญชี"
+        title="รออนุมัติบัญชี"
         count={pendingAccountingCount}
         status="pending_accounting"
-        icon={<Clipboard className="h-5 w-5" />}
-      />  
+        icon={<Receipt className="h-5 w-5" />}
+        description="รายการ"
+      />
       <StatusCard
         title="เสร็จสมบูรณ์"
         count={completedCount}
         status="completed"
-        icon={<CheckCircle2 className="h-5 w-5 text-green-700" />}
+        icon={<CheckCircle2 className="h-5 w-5" />}
+        description="รายการ - เดือนนี้"
       />
       <StatusCard
         title="ปฏิเสธโดยหัวหน้า"
         count={rejectedManagerCount}
         status="rejected_manager"
-        icon={<XCircle className="h-5 w-5 text-red-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
       <StatusCard
         title="ปฏิเสธโดย HR"
         count={rejectedHRCount}
         status="rejected_hr"
-        icon={<XCircle className="h-5 w-5 text-purple-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
       <StatusCard
-        title="ปฏิเสธโดย ผู้บริหาร"
+        title="ปฏิเสธโดยผู้บริหาร"
         count={rejectedSpecialCount}
         status="rejected_special_approval"
-        icon={<XCircle className="h-5 w-5 text-purple-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
       <StatusCard
-        title="ปฏิเสธโดย บัญชี"
+        title="ปฏิเสธโดยบัญชี"
         count={rejectedAccountingCount}
         status="rejected_accounting"
-        icon={<XCircle className="h-5 w-5 text-purple-700" />}
+        icon={<XCircle className="h-5 w-5" />}
+        description="รายการ"
       />
     </div>
   );

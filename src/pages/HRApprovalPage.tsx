@@ -17,10 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, Check, X } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
-import { SignatureDisplay } from '@/components/signature/SignatureDisplay';
 import LoadingPopup from '@/components/forms/LoadingPopup';
 import { getWelfareTypeLabel } from '@/lib/utils';
 
@@ -83,6 +82,15 @@ export const HRApprovalPage = () => {
 
     return Array.from(requestMap.values());
   }, [allRequests, internalTrainingRequests]);
+
+  // Count pending requests per tab (ไม่ขึ้นกับ search/date filter)
+  const pendingCounts = useMemo(() => {
+    const pendingHR = combinedRequests.filter(req => req.status === 'pending_hr');
+    return {
+      welfare: pendingHR.filter(req => req.type !== 'advance' && req.type !== 'expense-clearing').length,
+      accounting: pendingHR.filter(req => req.type === 'advance' || req.type === 'expense-clearing').length,
+    };
+  }, [combinedRequests]);
 
   // Filter requests based on active tab
   const filteredRequests = useMemo(() => {
@@ -710,18 +718,28 @@ export const HRApprovalPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="pending-welfare" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-3 p-1 rounded-lg gap-1">
+              <TabsTrigger value="pending-welfare" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <Clock className="h-4 w-4" />
                 สวัสดิการ
+                {pendingCounts.welfare > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] text-center">
+                    {pendingCounts.welfare}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="pending-accounting" className="flex items-center gap-2">
+              <TabsTrigger value="pending-accounting" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <FileText className="h-4 w-4" />
                 บัญชี
+                {pendingCounts.accounting > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] text-center">
+                    {pendingCounts.accounting}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
+              <TabsTrigger value="history" className="flex items-center gap-2 bg-gray-200 text-gray-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white shadow-md transition-all">
                 <History className="h-4 w-4" />
-                History
+                ประวัติ
               </TabsTrigger>
             </TabsList>
 
@@ -791,8 +809,8 @@ export const HRApprovalPage = () => {
                 </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
@@ -995,8 +1013,8 @@ export const HRApprovalPage = () => {
                 </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead className="w-12">
@@ -1191,8 +1209,8 @@ export const HRApprovalPage = () => {
                 </Popover>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
                       <TableHead>พนักงาน</TableHead>
@@ -1355,136 +1373,124 @@ export const HRApprovalPage = () => {
 
       {selectedRequest && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Request Details - HR Review</DialogTitle>
-            </DialogHeader>
-            <div>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p><strong>Employee:</strong> {selectedRequest.userName}</p>
-                    <p><strong>Department:</strong> {selectedRequest.userDepartment || selectedRequest.department_user}</p>
-                    <p><strong>Welfare Type:</strong> {getWelfareTypeLabel(selectedRequest.type)}</p>
-                    <p><strong>Amount:</strong> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</p>
-                  </div>
-                  <div>
-                    <p><strong>Date:</strong> {format(new Date(selectedRequest.date), 'PPP')}</p>
-                    <p><strong>Status:</strong> {selectedRequest.status}</p>
-                    <p><strong>Manager Approved By:</strong> {selectedRequest.approverId ? (managers[selectedRequest.approverId] || 'รออนุมัติ') : 'Not approved yet'}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p><strong>Title:</strong> {selectedRequest.title}</p>
-                  <p><strong>Details:</strong> {selectedRequest.details}</p>
-                </div>
-
-                <div>
-                  <p><strong>Attachments:</strong></p>
-                  {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedRequest.attachments.map((file, idx) => (
-                        <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                          <FileText className="h-4 w-4" />
-                          <span>ไฟล์ {idx + 1}</span>
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">No attachments</span>
-                  )}
-                </div>
-
-                <div>
-                  <p><strong>Manager Notes:</strong> {selectedRequest.notes || 'No notes from manager'}</p>
-                </div>
-
-                {/* Signature Display Section */}
-                {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
-                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-medium mb-3">ลายเซ็นอนุมัติ</h4>
-
-                    {/* Manager Signature */}
-                    {selectedRequest.managerSignature && (
-                      <SignatureDisplay
-                        signature={selectedRequest.managerSignature}
-                        approverName={selectedRequest.managerApproverName}
-                        approvedAt={selectedRequest.managerApprovedAt}
-                        role="manager"
-                      />
-                    )}
-
-                    {/* HR Signature */}
-                    {selectedRequest.hrSignature && (
-                      <SignatureDisplay
-                        signature={selectedRequest.hrSignature}
-                        approverName={selectedRequest.hrApproverName}
-                        approvedAt={selectedRequest.hrApprovedAt}
-                        role="hr"
-                      />
-                    )}
-                  </div>
+          <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+            {/* Header สรุปข้อมูล */}
+            <div className="px-6 pt-6 pb-3 border-b bg-gray-50/80 rounded-t-lg flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <DialogHeader className="p-0 space-y-0">
+                  <DialogTitle className="text-lg">{selectedRequest.userName} — {getWelfareTypeLabel(selectedRequest.type)}</DialogTitle>
+                </DialogHeader>
+                <Badge
+                  className={`text-sm px-3 py-1 ${
+                    selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                    selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                    selectedRequest.status === 'pending_special_approval' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                    selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
+                    selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
+                    'bg-gray-100 text-gray-800 border-gray-300'
+                  }`}
+                  variant="outline"
+                >
+                  {selectedRequest.status === 'pending_hr' ? 'รอ HR' :
+                   selectedRequest.status === 'pending_accounting' ? 'รอบัญชี' :
+                   selectedRequest.status === 'pending_special_approval' ? 'รออนุมัติพิเศษ' :
+                   selectedRequest.status === 'approved' ? 'อนุมัติแล้ว' :
+                   selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
+                   selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                   selectedRequest.status === 'rejected_special_approval' ? 'ปฏิเสธโดยอนุมัติพิเศษ' :
+                   selectedRequest.status}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                <span>แผนก: <strong className="text-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</strong></span>
+                <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.date), 'dd/MM/yyyy')}</strong></span>
+                <span>จำนวนเงิน: <strong className="text-blue-700 text-base">{selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</strong></span>
+                {selectedRequest.runNumber && <span>เลขที่: <strong className="text-foreground">{selectedRequest.runNumber}</strong></span>}
+                {selectedRequest.managerApproverName && (
+                  <span>ผู้จัดการ: <strong className="text-foreground">{selectedRequest.managerApproverName}</strong></span>
                 )}
-
-                {/* PDF Download Button */}
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      const { downloadPDFFromDatabase } = await import('@/utils/pdfManager');
-                      await downloadPDFFromDatabase(selectedRequest.id);
-                    }}
-                  >
-                    Download PDF
-                  </Button>
-
-                  {/* Preview Button - Show only if there are signatures */}
-                  {(selectedRequest.managerSignature || selectedRequest.hrSignature) && (
-                    <Button
-                      variant="default"
-                      onClick={async () => {
-                        const { previewPDFFromDatabase } = await import('@/utils/pdfManager');
-                        await previewPDFFromDatabase(selectedRequest.id);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Preview PDF with Signatures
-                    </Button>
-                  )}
-                </div>
-
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium mb-2">HR Review Notes (optional):</p>
-                  <Input
-                    placeholder="Enter HR review notes or rejection reason..."
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                  />
-                </div>
+                {/* แสดงข้อมูลอนุโลมส่วนเกิน (ถ้ามี) */}
+                {selectedRequest.type === 'training' && selectedRequest.manager_waiver_type && selectedRequest.manager_waiver_type !== 'none' && (
+                  <span className="text-orange-600">
+                    อนุโลมส่วนเกิน: <strong>
+                      {selectedRequest.manager_waiver_type === 'full' ? 'บริษัทจ่ายทั้งหมด' :
+                       `บริษัทจ่ายเพิ่ม ${Number(selectedRequest.manager_waiver_amount || 0).toLocaleString('th-TH')} บาท`}
+                    </strong>
+                    {selectedRequest.manager_waiver_reason && ` (${selectedRequest.manager_waiver_reason})`}
+                  </span>
+                )}
+                {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    เอกสารแนบ:
+                    {selectedRequest.attachments.map((file, idx) => (
+                      <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                        <FileText className="h-3.5 w-3.5" />ไฟล์ {idx + 1}
+                      </a>
+                    ))}
+                  </span>
+                )}
               </div>
             </div>
-            <DialogFooter>
-              {selectedRequest.status === 'pending_hr' && (
-                <>
-                  <Button
-                    onClick={() => {
-                      console.log('HR Approve button clicked for request:', selectedRequest);
-                      handleApprove(selectedRequest.id);
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Approve & Send to Accounting
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                  >
-                    Reject Request
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
+
+            {/* PDF Preview */}
+            <div className="flex-1 min-h-0 px-6 py-3">
+              {(() => {
+                const pdfUrl = selectedRequest.pdf_request_manager || selectedRequest.pdfUrl || selectedRequest.pdf_url;
+                if (pdfUrl) {
+                  return (
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full h-full rounded-lg border"
+                      title="PDF Preview"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-full h-full flex items-center justify-center border rounded-lg bg-gray-50">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium">ไม่มี PDF สำหรับแสดงตัวอย่าง</p>
+                      <p className="text-sm mt-1">PDF จะถูกสร้างหลังจากมีการอนุมัติ</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer — ปุ่ม Action */}
+            {selectedRequest.status === 'pending_hr' && (
+              <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="ระบุเหตุผลการปฏิเสธ (ถ้ามี)..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      onClick={() => handleApprove(selectedRequest.id)}
+                      className="bg-green-600 hover:bg-green-700 px-6"
+                      disabled={isLoading}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      อนุมัติ
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
+                      disabled={isLoading}
+                      className="px-6"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      ปฏิเสธ
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

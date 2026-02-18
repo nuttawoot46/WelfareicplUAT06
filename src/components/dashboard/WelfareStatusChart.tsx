@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { RefreshCw, FileText, Download, Heart, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -111,7 +111,7 @@ const getRequestTypeText = (requestType: string) => {
     case 'glasses':
       return 'ค่าตัดแว่นสายตา';
     case 'dental':
-      return 'ค่ารักษาทัตกรรม';
+      return 'ค่ารักษาทันตกรรม / ค่าตัดแว่นสายตา';
     case 'fitness':
       return 'ค่าออกกำลังกาย';
     case 'medical':
@@ -422,16 +422,16 @@ const WelfareStatusChart: React.FC = React.memo(() => {
 
     return (
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="text-xs md:text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">วันที่ยื่น</TableHead>
-              <TableHead>ประเภท</TableHead>
-              <TableHead className="text-right">จำนวนเงิน</TableHead>
-              <TableHead>สถานะ</TableHead>
-              <TableHead>เอกสารแนบ</TableHead>
-              <TableHead>PDF</TableHead>
-              <TableHead className="w-[80px]">การดำเนินการ</TableHead>
+              <TableHead className="w-[100px] whitespace-nowrap">วันที่ยื่น</TableHead>
+              <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+              <TableHead className="text-right whitespace-nowrap">จำนวนเงิน</TableHead>
+              <TableHead className="whitespace-nowrap">สถานะ</TableHead>
+              <TableHead className="whitespace-nowrap">เอกสารแนบ</TableHead>
+              <TableHead className="whitespace-nowrap">PDF</TableHead>
+              <TableHead className="w-[80px] whitespace-nowrap">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -534,17 +534,17 @@ const WelfareStatusChart: React.FC = React.memo(() => {
   return (
     <>
       <Card className="w-full">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <CardHeader className="bg-[#004F9F] text-white rounded-t-lg px-3 py-3 md:px-6 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
             <div>
-              <CardTitle className="text-xl font-bold">ประวัติการยื่นคำร้อง</CardTitle>
-              <CardDescription className="mt-1">
+              <CardTitle className="text-lg md:text-xl font-bold text-white">ประวัติการยื่นคำร้อง</CardTitle>
+              <p className="mt-1 text-xs md:text-sm text-blue-100">
                 เมื่อสถานะ รอตรวจสอบโดยบัญชี กรุณาปริ้นเอกสาร PDF ส่งให้ทางฝ่ายบัญชี
-              </CardDescription>
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <select
-                className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+                className="px-3 py-2 bg-white text-gray-800 rounded-full text-sm font-medium w-full sm:w-auto border-0 shadow-sm cursor-pointer"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
@@ -557,7 +557,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               </select>
               {/* Year Filter */}
               <select
-                className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+                className="px-3 py-2 bg-white text-gray-800 rounded-full text-sm font-medium w-full sm:w-auto border-0 shadow-sm cursor-pointer"
                 value={selectedYear}
                 onChange={(e) => {
                   setSelectedYear(e.target.value);
@@ -572,7 +572,7 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               </select>
               {/* Month Filter */}
               <select
-                className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+                className="px-3 py-2 bg-white text-gray-800 rounded-full text-sm font-medium w-full sm:w-auto border-0 shadow-sm cursor-pointer"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 disabled={months.length === 0}
@@ -584,9 +584,8 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               </select>
               <Button
                 onClick={handleRefresh}
-                variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="bg-white text-gray-800 hover:bg-gray-100 rounded-full font-medium shadow-sm border-0"
                 disabled={isLoading || isRefreshing}
               >
                 <RefreshCw className={`h-4 w-4 ${(isLoading || isRefreshing) ? 'animate-spin' : ''}`} />
@@ -594,9 +593,8 @@ const WelfareStatusChart: React.FC = React.memo(() => {
               </Button>
               <Button
                 onClick={() => exportToCSV(filteredRequests)}
-                variant="secondary"
                 size="sm"
-                className="flex items-center gap-2"
+                className="bg-white text-gray-800 hover:bg-gray-100 rounded-full font-medium shadow-sm border-0"
                 disabled={filteredRequests.length === 0}
               >
                 Export Excel

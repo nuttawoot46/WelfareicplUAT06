@@ -144,6 +144,10 @@ export interface WelfareRequest {
   excess_amount?: number;
   company_payment?: number;
   employee_payment?: number;
+  // Manager waiver for training excess amount (อนุโลมส่วนเกิน)
+  manager_waiver_type?: 'none' | 'full' | 'partial' | null;
+  manager_waiver_amount?: number;
+  manager_waiver_reason?: string;
   course_name?: string;
   organizer?: string;
   department_user?: string;
