@@ -748,12 +748,12 @@ export const HRApprovalPage = () => {
                 <h3 className="font-semibold text-blue-800 mb-2">คำร้องสวัสดิการ HR</h3>
                 <p className="text-sm text-blue-600">รายการคำร้องสวัสดิการที่รอการอนุมัติจาก HR</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[150px]">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search by employee..."
+                      placeholder="ค้นหาพนักงาน..."
                       className="pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -761,20 +761,20 @@ export const HRApprovalPage = () => {
                   </div>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                      <Button variant="outline" className="justify-start text-left font-normal">
                         <Filter className="mr-2 h-4 w-4" />
-                        <span>Filter by date</span>
+                        <span>กรองตามวันที่</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-4">
-                        <h4 className="font-medium mb-2">Filters</h4>
+                        <h4 className="font-medium mb-2">ตัวกรอง</h4>
                         <div className="mt-4">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -791,25 +791,66 @@ export const HRApprovalPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-x-2">
+                <div className="flex gap-2">
                   <Button
                     onClick={handleBulkApprove}
                     disabled={selectedRequests.length === 0}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve ({selectedRequests.length})
+                    อนุมัติ ({selectedRequests.length})
                   </Button>
                   <Button
                     onClick={handleBulkReject}
                     disabled={selectedRequests.length === 0}
                     variant="destructive"
                   >
-                    Reject ({selectedRequests.length})
+                    ปฏิเสธ ({selectedRequests.length})
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded-md border overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องสวัสดิการที่รอการอนุมัติจาก HR</div>
+                ) : (
+                  filteredRequests.map((req: WelfareRequest, index: number) => (
+                    <div key={`${req.id}-${req.type}-${index}`} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            onCheckedChange={() => handleSelectRequest(req.id)}
+                            checked={selectedRequests.includes(req.id)}
+                            disabled={req.status !== 'pending_hr'}
+                          />
+                          <div>
+                            <p className="font-semibold text-sm">{req.userName}</p>
+                            <p className="text-xs text-muted-foreground">{req.userDepartment || '-'}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px] shrink-0">Pending HR</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <Badge variant="outline" className="text-[10px]">{getWelfareTypeLabel(req.type)}</Badge>
+                        <span className="font-bold text-blue-700">{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{format(new Date(req.date), 'dd/MM/yyyy')}</span>
+                        <span>ผจก: {req.managerApproverName || '-'}</span>
+                      </div>
+                      <div className="flex gap-2 pt-1 border-t">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleViewDetails(req)}>ดูรายละเอียด</Button>
+                        {req.status === 'pending_hr' && (
+                          <Button size="sm" className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(req.id)} disabled={isLoading}>อนุมัติ</Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="rounded-md border overflow-x-auto hidden md:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -952,12 +993,12 @@ export const HRApprovalPage = () => {
                 <h3 className="font-semibold text-green-800 mb-2">คำร้องบัญชี HR</h3>
                 <p className="text-sm text-green-600">รายการคำร้องเบิกเงินล่วงหน้าและเคลียร์ค่าใช้จ่ายที่รอการอนุมัติจาก HR</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[150px]">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search by employee..."
+                      placeholder="ค้นหาพนักงาน..."
                       className="pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -965,20 +1006,20 @@ export const HRApprovalPage = () => {
                   </div>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                      <Button variant="outline" className="justify-start text-left font-normal">
                         <Filter className="mr-2 h-4 w-4" />
-                        <span>Filter by date</span>
+                        <span>กรองตามวันที่</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <div className="p-4">
-                        <h4 className="font-medium mb-2">Filters</h4>
+                        <h4 className="font-medium mb-2">ตัวกรอง</h4>
                         <div className="mt-4">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant={'outline'} className="w-full justify-start text-left font-normal">
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {dateFilter ? format(dateFilter, 'PPP') : <span>Pick a date</span>}
+                                {dateFilter ? format(dateFilter, 'PPP') : <span>เลือกวันที่</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -995,25 +1036,66 @@ export const HRApprovalPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-x-2">
+                <div className="flex gap-2">
                   <Button
                     onClick={handleBulkApprove}
                     disabled={selectedRequests.length === 0}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Approve ({selectedRequests.length})
+                    อนุมัติ ({selectedRequests.length})
                   </Button>
                   <Button
                     onClick={handleBulkReject}
                     disabled={selectedRequests.length === 0}
                     variant="destructive"
                   >
-                    Reject ({selectedRequests.length})
+                    ปฏิเสธ ({selectedRequests.length})
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded-md border overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">ไม่มีคำร้องบัญชีที่รอการอนุมัติจาก HR</div>
+                ) : (
+                  filteredRequests.map((req: WelfareRequest, index: number) => (
+                    <div key={`${req.id}-${req.type}-${index}`} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            onCheckedChange={() => handleSelectRequest(req.id)}
+                            checked={selectedRequests.includes(req.id)}
+                            disabled={req.status !== 'pending_hr'}
+                          />
+                          <div>
+                            <p className="font-semibold text-sm">{req.userName}</p>
+                            <p className="text-xs text-muted-foreground">{req.userDepartment || '-'}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px] shrink-0">Pending HR</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <Badge variant="outline" className="text-[10px]">{getWelfareTypeLabel(req.type)}</Badge>
+                        <span className="font-bold text-blue-700">{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{format(new Date(req.date), 'dd/MM/yyyy')}</span>
+                        <span>ผจก: {req.managerApproverName || '-'}</span>
+                      </div>
+                      <div className="flex gap-2 pt-1 border-t">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleViewDetails(req)}>ดูรายละเอียด</Button>
+                        {req.status === 'pending_hr' && (
+                          <Button size="sm" className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(req.id)} disabled={isLoading}>อนุมัติ</Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="rounded-md border overflow-x-auto hidden md:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
@@ -1209,7 +1291,59 @@ export const HRApprovalPage = () => {
                 </Popover>
               </div>
 
-              <div className="rounded-md border overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">ไม่มีประวัติการอนุมัติ</div>
+                ) : (
+                  filteredRequests.map((req: WelfareRequest, index: number) => (
+                    <div key={`${req.id}-${req.type}-${index}`} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-semibold text-sm">{req.userName}</p>
+                          <p className="text-xs text-muted-foreground">{req.userDepartment || '-'}</p>
+                        </div>
+                        {req.status === 'pending_accounting' ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] shrink-0">รอบัญชี</Badge>
+                        ) : req.status === 'pending_special_approval' ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] shrink-0">รอผู้บริหาร</Badge>
+                        ) : req.status === 'completed' ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] shrink-0">เสร็จสมบูรณ์</Badge>
+                        ) : req.status?.includes('rejected') ? (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[10px] shrink-0">ปฏิเสธ</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] shrink-0">{req.status}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <Badge variant="outline" className="text-[10px]">{getWelfareTypeLabel(req.type)}</Badge>
+                        <span className="font-bold text-blue-700">{req.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>ยื่น: {format(new Date(req.date), 'dd/MM/yyyy')}</span>
+                        <span>ผจก: {req.managerApproverName || '-'}</span>
+                      </div>
+                      {(req.managerNotes || req.hrNotes) && (
+                        <div className="text-xs space-y-0.5 bg-gray-50 rounded p-2">
+                          {req.managerNotes && <div><span className="font-medium">Manager:</span> {req.managerNotes}</div>}
+                          {req.hrNotes && <div><span className="font-medium">HR:</span> {req.hrNotes}</div>}
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-1 border-t">
+                        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleViewDetails(req)}>ดูรายละเอียด</Button>
+                        {(() => {
+                          let pdfUrl = req.pdf_request_hr || req.pdf_request_manager || req.pdfUrl || req.pdf_url;
+                          if (pdfUrl) return <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-8 px-3 text-xs border rounded-md text-green-600"><FileText className="h-3.5 w-3.5 mr-1" />PDF</a>;
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="rounded-md border overflow-x-auto hidden md:block">
                 <Table className="text-xs md:text-sm">
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
