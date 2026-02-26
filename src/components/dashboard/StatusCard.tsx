@@ -46,6 +46,13 @@ export function StatusCard({ title, count, status, icon, description }: StatusCa
           count: 'text-green-800',
           iconBg: 'bg-green-100 text-green-800',
         };
+      case 'pending_revision':
+        return {
+          border: 'border-t-orange-400',
+          title: 'text-orange-800',
+          count: 'text-orange-800',
+          iconBg: 'bg-orange-100 text-orange-800',
+        };
       case 'rejected_manager':
       case 'rejected_hr':
       case 'rejected_accounting':

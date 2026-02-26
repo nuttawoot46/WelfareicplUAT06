@@ -46,7 +46,8 @@ export type StatusType =
   | 'rejected_manager'
   | 'rejected_hr'
   | 'rejected_accounting'
-  | 'rejected_special_approval';
+  | 'rejected_special_approval'
+  | 'pending_revision';
 
 export type WelfareType = 
   | 'wedding'
@@ -234,6 +235,11 @@ export interface WelfareRequest {
 
   // Run number for tracking requests
   runNumber?: string;
+
+  // Revision request fields (ขอเอกสารเพิ่มเติม)
+  revisionRequestedBy?: string; // 'manager' | 'hr' | 'accounting'
+  revisionNote?: string;
+  revisionRequestedAt?: string;
 
   // Attachment selections for PDF checkmarks
   attachmentSelections?: {

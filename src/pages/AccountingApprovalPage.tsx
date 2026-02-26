@@ -9,13 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, BarChart3 } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, BarChart3, FileWarning } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { usePDFOperations } from '@/hooks/usePDFOperations';
@@ -43,6 +43,11 @@ export const AccountingApprovalPage = () => {
   const [isBulkApproval, setIsBulkApproval] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
   const { downloadPDF, previewPDF, isLoading: isPDFLoading } = usePDFOperations();
+
+  // Revision request states (ขอเอกสารเพิ่มเติม)
+  const [isRevisionDialogOpen, setIsRevisionDialogOpen] = useState(false);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [revisionRequestId, setRevisionRequestId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -94,54 +99,9 @@ export const AccountingApprovalPage = () => {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allRequests, activeTab, searchTerm, dateFilter]);
 
-  const handleSelectRequest = (requestId: number) => {
-    const newSelectedRequests = selectedRequests.includes(requestId)
-      ? selectedRequests.filter(id => id !== requestId)
-      : [...selectedRequests, requestId];
-    setSelectedRequests(newSelectedRequests);
-  };
-
-  const handleSelectAll = (checked: boolean | 'indeterminate') => {
-    if (checked === true) {
-      const selectableRequests = filteredRequests.filter(req => 
-        req.status === 'pending_accounting' && activeTab === 'pending'
-      );
-      setSelectedRequests(selectableRequests.map(req => req.id));
-    } else {
-      setSelectedRequests([]);
-    }
-  };
-
   const handleViewDetails = (request: WelfareRequest) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
-  };
-
-  const handleBulkApprove = async () => {
-    if (selectedRequests.length === 0 || !user) return;
-    
-    const requestsToApprove = filteredRequests.filter(req => 
-      selectedRequests.includes(req.id) && req.status === 'pending_accounting'
-    );
-
-    if (requestsToApprove.length === 0) {
-      addNotification({
-        userId: user.id,
-        title: 'แจ้งเตือน',
-        message: 'ไม่ได้เลือกคำร้องที่รอการอนุมัติ',
-        type: 'info',
-      });
-      return;
-    }
-
-    setPendingBulkApproval(requestsToApprove);
-    setIsBulkApproval(true);
-    setIsSignaturePopupOpen(true);
-  };
-
-  const handleBulkReject = () => {
-    if (selectedRequests.length === 0) return;
-    setIsRejectionModalOpen(true);
   };
 
   const confirmRejection = async () => {
@@ -377,6 +337,69 @@ export const AccountingApprovalPage = () => {
     }
   };
 
+  const handleRevisionRequest = async () => {
+    if (!revisionRequestId || !revisionNote.trim()) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update({
+          status: 'pending_revision',
+          revision_requested_by: 'accounting',
+          revision_note: revisionNote.trim(),
+          revision_requested_at: new Date().toISOString(),
+        } as any)
+        .eq('id', revisionRequestId);
+
+      if (error) throw error;
+
+      const request = allRequests.find(r => r.id === revisionRequestId);
+      if (request) {
+        const { data: employeeData } = await supabase
+          .from('Employee')
+          .select('email_user')
+          .eq('id', Number(request.userId))
+          .single();
+
+        if (employeeData?.email_user) {
+          await sendLineNotification({
+            employeeEmail: employeeData.email_user,
+            type: getWelfareTypeLabel(request.type),
+            status: 'ขอเอกสารเพิ่มเติม',
+            amount: Number(request.amount) || 0,
+            userName: request.userName,
+            requestDate: new Date().toLocaleString('th-TH', {
+              year: 'numeric', month: 'long', day: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            }),
+          });
+        }
+      }
+
+      addNotification({
+        userId: user!.id,
+        title: 'สำเร็จ',
+        message: 'ส่งคำขอเอกสารเพิ่มเติมเรียบร้อยแล้ว',
+        type: 'success',
+      });
+
+      await refreshRequests();
+      setIsRevisionDialogOpen(false);
+      setRevisionNote('');
+      setRevisionRequestId(null);
+      setIsModalOpen(false);
+    } catch (error) {
+      addNotification({
+        userId: user!.id,
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถส่งคำขอเอกสารเพิ่มเติมได้',
+        type: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isAuthLoading || !user) {
     return (
       <Layout>
@@ -479,37 +502,12 @@ export const AccountingApprovalPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    onClick={handleBulkApprove} 
-                    disabled={selectedRequests.length === 0 || isLoading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    อนุมัติที่เลือก ({selectedRequests.length})
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleBulkReject} 
-                    disabled={selectedRequests.length === 0 || isLoading}
-                  >
-                    ปฏิเสธที่เลือก ({selectedRequests.length})
-                  </Button>
-                </div>
               </div>
 
               <div className="rounded-md border">
                 <Table>
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={
-                            filteredRequests.filter(req => req.status === 'pending_accounting').length > 0 &&
-                            selectedRequests.length === filteredRequests.filter(req => req.status === 'pending_accounting').length
-                          }
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
                       <TableHead>พนักงาน</TableHead>
                       <TableHead>แผนก</TableHead>
                       <TableHead>ประเภท</TableHead>
@@ -524,21 +522,13 @@ export const AccountingApprovalPage = () => {
                   <TableBody>
                     {filteredRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องบัญชีที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredRequests.map((request) => (
                         <TableRow key={request.id}>
-                          <TableCell>
-                            {request.status === 'pending_accounting' && (
-                              <Checkbox
-                                checked={selectedRequests.includes(request.id)}
-                                onCheckedChange={() => handleSelectRequest(request.id)}
-                              />
-                            )}
-                          </TableCell>
                           <TableCell className="font-medium">{request.userName}</TableCell>
                           <TableCell>{request.userDepartment || request.department_user || '-'}</TableCell>
                           <TableCell>
@@ -591,7 +581,7 @@ export const AccountingApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1.5">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -600,14 +590,39 @@ export const AccountingApprovalPage = () => {
                                 ดูรายละเอียด
                               </Button>
                               {request.status === 'pending_accounting' && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApprove(request.id)}
-                                  disabled={isLoading}
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  อนุมัติ
-                                </Button>
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApprove(request.id)}
+                                    disabled={isLoading}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    อนุมัติ
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      setSelectedRequests([request.id]);
+                                      setIsRejectionModalOpen(true);
+                                    }}
+                                    disabled={isLoading}
+                                  >
+                                    ปฏิเสธ
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setRevisionRequestId(request.id);
+                                      setRevisionNote('');
+                                      setIsRevisionDialogOpen(true);
+                                    }}
+                                    disabled={isLoading}
+                                    className="bg-amber-500 hover:bg-amber-600"
+                                  >
+                                    ขอเอกสารเพิ่ม
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -835,6 +850,18 @@ export const AccountingApprovalPage = () => {
                 >
                   ปฏิเสธ
                 </Button>
+                <Button
+                  onClick={() => {
+                    setRevisionRequestId(selectedRequest.id);
+                    setRevisionNote('');
+                    setIsRevisionDialogOpen(true);
+                  }}
+                  className="bg-amber-500 hover:bg-amber-600"
+                  disabled={isLoading}
+                >
+                  <FileWarning className="h-4 w-4 mr-2" />
+                  ขอเอกสารเพิ่ม
+                </Button>
               </>
             )}
           </DialogFooter>
@@ -868,6 +895,33 @@ export const AccountingApprovalPage = () => {
               disabled={!rejectionReason || isLoading}
             >
               ยืนยันการปฏิเสธ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revision Request Dialog (ขอเอกสารเพิ่มเติม) */}
+      <Dialog open={isRevisionDialogOpen} onOpenChange={(open) => { if (!open) { setIsRevisionDialogOpen(false); setRevisionNote(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ขอเอกสารเพิ่มเติม</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">กรุณาระบุเอกสารที่ต้องการให้พนักงานแนบเพิ่มเติม</p>
+          <textarea
+            value={revisionNote}
+            onChange={(e) => setRevisionNote(e.target.value)}
+            placeholder="เช่น กรุณาแนบใบเสร็จรับเงิน, สำเนาบัตรประชาชน..."
+            rows={3}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsRevisionDialogOpen(false); setRevisionNote(''); }}>ยกเลิก</Button>
+            <Button
+              onClick={handleRevisionRequest}
+              disabled={!revisionNote.trim() || isLoading}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              ส่งคำขอเอกสาร
             </Button>
           </DialogFooter>
         </DialogContent>

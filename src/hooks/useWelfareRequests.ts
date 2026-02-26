@@ -34,7 +34,7 @@ export function useWelfareRequests() {
         .from('welfare_requests')
         .select('*')
         .eq('employee_name', profile.display_name)
-        .not('request_type', 'in', '(advance,general-advance,expense-clearing)') // Exclude accounting requests
+        .not('request_type', 'in', '(advance,general-advance,expense-clearing,general-expense-clearing)') // Exclude accounting requests
         .order('created_at', { ascending: false });
 
       if (fetchError) {

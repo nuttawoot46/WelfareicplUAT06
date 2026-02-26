@@ -92,6 +92,17 @@ export const addSignatureToAdvancePDF = async (
       updateData.manager_signature = signature;
       updateData.manager_approver_name = approverName;
       updateData.manager_approved_at = new Date().toISOString();
+
+      // Look up manager's position from Employee table
+      const { data: managerData } = await supabase
+        .from('Employee')
+        .select('Position')
+        .eq('Name', approverName)
+        .single();
+
+      if (managerData?.Position) {
+        updateData.manager_approver_position = managerData.Position;
+      }
     } else if (signatureType === 'hr') {
       updateData.hr_signature = signature;
       updateData.hr_approver_name = approverName;

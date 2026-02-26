@@ -122,7 +122,7 @@ const ACTIVITY_TYPES = [
     description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
   },
   {
-    name: 'ดีลเลอร์',
+    name: 'จัดประชุมดีลเลอร์',
     description: 'ค่าใช้จ่ายในการดีลเลอร์'
   },
   {
@@ -723,9 +723,39 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     );
 
     if (!validExpenseItems || validExpenseItems.length === 0) {
+      // Scroll to expense items section
+      const expenseEl = document.querySelector('[name="advanceExpenseItems.0.name"]');
+      if (expenseEl) {
+        expenseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       toast({
         title: 'กรุณาเพิ่มรายการค่าใช้จ่าย',
         description: 'กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ พร้อมระบุชื่อรายการและจำนวนเงิน',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate at least 1 attachment is required
+    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
+    if (totalFiles === 0) {
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate required attachments - if checkbox is checked, file must be uploaded
+    const missingAttachments = ADVANCE_DOCUMENT_TYPES.filter(
+      docType => documentSelections[docType.key] && documentFiles[docType.key].length === 0
+    );
+    if (missingAttachments.length > 0) {
+      const missingNames = missingAttachments.map(d => d.label).join(', ');
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: `กรุณาอัพโหลดไฟล์สำหรับ: ${missingNames}`,
         variant: 'destructive',
       });
       return;
@@ -1103,9 +1133,32 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
         <form onSubmit={handleSubmit(onSubmit, (errors) => {
           console.log('❌ Form validation errors:', errors);
+          const errorMessages: string[] = [];
+          if (errors.advanceDepartment) errorMessages.push(errors.advanceDepartment.message || 'กรุณาเลือกแผนก');
+          if (errors.advanceDepartmentOther) errorMessages.push(errors.advanceDepartmentOther.message || 'กรุณาระบุแผนก');
+          if (errors.advanceActivityType) errorMessages.push(errors.advanceActivityType.message || 'กรุณาเลือกประเภทกิจกรรม');
+          if (errors.details) errorMessages.push(errors.details.message || 'กรุณาระบุรายละเอียด');
+          if (errors.startDate) errorMessages.push(errors.startDate.message || 'กรุณาระบุวันที่เริ่มกิจกรรม');
+          if (errors.advanceParticipants) errorMessages.push(errors.advanceParticipants.message || 'กรุณาระบุจำนวนผู้เข้าร่วม');
+          if (errors.advanceDealerName) errorMessages.push(errors.advanceDealerName.message || 'กรุณาระบุชื่อร้าน');
+          if (errors.advanceAmphur) errorMessages.push(errors.advanceAmphur.message || 'กรุณาระบุอำเภอ');
+          if (errors.advanceProvince) errorMessages.push(errors.advanceProvince.message || 'กรุณาระบุจังหวัด');
+          if (errors.bankAccountNumber) errorMessages.push(errors.bankAccountNumber.message || 'กรุณาระบุเลขที่บัญชีให้ถูกต้อง');
+          if (errors.advanceExpenseItems) errorMessages.push('กรุณาตรวจสอบรายการค่าใช้จ่าย');
+
+          // Auto-scroll to first error field
+          const firstErrorKey = Object.keys(errors)[0];
+          if (firstErrorKey) {
+            const el = document.querySelector(`[name="${firstErrorKey}"]`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              if (el instanceof HTMLElement) el.focus({ preventScroll: true });
+            }
+          }
+
           toast({
             title: 'กรุณาตรวจสอบข้อมูล',
-            description: 'มีข้อมูลที่จำเป็นยังไม่ได้กรอก กรุณาตรวจสอบและกรอกข้อมูลให้ครบถ้วน',
+            description: errorMessages.length > 0 ? errorMessages.join('\n') : 'มีข้อมูลที่จำเป็นยังไม่ได้กรอก กรุณาตรวจสอบและกรอกข้อมูลให้ครบถ้วน',
             variant: 'destructive',
           });
         })} className="space-y-6">
@@ -1215,13 +1268,18 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
             </div>
             {/* รายละเอียดเพิ่มเติม */}
           <div className="space-y-2">
-            <label className="form-label">โปรดระบุรายละเอียด</label>
+            <label className="form-label">โปรดระบุรายละเอียด <span className="text-red-500">*</span></label>
             <Textarea
               placeholder="ระบุรายละเอียด"
               className="form-input"
               rows={3}
-              {...register('details')}
+              {...register('details', {
+                required: 'กรุณาระบุรายละเอียด'
+              })}
             />
+            {errors.details && (
+              <p className="text-red-500 text-base mt-1">{errors.details.message}</p>
+            )}
           </div>
 
 
@@ -1664,16 +1722,19 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <label className="form-label">ชื่อบัญชี</label>
+                <label className="form-label">ชื่อบัญชี <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุชื่อบัญชีธนาคาร"
                   className="form-input"
-                  {...register('bankAccountName')}
+                  {...register('bankAccountName', { required: 'กรุณาระบุชื่อบัญชี' })}
                 />
+                {errors.bankAccountName && (
+                  <p className="text-red-500 text-base mt-1">{errors.bankAccountName.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">ธนาคาร</label>
+                <label className="form-label">ธนาคาร <span className="text-red-500">*</span></label>
                 <Select
                   onValueChange={(value) => setValue('bankName', value)}
                   value={watch('bankName')}
@@ -1691,16 +1752,20 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 </Select>
                 <input
                   type="hidden"
-                  {...register('bankName')}
+                  {...register('bankName', { required: 'กรุณาเลือกธนาคาร' })}
                 />
+                {errors.bankName && (
+                  <p className="text-red-500 text-base mt-1">{errors.bankName.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">เลขที่บัญชี</label>
+                <label className="form-label">เลขที่บัญชี <span className="text-red-500">*</span></label>
                 <Input
                   placeholder="ระบุเลขที่บัญชีธนาคาร"
                   className="form-input"
                   {...register('bankAccountNumber', {
+                    required: 'กรุณาระบุเลขที่บัญชี',
                     pattern: {
                       value: /^[0-9-]+$/,
                       message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'

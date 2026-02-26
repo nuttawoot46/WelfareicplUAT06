@@ -99,7 +99,7 @@ const createAdvanceFormHTML = (
         <div style="display: flex; align-items: center;">
           <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 120px;
-            height: 90px;
+            height: 120px;
             object-fit: contain;
             margin-right: 15px;
           " />
@@ -148,18 +148,18 @@ const createAdvanceFormHTML = (
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
-          <span>วันที่เริ่มกิจกรรม</span>
+          <span style="font-weight: bold;">วันที่เริ่มกิจกรรม</span>
           <span style="margin-left: 8px;">
             ${advanceData.start_date ? formatThaiDate(advanceData.start_date) : formatThaiDate(advanceData.createdAt || '')}
           </span>
-          <span style="margin-left: 40px;">วันสิ้นสุดกิจกรรม</span>
+          <span style="margin-left: 40px; font-weight: bold;">วันสิ้นสุดกิจกรรม</span>
           <span style="margin-left: 8px;">
             ${advanceData.end_date ? formatThaiDate(advanceData.end_date) : ''}
           </span>
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
-          <span>จำนวนผู้เข้าร่วม</span>
+          <span style="font-weight: bold;">จำนวนผู้เข้าร่วม</span>
           <span style="margin-left: 8px;">${advanceData.advanceParticipants || ''}</span>
           <span style="margin-left: 5px;">คน</span>
         </div>
@@ -171,7 +171,7 @@ const createAdvanceFormHTML = (
         
         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
           <thead>
-            <tr style="background: #f0f0f0;">
+            <tr style="background: #e5e7eb;">
               <th style="border: 0.2px solid black; padding: 6px; text-align: center; vertical-align: middle; width: 8%;">ลำดับ</th>
               <th style="border: 0.2px solid black; padding: 6px; text-align: center; vertical-align: middle; width: 37%;">ชื่อรายการ</th>
               <th style="border: 0.2px solid black; padding: 6px; text-align: center; vertical-align: middle; width: 22%;">จำนวนเงินเบิก</th>
@@ -190,11 +190,11 @@ const createAdvanceFormHTML = (
                 <tr>
                   <td style="border: 0.2px solid black; padding: 6px; text-align: center; vertical-align: middle;">${index + 1}</td>
                   <td style="border: 0.2px solid black; padding: 6px; vertical-align: middle;">${item.name || 'รายการไม่ระบุ'}</td>
-                  <td style="border: 0.2px solid black; padding: 6px; text-align: left; vertical-align: middle;">
+                  <td style="border: 0.2px solid black; padding: 6px; text-align: right; vertical-align: middle;">
                     ${formatCurrency(requestAmount)}
                   </td>
                   <td style="border: 0.2px solid black; padding: 6px; text-align: center; vertical-align: middle;">${taxRate}%</td>
-                  <td style="border: 0.2px solid black; padding: 6px; text-align: left; font-weight: bold; vertical-align: middle;">
+                  <td style="border: 0.2px solid black; padding: 6px; text-align: right; font-weight: bold; vertical-align: middle;">
                     ${formatCurrency(netAmount)}
                   </td>
                 </tr>
@@ -205,13 +205,13 @@ const createAdvanceFormHTML = (
                 <td style="border: 0.2px solid black; padding: 6px;" colspan="5">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
-            <tr style="background: #e6f3ff; font-weight: bold;">
+            <tr style="background: #e5e7eb; font-weight: bold;">
               <td style="border: 0.2px solid black; padding: 8px; text-align: center;" colspan="2">รวมทั้งสิ้น</td>
-              <td style="border: 0.2px solid black; padding: 8px; text-align: left; color: blue;">
+              <td style="border: 0.2px solid black; padding: 8px; text-align: right;">
                 ${formatCurrency(totalAmount)}
               </td>
               <td style="border: 0.2px solid black; padding: 8px; text-align: center;">-</td>
-              <td style="border: 0.2px solid black; padding: 8px; text-align: left; color: blue; font-size: 12px;">
+              <td style="border: 0.2px solid black; padding: 8px; text-align: right; font-size: 12px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => {
     return sum + (Number(item.netAmount) || 0);
   }, 0))}
@@ -223,11 +223,9 @@ const createAdvanceFormHTML = (
 
       <!-- Details Section -->
       <div style="margin-bottom: 20px; font-size: 11px;">
-        <div style="margin-bottom: 8px;">
-          <span style="font-weight: bold;">รายละเอียด</span>
-        </div>
         <div style="margin-bottom: 6px; line-height: 1.6;">
-          ${advanceData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
+          <span style="font-weight: bold;">รายละเอียด:</span>
+          <span style="margin-left: 8px;">${advanceData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}</span>
         </div>
         ${advanceData.advanceUrgencyLevel ? `
         <div style="margin-bottom: 6px;">
@@ -291,7 +289,6 @@ const createAdvanceFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${advanceData.managerApproverName || ''} )</div>
-            <div>ผู้อนุมัติ</div>
             <div>ตำแหน่ง: ${advanceData.managerApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${advanceData.managerApprovedAt ? formatThaiDate(advanceData.managerApprovedAt) : ''}</div>
           </div>

@@ -8,14 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, Check, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Filter, FileText, History, Clock, Check, X, FileWarning } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { SignaturePopup } from '@/components/signature/SignaturePopup';
 import { usePDFOperations } from '@/hooks/usePDFOperations';
@@ -33,22 +32,24 @@ export const ExecutiveApprovalPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WelfareRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+  const [rejectionRequestId, setRejectionRequestId] = useState<number | null>(null);
+
+  // Revision request states (ขอเอกสารเพิ่มเติม)
+  const [isRevisionDialogOpen, setIsRevisionDialogOpen] = useState(false);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [revisionRequestId, setRevisionRequestId] = useState<number | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<Date | undefined>();
   const [isSignaturePopupOpen, setIsSignaturePopupOpen] = useState(false);
   const [pendingApprovalRequest, setPendingApprovalRequest] = useState<WelfareRequest | null>(null);
-  const [pendingBulkApproval, setPendingBulkApproval] = useState<WelfareRequest[]>([]);
-  const [isBulkApproval, setIsBulkApproval] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
 
   // Cleanup function to reset states
   const resetApprovalStates = () => {
     setPendingApprovalRequest(null);
-    setPendingBulkApproval([]);
-    setIsBulkApproval(false);
     setIsSignaturePopupOpen(false);
   };
 
@@ -109,23 +110,6 @@ export const ExecutiveApprovalPage = () => {
   // Get the list being displayed based on active tab
   const displayedRequests = activeTab === 'pending' ? pendingRequests : historyRequests;
 
-  const handleSelectRequest = (requestId: number) => {
-    setSelectedRequests(prev =>
-      prev.includes(requestId)
-        ? prev.filter(id => id !== requestId)
-        : [...prev, requestId]
-    );
-  };
-
-  const handleSelectAll = (checked: boolean | 'indeterminate') => {
-    if (checked === true) {
-      const selectableIds = pendingRequests.map(req => req.id);
-      setSelectedRequests(selectableIds);
-    } else {
-      setSelectedRequests([]);
-    }
-  };
-
   const handleViewDetails = (request: WelfareRequest) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
@@ -138,175 +122,76 @@ export const ExecutiveApprovalPage = () => {
     if (!request) return;
 
     setPendingApprovalRequest(request);
-    setIsBulkApproval(false);
     setIsSignaturePopupOpen(true);
     setIsModalOpen(false);
   };
 
-  // Bulk approve - opens signature popup
-  const handleBulkApprove = () => {
-    if (selectedRequests.length === 0 || !user) return;
-
-    const requestsToApprove = pendingRequests.filter(
-      req => selectedRequests.includes(req.id) && req.status === 'pending_executive'
-    );
-
-    if (requestsToApprove.length === 0) {
-      addNotification({
-        userId: user.id,
-        title: 'แจ้งเตือน',
-        message: 'ไม่มีคำร้องที่เลือกสำหรับอนุมัติ',
-        type: 'info',
-      });
-      return;
-    }
-
-    setPendingBulkApproval(requestsToApprove);
-    setIsBulkApproval(true);
-    setIsSignaturePopupOpen(true);
-  };
-
-  // Bulk reject - opens rejection modal
-  const handleBulkReject = () => {
-    if (selectedRequests.length === 0) return;
-    setIsRejectionModalOpen(true);
-  };
-
   // Signature completed - execute approval
   const handleSignatureComplete = async (signature: string) => {
-    if (!user || (!pendingApprovalRequest && pendingBulkApproval.length === 0)) return;
+    if (!user || !pendingApprovalRequest) return;
 
     setIsLoading(true);
     try {
       const currentDateTime = new Date().toISOString();
 
-      if (isBulkApproval && pendingBulkApproval.length > 0) {
-        // Bulk approval
-        for (const req of pendingBulkApproval) {
-          const { error } = await supabase
-            .from('welfare_requests')
-            .update({
-              status: 'pending_manager',
-              executive_approver_id: profile?.employee_id,
-              executive_approver_name: profile?.display_name || user.email,
-              executive_approver_position: profile?.position || '',
-              executive_approved_at: currentDateTime,
-              executive_signature: signature,
-              updated_at: currentDateTime,
-            })
-            .eq('id', req.id);
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update({
+          status: 'pending_manager',
+          executive_approver_id: profile?.employee_id,
+          executive_approver_name: profile?.display_name || user.email,
+          executive_approver_position: profile?.position || '',
+          executive_approved_at: currentDateTime,
+          executive_signature: signature,
+          updated_at: currentDateTime,
+        })
+        .eq('id', pendingApprovalRequest.id);
 
-          if (error) {
-            console.error('Error updating request:', error);
-            throw error;
-          }
-        }
-
-        addNotification({
-          userId: user.id,
-          title: 'สำเร็จ',
-          message: `อนุมัติ ${pendingBulkApproval.length} คำร้องสำเร็จ พร้อมลายเซ็น ส่งต่อไปผู้จัดการ`,
-          type: 'success',
-        });
-
-        // Send LINE notifications
-        for (const req of pendingBulkApproval) {
-          try {
-            const { data: employeeData } = await supabase
-              .from('Employee')
-              .select('email_user')
-              .eq('id', req.userId)
-              .single();
-
-            if (employeeData?.email_user) {
-              await sendLineNotification({
-                employeeEmail: employeeData.email_user,
-                type: getWelfareTypeLabel(req.type),
-                status: 'รอผู้จัดการอนุมัติ',
-                amount: Number(req.amount) || 0,
-                userName: req.userName,
-                requestDate: new Date().toLocaleString('th-TH', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }),
-              });
-            }
-          } catch (lineError) {
-            console.error('LINE notification error:', lineError);
-          }
-        }
-
-        await refreshRequests(true);
-
-        // Reset states
-        setPendingBulkApproval([]);
-        setIsBulkApproval(false);
-        setIsSignaturePopupOpen(false);
-        setSelectedRequests([]);
-      } else if (pendingApprovalRequest) {
-        // Individual approval
-        const { error } = await supabase
-          .from('welfare_requests')
-          .update({
-            status: 'pending_manager',
-            executive_approver_id: profile?.employee_id,
-            executive_approver_name: profile?.display_name || user.email,
-            executive_approver_position: profile?.position || '',
-            executive_approved_at: currentDateTime,
-            executive_signature: signature,
-            updated_at: currentDateTime,
-          })
-          .eq('id', pendingApprovalRequest.id);
-
-        if (error) {
-          console.error('Error updating request:', error);
-          throw error;
-        }
-
-        addNotification({
-          userId: user.id,
-          title: 'สำเร็จ',
-          message: 'อนุมัติคำร้องสำเร็จ พร้อมลายเซ็น ส่งต่อไปผู้จัดการ',
-          type: 'success',
-        });
-
-        // Send LINE notification
-        try {
-          const { data: employeeData } = await supabase
-            .from('Employee')
-            .select('email_user')
-            .eq('id', pendingApprovalRequest.userId)
-            .single();
-
-          if (employeeData?.email_user) {
-            await sendLineNotification({
-              employeeEmail: employeeData.email_user,
-              type: getWelfareTypeLabel(pendingApprovalRequest.type),
-              status: 'รอผู้จัดการอนุมัติ',
-              amount: Number(pendingApprovalRequest.amount) || 0,
-              userName: pendingApprovalRequest.userName,
-              requestDate: new Date().toLocaleString('th-TH', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-            });
-          }
-        } catch (lineError) {
-          console.error('LINE notification error:', lineError);
-        }
-
-        await refreshRequests(true);
-
-        // Reset states
-        setPendingApprovalRequest(null);
-        setIsSignaturePopupOpen(false);
+      if (error) {
+        console.error('Error updating request:', error);
+        throw error;
       }
+
+      addNotification({
+        userId: user.id,
+        title: 'สำเร็จ',
+        message: 'อนุมัติคำร้องสำเร็จ พร้อมลายเซ็น ส่งต่อไปผู้จัดการ',
+        type: 'success',
+      });
+
+      // Send LINE notification
+      try {
+        const { data: employeeData } = await supabase
+          .from('Employee')
+          .select('email_user')
+          .eq('id', pendingApprovalRequest.userId)
+          .single();
+
+        if (employeeData?.email_user) {
+          await sendLineNotification({
+            employeeEmail: employeeData.email_user,
+            type: getWelfareTypeLabel(pendingApprovalRequest.type),
+            status: 'รอผู้จัดการอนุมัติ',
+            amount: Number(pendingApprovalRequest.amount) || 0,
+            userName: pendingApprovalRequest.userName,
+            requestDate: new Date().toLocaleString('th-TH', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          });
+        }
+      } catch (lineError) {
+        console.error('LINE notification error:', lineError);
+      }
+
+      await refreshRequests(true);
+
+      // Reset states
+      setPendingApprovalRequest(null);
+      setIsSignaturePopupOpen(false);
     } catch (error) {
       console.error('Error in handleSignatureComplete:', error);
       addNotification({
@@ -365,62 +250,104 @@ export const ExecutiveApprovalPage = () => {
     }
   };
 
-  // Bulk rejection confirmation
-  const confirmBulkRejection = async () => {
-    if (selectedRequests.length === 0 || !rejectionReason || !user) return;
+  // Single rejection confirmation
+  const confirmRejection = async () => {
+    if (!rejectionRequestId || !rejectionReason || !user) return;
     setIsLoading(true);
     try {
-      const requestsToReject = pendingRequests.filter(
-        req => selectedRequests.includes(req.id) && req.status === 'pending_executive'
-      );
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update({
+          status: 'rejected_executive',
+          executive_approver_id: profile?.employee_id,
+          executive_approver_name: profile?.display_name || user.email,
+          executive_approved_at: new Date().toISOString(),
+          manager_notes: rejectionReason,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', rejectionRequestId);
 
-      if (requestsToReject.length === 0) {
-        addNotification({
-          userId: user.id,
-          title: 'แจ้งเตือน',
-          message: 'ไม่มีคำร้องที่เลือกสำหรับปฏิเสธ',
-          type: 'info',
-        });
-        setIsLoading(false);
-        setIsRejectionModalOpen(false);
-        return;
-      }
-
-      for (const req of requestsToReject) {
-        const { error } = await supabase
-          .from('welfare_requests')
-          .update({
-            status: 'rejected_executive',
-            executive_approver_id: profile?.employee_id,
-            executive_approver_name: profile?.display_name || user.email,
-            executive_approved_at: new Date().toISOString(),
-            manager_notes: rejectionReason,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', req.id);
-
-        if (error) {
-          console.error('Error rejecting request:', error);
-          throw error;
-        }
-      }
+      if (error) throw error;
 
       addNotification({
         userId: user.id,
         title: 'สำเร็จ',
-        message: `ปฏิเสธ ${requestsToReject.length} คำร้องสำเร็จ`,
+        message: 'ปฏิเสธคำร้องสำเร็จ',
         type: 'success',
       });
 
-      await refreshRequests(true);
-      setSelectedRequests([]);
+      await refreshRequests();
       setRejectionReason('');
+      setRejectionRequestId(null);
       setIsRejectionModalOpen(false);
     } catch (error) {
       addNotification({
         userId: user.id,
         title: 'เกิดข้อผิดพลาด',
-        message: 'ปฏิเสธคำร้องบางรายการล้มเหลว',
+        message: 'ปฏิเสธคำร้องล้มเหลว',
+        type: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Revision request handler (ขอเอกสารเพิ่มเติม)
+  const handleRevisionRequest = async () => {
+    if (!revisionRequestId || !revisionNote.trim()) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update({
+          status: 'pending_revision',
+          revision_requested_by: 'executive',
+          revision_note: revisionNote.trim(),
+          revision_requested_at: new Date().toISOString(),
+        } as any)
+        .eq('id', revisionRequestId);
+
+      if (error) throw error;
+
+      const request = allRequests.find(r => r.id === revisionRequestId);
+      if (request) {
+        const { data: employeeData } = await supabase
+          .from('Employee')
+          .select('email_user')
+          .eq('id', Number(request.userId))
+          .single();
+
+        if (employeeData?.email_user) {
+          await sendLineNotification({
+            employeeEmail: employeeData.email_user,
+            type: getWelfareTypeLabel(request.type),
+            status: 'ขอเอกสารเพิ่มเติม',
+            amount: Number(request.amount) || 0,
+            userName: request.userName,
+            requestDate: new Date().toLocaleString('th-TH', {
+              year: 'numeric', month: 'long', day: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            }),
+          });
+        }
+      }
+
+      addNotification({
+        userId: user!.id,
+        title: 'สำเร็จ',
+        message: 'ส่งคำขอเอกสารเพิ่มเติมเรียบร้อยแล้ว',
+        type: 'success',
+      });
+
+      await refreshRequests();
+      setIsRevisionDialogOpen(false);
+      setRevisionNote('');
+      setRevisionRequestId(null);
+    } catch (error) {
+      addNotification({
+        userId: user!.id,
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถส่งคำขอเอกสารเพิ่มเติมได้',
         type: 'error',
       });
     } finally {
@@ -645,37 +572,12 @@ export const ExecutiveApprovalPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-x-2">
-                  <Button
-                    onClick={handleBulkApprove}
-                    disabled={selectedRequests.length === 0 || isLoading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    อนุมัติ ({selectedRequests.length})
-                  </Button>
-                  <Button
-                    onClick={handleBulkReject}
-                    disabled={selectedRequests.length === 0 || isLoading}
-                    variant="destructive"
-                  >
-                    ปฏิเสธ ({selectedRequests.length})
-                  </Button>
-                </div>
               </div>
 
               <div className="rounded-md border">
                 <Table>
                   <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                     <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={
-                            pendingRequests.length > 0 &&
-                            selectedRequests.length === pendingRequests.length
-                          }
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
                       <TableHead>พนักงาน</TableHead>
                       <TableHead>แผนก</TableHead>
                       <TableHead>ประเภท</TableHead>
@@ -689,19 +591,13 @@ export const ExecutiveApprovalPage = () => {
                   <TableBody>
                     {pendingRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           ไม่มีคำร้องที่รอการอนุมัติ
                         </TableCell>
                       </TableRow>
                     ) : (
                       pendingRequests.map((request) => (
                         <TableRow key={request.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedRequests.includes(request.id)}
-                              onCheckedChange={() => handleSelectRequest(request.id)}
-                            />
-                          </TableCell>
                           <TableCell className="font-medium">{request.userName}</TableCell>
                           <TableCell>{request.userDepartment || request.department_user || '-'}</TableCell>
                           <TableCell>
@@ -733,6 +629,23 @@ export const ExecutiveApprovalPage = () => {
                                 className="bg-green-600 hover:bg-green-700"
                               >
                                 อนุมัติ
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => { setRejectionRequestId(request.id); setRejectionReason(''); setIsRejectionModalOpen(true); }}
+                                disabled={isLoading}
+                              >
+                                ปฏิเสธ
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => { setRevisionRequestId(request.id); setRevisionNote(''); setIsRevisionDialogOpen(true); }}
+                                disabled={isLoading}
+                                className="bg-amber-500 hover:bg-amber-600"
+                              >
+                                <FileWarning className="h-4 w-4 mr-1" />
+                                ขอเอกสารเพิ่ม
                               </Button>
                             </div>
                           </TableCell>
@@ -947,6 +860,18 @@ export const ExecutiveApprovalPage = () => {
                       <X className="h-4 w-4 mr-2" />
                       ปฏิเสธ
                     </Button>
+                    <Button
+                      onClick={() => {
+                        setRevisionRequestId(selectedRequest.id);
+                        setRevisionNote('');
+                        setIsRevisionDialogOpen(true);
+                      }}
+                      className="bg-amber-500 hover:bg-amber-600 px-4"
+                      disabled={isLoading}
+                    >
+                      <FileWarning className="h-4 w-4 mr-2" />
+                      ขอเอกสารเพิ่ม
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -955,13 +880,13 @@ export const ExecutiveApprovalPage = () => {
         </Dialog>
       )}
 
-      {/* Bulk Rejection Modal */}
+      {/* Rejection Modal */}
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้องที่เลือก ({selectedRequests.length} รายการ)</p>
+          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
           <Textarea
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
@@ -969,14 +894,41 @@ export const ExecutiveApprovalPage = () => {
             rows={3}
           />
           <DialogFooter>
-            <Button
-              onClick={confirmBulkRejection}
-              disabled={!rejectionReason || isLoading}
-            >
-              ยืนยัน
-            </Button>
             <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>
               ยกเลิก
+            </Button>
+            <Button
+              onClick={confirmRejection}
+              disabled={!rejectionReason || isLoading}
+              variant="destructive"
+            >
+              ยืนยันปฏิเสธ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revision Request Dialog (ขอเอกสารเพิ่มเติม) */}
+      <Dialog open={isRevisionDialogOpen} onOpenChange={(open) => { if (!open) { setIsRevisionDialogOpen(false); setRevisionNote(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>ขอเอกสารเพิ่มเติม</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">กรุณาระบุเอกสารที่ต้องการให้พนักงานแนบเพิ่มเติม</p>
+          <Textarea
+            value={revisionNote}
+            onChange={(e) => setRevisionNote(e.target.value)}
+            placeholder="เช่น กรุณาแนบใบเสร็จรับเงิน, สำเนาบัตรประชาชน..."
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsRevisionDialogOpen(false); setRevisionNote(''); }}>ยกเลิก</Button>
+            <Button
+              onClick={handleRevisionRequest}
+              disabled={!revisionNote.trim() || isLoading}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              ส่งคำขอเอกสาร
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -987,18 +939,12 @@ export const ExecutiveApprovalPage = () => {
         isOpen={isSignaturePopupOpen}
         onClose={resetApprovalStates}
         onSave={handleSignatureComplete}
-        title={
-          isBulkApproval
-            ? `ลงลายเซ็นอนุมัติ (${pendingBulkApproval.length} คำขอ)`
-            : 'ลงลายเซ็นอนุมัติ'
-        }
+        title="ลงลายเซ็นอนุมัติ"
         approverName={profile?.display_name || user?.email || ''}
         requestDetails={
-          isBulkApproval
-            ? `คำขอที่จะอนุมัติ: ${pendingBulkApproval.map(req => `${req.userName} (${getWelfareTypeLabel(req.type)})`).join(', ')}`
-            : pendingApprovalRequest
-              ? `คำขอของ: ${pendingApprovalRequest.userName} (${getWelfareTypeLabel(pendingApprovalRequest.type)})`
-              : undefined
+          pendingApprovalRequest
+            ? `คำขอของ: ${pendingApprovalRequest.userName} (${getWelfareTypeLabel(pendingApprovalRequest.type)})`
+            : undefined
         }
       />
 

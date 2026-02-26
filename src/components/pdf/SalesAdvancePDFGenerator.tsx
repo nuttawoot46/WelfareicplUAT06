@@ -108,7 +108,7 @@ const createSalesAdvanceFormHTML = (
         <div style="display: flex; align-items: center;">
           <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 120px;
-            height: 90px;
+            height: 120px;
             object-fit: contain;
             margin-right: 15px;
           " />
@@ -132,16 +132,13 @@ const createSalesAdvanceFormHTML = (
         <div style="font-weight: bold; margin-bottom: 10px;">ข้อมูลผู้ขอเบิก (ฝ่ายขาย)</div>
         <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">ชื่อ-นามสกุล:</span>
-          <span style="margin-left: 8px;">${employeeName}</span>
-          <span style="margin-left: 40px; font-weight: bold;">ตำแหน่ง:</span>
-          <span style="margin-left: 8px;">${employeePosition}</span>
-        </div>
-
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="font-weight: bold;">แผนก:</span>
-          <span style="margin-left: 8px;">${advanceData.advanceDepartment === 'อื่นๆ' ? advanceData.advanceDepartmentOther || 'อื่นๆ' : advanceData.advanceDepartment || ''}</span>
-          <span style="margin-left: 40px; font-weight: bold;">เขตการขาย:</span>
-          <span style="margin-left: 8px;">${salesDistrict}</span>
+          <span style="margin-left: 5px;">${employeeName}</span>
+          <span style="margin-left: 15px; font-weight: bold;">แผนก:</span>
+          <span style="margin-left: 5px;">${advanceData.advanceDepartment === 'อื่นๆ' ? advanceData.advanceDepartmentOther || 'อื่นๆ' : advanceData.advanceDepartment || ''}</span>
+          <span style="margin-left: 15px; font-weight: bold;">เขตการขาย:</span>
+          <span style="margin-left: 5px;">${salesDistrict}</span>
+          <span style="margin-left: 15px; font-weight: bold;">ตำแหน่ง:</span>
+          <span style="margin-left: 5px;">${employeePosition}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
@@ -172,19 +169,19 @@ const createSalesAdvanceFormHTML = (
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
-          <span>วันที่เริ่มกิจกรรม</span>
-          <span style="margin-left: 8px;">
+          <span style="font-weight: bold;">วันที่เริ่มกิจกรรม</span>
+          <span style="margin-left: 5px;">
             ${advanceData.start_date ? formatThaiDate(advanceData.start_date) : formatThaiDate(advanceData.createdAt || '')}
           </span>
-          <span style="margin-left: 40px;">วันสิ้นสุดกิจกรรม</span>
-          <span style="margin-left: 8px;">
+          <span style="margin-left: 15px; font-weight: bold;">วันสิ้นสุดกิจกรรม</span>
+          <span style="margin-left: 5px;">
             ${advanceData.end_date ? formatThaiDate(advanceData.end_date) : ''}
           </span>
         </div>
 
         <div style="display: flex; margin-bottom: 10px;">
-          <span>จำนวนผู้เข้าร่วม</span>
-          <span style="margin-left: 8px;">${advanceData.advanceParticipants || ''}</span>
+          <span style="font-weight: bold;">จำนวนผู้เข้าร่วม</span>
+          <span style="margin-left: 5px;">${advanceData.advanceParticipants || ''}</span>
           <span style="margin-left: 5px;">คน</span>
         </div>
       </div>
@@ -215,7 +212,7 @@ const createSalesAdvanceFormHTML = (
 
         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
           <thead>
-            <tr style="background: #e3f2fd;">
+            <tr style="background: #e5e7eb;">
               <th style="border: 1px solid black; padding: 6px; text-align: center; width: 8%;">ลำดับ</th>
               <th style="border: 1px solid black; padding: 6px; text-align: center; width: 37%;">ชื่อรายการ</th>
               <th style="border: 1px solid black; padding: 6px; text-align: center; width: 22%;">จำนวนเงินเบิก</th>
@@ -234,11 +231,11 @@ const createSalesAdvanceFormHTML = (
                 <tr>
                   <td style="border: 1px solid black; padding: 5px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left;">${item.name || 'รายการไม่ระบุ'}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">
+                  <td style="border: 1px solid black; padding: 5px; text-align: right;">
                     ${formatCurrency(requestAmount)}
                   </td>
                   <td style="border: 1px solid black; padding: 5px; text-align: center;">${taxRate}%</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
+                  <td style="border: 1px solid black; padding: 5px; text-align: right; font-weight: bold;">
                     ${formatCurrency(netAmount)}
                   </td>
                 </tr>
@@ -249,13 +246,13 @@ const createSalesAdvanceFormHTML = (
                 <td style="border: 1px solid black; padding: 6px;" colspan="5">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
-            <tr style="background: #bbdefb; font-weight: bold;">
+            <tr style="background: #e5e7eb; font-weight: bold;">
               <td style="border: 1px solid black; padding: 8px; text-align: center;" colspan="2">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 8px; text-align: left; color: #1565c0;">
+              <td style="border: 1px solid black; padding: 8px; text-align: right;">
                 ${formatCurrency(totalAmount)}
               </td>
               <td style="border: 1px solid black; padding: 8px; text-align: center;">-</td>
-              <td style="border: 1px solid black; padding: 8px; text-align: left; color: #1565c0; font-size: 12px;">
+              <td style="border: 1px solid black; padding: 8px; text-align: right; font-size: 12px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => {
     return sum + (Number(item.netAmount) || 0);
   }, 0))}
@@ -302,7 +299,7 @@ const createSalesAdvanceFormHTML = (
 
         <!-- Center Signature - Executive (ME) -->
         <div style="text-align: center; width: 180px;">
-          <div style="margin-bottom: 5px;">ผู้ตรวจสอบ (Executive)</div>
+          <div style="margin-bottom: 5px;">ผู้ตรวจสอบ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${advanceData.executiveSignature ? `
               <img src="${advanceData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
@@ -326,8 +323,7 @@ const createSalesAdvanceFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${advanceData.managerApproverName || ''} )</div>
-            <div>ผู้อนุมัติ</div>
-            <div>ตำแหน่ง: ผู้จัดการ</div>
+            <div>ตำแหน่ง: ${advanceData.managerApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${advanceData.managerApprovedAt ? formatThaiDate(advanceData.managerApprovedAt) : ''}</div>
           </div>
         </div>

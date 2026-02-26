@@ -62,6 +62,11 @@ interface ExpenseClearingFormValues {
     otherDescription?: string; // For "อุปกรณ์และอื่นๆ" specification
   }[];
 
+  // Bank account information
+  bankAccountName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+
   // Dealer/Subdealer checkboxes
   isDealerActivity?: boolean;
   isSubdealerActivity?: boolean;
@@ -109,7 +114,7 @@ const ACTIVITY_TYPES = [
     description: 'ค่าอาหาร-เครื่องดื่มให้เกษตรที่ทำแปลง'
   },
   {
-    name: 'ดีลเลอร์',
+    name: 'จัดประชุมดีลเลอร์',
     description: 'ค่าใช้จ่ายในการดีลเลอร์'
   },
   {
@@ -124,6 +129,26 @@ const ACTIVITY_TYPES = [
     name: 'อื่นๆ',
     description: 'กรุณาระบุรายละเอียดเพิ่มเติม'
   }
+];
+
+// รายชื่อธนาคารในประเทศไทย
+const THAI_BANKS = [
+  'ธนาคารกรุงเทพ (Bangkok Bank)',
+  'ธนาคารกสิกรไทย (Kasikornbank)',
+  'ธนาคารกรุงไทย (Krungthai Bank)',
+  'ธนาคารทหารไทยธนชาต (TTB Bank)',
+  'ธนาคารไทยพาณิชย์ (Siam Commercial Bank)',
+  'ธนาคารกรุงศรีอยุธยา (Bank of Ayudhya)',
+  'ธนาคารเกียรตินาคินภัทร (Kiatnakin Phatra Bank)',
+  'ธนาคารซีไอเอ็มบีไทย (CIMB Thai Bank)',
+  'ธนาคารทิสโก้ (TISCO Bank)',
+  'ธนาคารธนชาต (Thanachart Bank)',
+  'ธนาคารยูโอบี (United Overseas Bank)',
+  'ธนาคารแลนด์ แอนด์ เฮ้าส์ (Land and Houses Bank)',
+  'ธนาคารไอซีบีซี (ไทย) (ICBC Thai)',
+  'ธนาคารเอชเอสบีซี (HSBC)',
+  'ธนาคารออมสิน (Government Savings Bank)',
+  'ธนาคารอาคารสงเคราะห์ (Government Housing Bank)',
 ];
 
 // Generate run number for expense clearing requests (ฝ่ายขาย)
@@ -426,13 +451,14 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     };
   }, []);
 
-  // Fetch available advance requests for this user
+  // Fetch available advance requests for this user (exclude already-linked ones)
   useEffect(() => {
     const fetchAdvanceRequests = async () => {
       if (!user?.email || !employeeData?.id) return;
 
       try {
-        const { data, error } = await supabase
+        // Fetch completed advance requests
+        const { data: advanceData, error: advanceError } = await supabase
           .from('welfare_requests')
           .select('id, amount, created_at, details, advance_activity_type, status, run_number')
           .eq('employee_id', employeeData.id)
@@ -440,8 +466,24 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           .eq('status', 'completed')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          setAvailableAdvanceRequests(data);
+        // Fetch non-rejected expense-clearing requests that already link to an advance request
+        // Rejected ones are excluded so the advance can be reused
+        const { data: linkedData, error: linkedError } = await supabase
+          .from('welfare_requests')
+          .select('original_advance_request_id')
+          .eq('employee_id', employeeData.id)
+          .eq('request_type', 'expense-clearing')
+          .not('original_advance_request_id', 'is', null)
+          .not('status', 'like', 'rejected%');
+
+        if (!advanceError && advanceData) {
+          // Get set of already-linked advance request IDs
+          const linkedIds = new Set(
+            (linkedData || []).map((r: any) => r.original_advance_request_id)
+          );
+          // Filter out advance requests that are already linked to an expense clearing
+          const available = advanceData.filter((req: any) => !linkedIds.has(req.id));
+          setAvailableAdvanceRequests(available);
         }
       } catch (error) {
         console.error('Error fetching advance requests:', error);
@@ -491,6 +533,11 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         setValue('venue', (data as any).advance_location || '');
         setValue('startDate', data.start_date || '');
         setValue('endDate', data.end_date || '');
+
+        // Load bank account information
+        setValue('bankAccountName', (data as any).bank_account_name || '');
+        setValue('bankName', (data as any).bank_name || '');
+        setValue('bankAccountNumber', (data as any).bank_account_number || '');
 
         // Load expense items from original request
         if ((data as any).advance_expense_items) {
@@ -896,6 +943,31 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       return;
     }
 
+    // Validate at least 1 attachment is required
+    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
+    if (totalFiles === 0) {
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate required attachments - if checkbox is checked, file must be uploaded
+    const missingAttachments = DOCUMENT_TYPES.filter(
+      docType => documentSelections[docType.key] && documentFiles[docType.key].length === 0
+    );
+    if (missingAttachments.length > 0) {
+      const missingNames = missingAttachments.map(d => d.label).join(', ');
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: `กรุณาอัพโหลดไฟล์สำหรับ: ${missingNames}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!employeeData) {
       console.error('❌ No employee data found');
       toast({
@@ -987,6 +1059,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         advanceParticipants: data.advanceParticipants,
         advanceLocation: data.venue,
         expenseClearingItems: data.expenseClearingItems,
+        // Bank account information
+        bankAccountName: data.bankAccountName,
+        bankName: data.bankName,
+        bankAccountNumber: data.bankAccountNumber,
         // Run number for expense clearing
         runNumber: runNumber,
       };
@@ -1247,8 +1323,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
               <Select
                 onValueChange={(value) => setValue('advanceActivityType', value)}
                 value={watch('advanceActivityType')}
+                disabled={!!watch('originalAdvanceRequestId')}
               >
-                <SelectTrigger className="form-input">
+                <SelectTrigger className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}>
                   <SelectValue placeholder="เลือกประเภทกิจกรรม" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1272,13 +1349,16 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
             {/* รายละเอียดเพิ่มเติม */}
             <div className="space-y-2">
-              <label className="form-label">โปรดระบุรายละเอียด</label>
+              <label className="form-label">โปรดระบุรายละเอียด <span className="text-red-500">*</span></label>
               <Textarea
                 placeholder="ระบุรายละเอียด"
                 className="form-input"
                 rows={3}
-                {...register('details')}
+                {...register('details', { required: 'กรุณาระบุรายละเอียด' })}
               />
+              {errors.details && (
+                <p className="text-red-500 text-base mt-1">{errors.details.message}</p>
+              )}
             </div>
             
 
@@ -1636,7 +1716,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           }}
                           onBlur={(e) => {
                             const numValue = parseFormattedNumber(e.target.value);
-                            if (numValue > 0) {
+                            if (numValue >= 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`expenseClearingItems.${index}.requestAmount`, numValue);
                             }
@@ -1664,7 +1744,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           }}
                           onBlur={(e) => {
                             const numValue = parseFormattedNumber(e.target.value);
-                            if (numValue > 0) {
+                            if (numValue >= 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
                             }
@@ -1767,7 +1847,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-green-50 font-semibold">
+                  <tr className="bg-welfare-blue/10 font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2"></td>
                     <td className="border border-gray-300 px-2 py-2 text-right">
@@ -1869,7 +1949,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           ? 'text-green-600'
                           : 'text-gray-600'
                     }`}>
-                      {isNegative ? 'จำนวนเงินที่ต้องชำระเพิ่ม' : 'จำนวนเงินคืนรวม'}
+                      {isNegative ? 'เบิกเงินบริษัท' : 'คืนเงินบริษัท'}
                     </div>
                     <div className={`text-3xl font-bold ${
                       isNegative
@@ -1887,6 +1967,72 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           </div>
 
           
+
+          {/* ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">ข้อมูลบัญชีธนาคารสำหรับโอนให้ผู้ค้าหรือบุคคลภายนอก</h3>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <label className="form-label">ชื่อบัญชี <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="ระบุชื่อบัญชีธนาคาร"
+                  className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  readOnly={!!watch('originalAdvanceRequestId')}
+                  {...register('bankAccountName', { required: 'กรุณาระบุชื่อบัญชี' })}
+                />
+                {errors.bankAccountName && (
+                  <p className="text-red-500 text-base mt-1">{errors.bankAccountName.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">ธนาคาร <span className="text-red-500">*</span></label>
+                <Select
+                  onValueChange={(value) => setValue('bankName', value)}
+                  value={watch('bankName')}
+                  disabled={!!watch('originalAdvanceRequestId')}
+                >
+                  <SelectTrigger className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}>
+                    <SelectValue placeholder="เลือกธนาคาร" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THAI_BANKS.map((bank) => (
+                      <SelectItem key={bank} value={bank}>
+                        {bank}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  {...register('bankName', { required: 'กรุณาเลือกธนาคาร' })}
+                />
+                {errors.bankName && (
+                  <p className="text-red-500 text-base mt-1">{errors.bankName.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="form-label">เลขที่บัญชี <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="ระบุเลขที่บัญชีธนาคาร"
+                  className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  readOnly={!!watch('originalAdvanceRequestId')}
+                  {...register('bankAccountNumber', {
+                    required: 'กรุณาระบุเลขที่บัญชี',
+                    pattern: {
+                      value: /^[0-9-]+$/,
+                      message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
+                    }
+                  })}
+                />
+                {errors.bankAccountNumber && (
+                  <p className="text-red-500 text-base mt-1">{errors.bankAccountNumber.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* แนบไฟล์เอกสาร - Checkbox Based */}
           <div className="space-y-4">

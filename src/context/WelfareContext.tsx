@@ -197,6 +197,10 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               childbirths: row.childbirths,
               // Run number
               runNumber: row.run_number,
+              // Revision request fields
+              revisionRequestedBy: row.revision_requested_by,
+              revisionNote: row.revision_note,
+              revisionRequestedAt: row.revision_requested_at,
               // PDF fields
               pdfUrl: row.pdf_url,
               pdf_url: row.pdf_url,

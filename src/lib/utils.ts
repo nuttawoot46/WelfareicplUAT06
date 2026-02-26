@@ -30,6 +30,8 @@ export const getStatusColor = (status: string) => {
   switch (status) {
     case 'pending':
       return 'text-amber-500';
+    case 'pending_revision':
+      return 'text-orange-500';
     case 'approved':
       return 'text-green-500';
     case 'rejected':

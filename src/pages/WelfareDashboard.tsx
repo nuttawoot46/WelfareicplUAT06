@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { File, ClipboardCheck, ClipboardX, Clipboard } from 'lucide-react';
 import { AnimatedBorderShadow } from '@/components/effects/AnimatedBorderShadow';
 import N8nChatbot from '@/components/chatbot/N8nChatbot';
+import { RevisionRequestBanner } from '@/components/dashboard/RevisionRequestBanner';
 
 const WelfareDashboard = () => {
   const { user, profile} = useAuth();
@@ -31,7 +32,9 @@ const position = profile?.position || '';
 const displayInitial = displayName.charAt(0).toUpperCase();  
   return (
     <Layout>
-      
+      {/* Revision Request Banner - show when employee has pending revision requests */}
+      <RevisionRequestBanner />
+
       {/* Employee's Remaining Budget Card - Only show for employees */}
       {user?.role === 'employee' && (
         <div className="mb-8">

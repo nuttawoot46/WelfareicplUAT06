@@ -642,6 +642,31 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
       return;
     }
 
+    // Validate at least 1 attachment is required
+    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
+    if (totalFiles === 0) {
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate required attachments - if checkbox is checked, file must be uploaded
+    const missingAttachments = GENERAL_ADVANCE_DOC_TYPES.filter(
+      docType => documentSelections[docType.key] && documentFiles[docType.key].length === 0
+    );
+    if (missingAttachments.length > 0) {
+      const missingNames = missingAttachments.map(d => d.label).join(', ');
+      toast({
+        title: 'กรุณาแนบเอกสาร',
+        description: `กรุณาอัพโหลดไฟล์สำหรับ: ${missingNames}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Make sure we have employeeData before showing signature modal
     if (!employeeData) {
       console.error('❌ No employee data found');
@@ -1124,7 +1149,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 text-left"
+                          className="w-full text-right"
                           placeholder="ระบุจำนวนเงิน"
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
@@ -1152,7 +1177,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                       <td className="border border-gray-300 p-1">
                         <Input
                           type="text"
-                          className="w-32 bg-welfare-blue/10 font-semibold text-left"
+                          className="w-full bg-welfare-blue/10 font-semibold text-right"
                           placeholder="0.00"
                           value={formatNumberWithCommas(watch(`advanceExpenseItems.${index}.netAmount`))}
                           readOnly

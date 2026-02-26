@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   FileText,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   UserPlus,
   BarChart3,
   Crown,
@@ -147,7 +149,14 @@ export function Sidebar() {
             )}
           </div>
 
-
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="hidden md:flex text-white/80 hover:text-white hover:bg-white/20 h-8 w-8"
+          >
+            {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </Button>
         </div>
 
         {/* Navigation */}
@@ -624,22 +633,5 @@ export function Sidebar() {
         </div>
       </div>
     </>
-  );
-}
-
-// Helper icon components
-function ChevronLeft({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="m9 18 6-6-6-6" />
-    </svg>
   );
 }

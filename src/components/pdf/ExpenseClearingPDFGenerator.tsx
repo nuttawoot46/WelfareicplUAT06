@@ -73,7 +73,7 @@ const createExpenseClearingFormHTML = (
   return `
     <div style="
       width: 210mm;
-      min-height: 297mm;
+      height: 297mm;
       padding: 15mm;
       font-family: 'Sarabun', Arial, sans-serif;
       font-size: 12px;
@@ -81,6 +81,8 @@ const createExpenseClearingFormHTML = (
       background: white;
       color: black;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     ">
       <!-- Header Section -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
@@ -88,7 +90,7 @@ const createExpenseClearingFormHTML = (
         <div style="display: flex; align-items: center;">
           <img src="/Picture/logo-Photoroom.jpg" alt="ICP Ladda Logo" style="
             width: 120px;
-            height: 90px;
+            height: 120px;
             object-fit: contain;
             margin-right: 15px;
           " />
@@ -111,22 +113,19 @@ const createExpenseClearingFormHTML = (
       <div style="margin-bottom: 20px;">
         <div style="font-weight: bold; margin-bottom: 10px;">ข้อมูลผู้เคลียร์ค่าใช้จ่าย</div>
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">ชื่อ-นามสกุล:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${employeeName}</span>
-          <span style="margin-left: 2cm; font-weight: bold;">ตำแหน่ง:</span>
-          <span style="border-bottom: 1px dotted black; width: 150px; margin-left: 10px; padding-bottom: 2px;">${employeePosition}</span>
+          <span style="white-space: nowrap; font-weight: bold;">ชื่อ-นามสกุล:</span>
+          <span style="margin-left: 5px; flex: 1; padding-bottom: 2px;">${employeeName}</span>
+          <span style="margin-left: 15px; white-space: nowrap; font-weight: bold;">แผนก:</span>
+          <span style="margin-left: 5px; width: 120px; padding-bottom: 2px;">${expenseClearingData.advanceDepartment === 'อื่นๆ' ? expenseClearingData.advanceDepartmentOther || employeeTeam : expenseClearingData.advanceDepartment || employeeTeam}</span>
+          <span style="margin-left: 15px; white-space: nowrap; font-weight: bold;">ตำแหน่ง:</span>
+          <span style="margin-left: 5px; width: 150px; padding-bottom: 2px;">${employeePosition}</span>
         </div>
 
         <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">แผนก:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; padding-bottom: 2px;">${expenseClearingData.advanceDepartment === 'อื่นๆ' ? expenseClearingData.advanceDepartmentOther || employeeTeam : expenseClearingData.advanceDepartment || employeeTeam}</span>
-        </div>
-
-        <div style="display: flex; margin-bottom: 8px;">
-          <span style="width: 100px; font-weight: bold;">วันที่ยื่นคำร้อง:</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; padding-bottom: 2px;">${formatThaiDate(expenseClearingData.createdAt || '')}</span>
-          <span style="margin-left: 2cm; font-weight: bold;">จำนวนเงินคืน:</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px; text-align: right; font-weight: bold; color: #16a34a;">
+          <span style="white-space: nowrap; font-weight: bold;">วันที่ยื่นคำร้อง:</span>
+          <span style="margin-left: 5px; width: 120px; padding-bottom: 2px;">${formatThaiDate(expenseClearingData.createdAt || '')}</span>
+          <span style="margin-left: 15px; white-space: nowrap; font-weight: bold;">จำนวนเงินคืน:</span>
+          <span style="margin-left: 5px; padding-bottom: 2px; font-weight: bold; color: #16a34a;">
             ${formatCurrency(totalRefund)} บาท
           </span>
         </div>
@@ -134,34 +133,34 @@ const createExpenseClearingFormHTML = (
         ${expenseClearingData.originalAdvanceRunNumber || expenseClearingData.originalAdvanceRequestId ? `
         <div style="display: flex; margin-bottom: 8px;">
           <span style="width: 160px; font-weight: bold; white-space: nowrap;">อ้างอิงเบิกเงินล่วงหน้า:</span>
-          <span style="border-bottom: 1px dotted black; width: 200px; padding-bottom: 2px;">${expenseClearingData.originalAdvanceRunNumber || '#' + expenseClearingData.originalAdvanceRequestId}</span>
+          <span style="border-bottom: none; width: 200px; padding-bottom: 2px;">${expenseClearingData.originalAdvanceRunNumber || '#' + expenseClearingData.originalAdvanceRequestId}</span>
         </div>
         ` : ''}
       </div>
 
       <!-- Activity Type Section -->
       <div style="margin-bottom: 20px;">
-        <div style="display: flex; margin-bottom: 10px;">
+        <div style="display: flex; margin-bottom: 8px;">
           <span style="font-weight: bold;">ประเภท:</span>
-          <span style="border-bottom: 1px dotted black; flex: 1; margin-left: 10px; padding-bottom: 2px;">
+          <span style="flex: 1; margin-left: 5px; padding-bottom: 2px;">
             ${expenseClearingData.advanceActivityType || '-'}
           </span>
         </div>
 
-        <div style="display: flex; margin-bottom: 10px;">
-          <span>วันที่เริ่มกิจกรรม</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; white-space: nowrap;">วันที่เริ่มกิจกรรม:</span>
+          <span style="margin-left: 5px; padding-bottom: 2px;">
             ${expenseClearingData.start_date ? formatThaiDate(expenseClearingData.start_date) : formatThaiDate(expenseClearingData.createdAt || '')}
           </span>
-          <span style="margin-left: 2cm;">วันสิ้นสุดกิจกรรม</span>
-          <span style="border-bottom: 1px dotted black; width: 120px; margin-left: 10px; padding-bottom: 2px;">
+          <span style="margin-left: 15px; font-weight: bold; white-space: nowrap;">วันสิ้นสุดกิจกรรม:</span>
+          <span style="margin-left: 5px; padding-bottom: 2px;">
             ${expenseClearingData.end_date ? formatThaiDate(expenseClearingData.end_date) : ''}
           </span>
         </div>
 
-        <div style="display: flex; margin-bottom: 10px;">
-          <span>จำนวนผู้เข้าร่วม</span>
-          <span style="border-bottom: 1px dotted black; width: 60px; margin-left: 10px; padding-bottom: 2px; text-align: center;">
+        <div style="display: flex; margin-bottom: 8px;">
+          <span style="font-weight: bold; white-space: nowrap;">จำนวนผู้เข้าร่วม:</span>
+          <span style="margin-left: 5px; padding-bottom: 2px;">
             ${expenseClearingData.advanceParticipants || ''}
           </span>
           <span style="margin-left: 5px;">คน</span>
@@ -174,7 +173,7 @@ const createExpenseClearingFormHTML = (
 
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <thead>
-            <tr style="background: #f0f0f0; height: 40px;">
+            <tr style="background: #d1d5db; height: 40px;">
               <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 30px; height: 40px;">ลำดับ</th>
               <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; height: 40px;">ชื่อรายการ</th>
               <th style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; width: 50px; height: 40px;">อัตราภาษี</th>
@@ -188,26 +187,26 @@ const createExpenseClearingFormHTML = (
           </thead>
           <tbody>
             ${expenseItems.map((item, index) => `
-              <tr style="height: 28px;">
+              <tr style="height: 28px; background: transparent;">
                 <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${index + 1}</td>
                 <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">${item.name || 'รายการไม่ระบุ'}${item.otherDescription ? ` (${item.otherDescription})` : ''}</td>
                 <td style="border: 1px solid black; padding: 3px; text-align: center; vertical-align: middle; height: 28px;">${item.taxRate || 0}%</td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.requestAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: #fef3c7; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.usedAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.vatAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.taxAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: #dbeafe; font-weight: bold; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.netAmount) || 0)}
                 </td>
-                <td style="border: 1px solid black; padding: 3px; text-align: left; vertical-align: middle; background: ${(Number(item.refund) || 0) >= 0 ? '#dcfce7' : '#fee2e2'}; font-weight: bold; height: 28px;">
+                <td style="border: 1px solid black; padding: 3px; text-align: right; vertical-align: middle; height: 28px;">
                   ${formatCurrency(Number(item.refund) || 0)}
                 </td>
               </tr>
@@ -217,24 +216,24 @@ const createExpenseClearingFormHTML = (
                 <td style="border: 1px solid black; padding: 6px; vertical-align: middle; height: 28px;" colspan="9">ไม่มีรายการค่าใช้จ่าย</td>
               </tr>
             ` : ''}
-            <tr style="background: #e6f3ff; font-weight: bold; height: 32px;">
+            <tr style="background: #d1d5db; font-weight: bold; height: 32px;">
               <td style="border: 1px solid black; padding: 6px; text-align: center; vertical-align: middle; height: 32px;" colspan="3">รวมทั้งสิ้น</td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: blue; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(totalRequested)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: orange; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(totalUsed)}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.vatAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.taxAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; height: 32px;">
                 ${formatCurrency(expenseItems.reduce((sum, item) => sum + (Number(item.netAmount) || 0), 0))}
               </td>
-              <td style="border: 1px solid black; padding: 6px; text-align: left; vertical-align: middle; color: ${totalRefund >= 0 ? 'green' : 'red'}; font-size: 11px; height: 32px;">
+              <td style="border: 1px solid black; padding: 6px; text-align: right; vertical-align: middle; font-size: 11px; height: 32px;">
                 ${formatCurrency(totalRefund)}
               </td>
             </tr>
@@ -244,20 +243,25 @@ const createExpenseClearingFormHTML = (
 
       <!-- Details Section -->
       <div style="margin-bottom: 20px; font-size: 11px;">
-        <div style="margin-bottom: 8px;">
-          <span style="font-weight: bold;">รายละเอียด ( โปรดระบุ )</span>
-        </div>
-        <div style="margin-bottom: 6px; line-height: 1.6;">
-          ${expenseClearingData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
+        <div style="display: flex; margin-bottom: 6px; line-height: 1.6;">
+          <span style="font-weight: bold; white-space: nowrap;">รายละเอียด ( โปรดระบุ ):</span>
+          <span style="margin-left: 5px;">${expenseClearingData.details || 'ไม่มีรายละเอียดเพิ่มเติม'}</span>
         </div>
       </div>
 
+      <!-- Bank Account Section -->
+      <div style="margin-bottom: 16px; font-size: 12px;">
+        <div style="margin-bottom: 4px;"><span style="font-weight: bold;">ชื่อบัญชี:</span> ${expenseClearingData.bankAccountName || '-'}</div>
+        <div style="margin-bottom: 4px;"><span style="font-weight: bold;">ธนาคาร:</span> ${expenseClearingData.bankName || '-'}</div>
+        <div style="margin-bottom: 4px;"><span style="font-weight: bold;">เลขที่บัญชี:</span> ${expenseClearingData.bankAccountNumber || '-'}</div>
+      </div>
+
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; margin-top: auto;">
         <!-- Left Signature - User -->
         <div style="text-align: center; width: 200px;">
           <div style="margin-bottom: 5px;">ผู้เคลียร์ค่าใช้จ่าย</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${userSignature ? `
               <img src="${userSignature}" alt="User Signature" style="max-width: 150px; max-height: 50px;" />
             ` : ''}
@@ -273,15 +277,14 @@ const createExpenseClearingFormHTML = (
         <!-- Right Signature - Manager -->
         <div style="text-align: center; width: 200px;">
           <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${managerSignature ? `
               <img src="${managerSignature}" alt="Manager Signature" style="max-width: 150px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${expenseClearingData.managerApproverName || ''} )</div>
-            <div>ผู้อนุมัติ</div>
-            <div>ตำแหน่ง: ผู้จัดการ</div>
+            <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
           </div>
         </div>

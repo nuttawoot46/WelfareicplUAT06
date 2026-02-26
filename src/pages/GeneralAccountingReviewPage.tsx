@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { FileText, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar, ExternalLink, ArrowLeft } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar, ExternalLink, ArrowLeft, Check, X, ClipboardCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -93,7 +94,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [filter, setFilter] = useState<FilterState>(initialFilter);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'report'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'checklist' | 'history' | 'report'>('pending');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,14 +104,21 @@ const GeneralAccountingReviewPage: React.FC = () => {
   // Sorting states
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'created_at', direction: 'desc' });
 
+  // Badge count states
+  const [pendingCount, setPendingCount] = useState(0);
+  const [checklistCount, setChecklistCount] = useState(0);
+
+  // Checklist states
+  const [checklistSelectedIds, setChecklistSelectedIds] = useState<number[]>([]);
+  const [isChecklistProcessing, setIsChecklistProcessing] = useState(false);
+
   // Loading states
   const [isFiltering, setIsFiltering] = useState(false);
   const [isBulkProcessing, setBulkProcessing] = useState(false);
 
   // Report states
-  const [reportPeriod, setReportPeriod] = useState<'month' | 'year'>('month');
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const [selectedYear, setSelectedYear] = useState(format(new Date(), 'yyyy'));
+  const [reportDateFrom, setReportDateFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [reportDateTo, setReportDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [reportData, setReportData] = useState<any[]>([]);
   const [filteredReportData, setFilteredReportData] = useState<any[]>([]);
   const [reportEmployeeFilter, setReportEmployeeFilter] = useState('');
@@ -120,6 +128,11 @@ const GeneralAccountingReviewPage: React.FC = () => {
     totalRequests: number;
     byType: { [key: string]: { count: number; amount: number } };
   }>({ totalAmount: 0, totalRequests: 0, byType: {} });
+
+  // Fetch badge counts on mount
+  useEffect(() => {
+    fetchCounts();
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'report') {
@@ -145,24 +158,55 @@ const GeneralAccountingReviewPage: React.FC = () => {
     if (activeTab === 'report') {
       fetchReportData();
     }
-  }, [reportPeriod, selectedMonth, selectedYear]);
+  }, [reportDateFrom, reportDateTo]);
+
+  const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
+
+  const fetchCounts = async () => {
+    // Fetch pending count
+    const { count: pCount } = await supabase
+      .from('welfare_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending_accounting')
+      .in('request_type', accountingTypes);
+    setPendingCount(pCount || 0);
+
+    // Fetch checklist count (completed but not yet keyed into accounting system)
+    const { count: cCount } = await supabase
+      .from('welfare_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'completed')
+      .eq('accounting_checklist_done', false)
+      .in('request_type', accountingTypes);
+    setChecklistCount(cCount || 0);
+  };
 
   const fetchRequests = async () => {
     setIsLoading(true);
-    const statusFilter = activeTab === 'history'
-      ? ['completed', 'rejected_accounting']
-      : ['pending_accounting'];
 
-    // ประเภทบัญชีทั้งหมด
-    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
-
-    // Fetch from welfare_requests table with accounting types filter
-    const { data, error } = await supabase
+    let query = supabase
       .from('welfare_requests')
       .select('*')
-      .in('status', statusFilter)
-      .in('request_type', accountingTypes)
-      .order('created_at', { ascending: false });
+      .in('request_type', accountingTypes);
+
+    if (activeTab === 'checklist') {
+      // Checklist: completed but not yet keyed into accounting system
+      query = query
+        .eq('status', 'completed')
+        .eq('accounting_checklist_done', false)
+        .order('accounting_approved_at', { ascending: false });
+    } else if (activeTab === 'history') {
+      query = query
+        .in('status', ['completed', 'rejected_accounting'])
+        .order('created_at', { ascending: false });
+    } else {
+      // pending
+      query = query
+        .in('status', ['pending_accounting'])
+        .order('created_at', { ascending: false });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching requests:', error);
@@ -209,21 +253,9 @@ const GeneralAccountingReviewPage: React.FC = () => {
   const fetchReportData = async () => {
     setIsLoading(true);
 
-    let startDate: Date;
-    let endDate: Date;
+    const startDate = new Date(reportDateFrom + 'T00:00:00');
+    const endDate = new Date(reportDateTo + 'T23:59:59');
 
-    if (reportPeriod === 'month') {
-      startDate = startOfMonth(new Date(selectedMonth + '-01'));
-      endDate = endOfMonth(new Date(selectedMonth + '-01'));
-    } else {
-      startDate = startOfYear(new Date(selectedYear + '-01-01'));
-      endDate = endOfYear(new Date(selectedYear + '-01-01'));
-    }
-
-    // ประเภทบัญชีทั้งหมด
-    const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
-
-    // Fetch from welfare_requests table with accounting types filter
     const { data, error } = await supabase
       .from('welfare_requests')
       .select('*')
@@ -399,6 +431,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
       accounting_approved_at: currentDateTime
     }).eq('id', id);
     fetchRequests();
+    fetchCounts();
     closeDetails();
   };
 
@@ -413,6 +446,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
       accounting_approved_at: currentDateTime
     }).eq('id', id);
     fetchRequests();
+    fetchCounts();
     closeDetails();
   };
 
@@ -446,6 +480,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
       }
 
       fetchRequests();
+      fetchCounts();
       setSelectedIds([]);
     } finally {
       setBulkProcessing(false);
@@ -486,9 +521,48 @@ const GeneralAccountingReviewPage: React.FC = () => {
       }
 
       fetchRequests();
+      fetchCounts();
       setSelectedIds([]);
     } finally {
       setBulkProcessing(false);
+    }
+  };
+
+  // Checklist handlers
+  const handleChecklistDone = async (id: number) => {
+    await supabase
+      .from('welfare_requests')
+      .update({ accounting_checklist_done: true })
+      .eq('id', id);
+    fetchRequests();
+    fetchCounts();
+  };
+
+  const handleBulkChecklistDone = async () => {
+    if (checklistSelectedIds.length === 0) return;
+    setIsChecklistProcessing(true);
+    try {
+      await supabase
+        .from('welfare_requests')
+        .update({ accounting_checklist_done: true })
+        .in('id', checklistSelectedIds);
+      setChecklistSelectedIds([]);
+      fetchRequests();
+      fetchCounts();
+    } finally {
+      setIsChecklistProcessing(false);
+    }
+  };
+
+  const handleChecklistSelect = (id: number) => {
+    setChecklistSelectedIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
+  };
+
+  const handleChecklistSelectAll = () => {
+    if (checklistSelectedIds.length === filteredRequests.length) {
+      setChecklistSelectedIds([]);
+    } else {
+      setChecklistSelectedIds(filteredRequests.map(r => r.id));
     }
   };
 
@@ -590,7 +664,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `รายงานการเบิกเงินล่วงหน้าและเคลียร์ค่าใช้จ่าย_${reportPeriod === 'month' ? selectedMonth : selectedYear}.csv`);
+    link.setAttribute('download', `รายงานการเบิกเงินล่วงหน้าและเคลียร์ค่าใช้จ่าย_${reportDateFrom}_${reportDateTo}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -612,31 +686,49 @@ const GeneralAccountingReviewPage: React.FC = () => {
         </button>
 
         {/* Tab Navigation */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
-            className={`px-4 py-2 rounded-t ${activeTab === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            className={`px-4 py-2 rounded-t relative ${activeTab === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('pending')}
           >
-            รายการรอตรวจสอบ (เบิกเงิน/เคลียร์)
+            รายการรอตรวจสอบ
+            {pendingCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+          <button
+            className={`px-4 py-2 rounded-t relative ${activeTab === 'checklist' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            onClick={() => setActiveTab('checklist')}
+          >
+            <ClipboardCheck className="h-4 w-4 mr-1 inline" />
+            Checklist
+            {checklistCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                {checklistCount}
+              </span>
+            )}
           </button>
           <button
             className={`px-4 py-2 rounded-t ${activeTab === 'history' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('history')}
           >
-            ประวัติการขอ (เบิกเงิน/เคลียร์)
+            ประวัติการขอ
           </button>
           <button
             className={`px-4 py-2 rounded-t ${activeTab === 'report' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
             onClick={() => setActiveTab('report')}
           >
             <BarChart3 className="h-4 w-4 mr-1 inline" />
-            รายงานการเบิก (เบิกเงิน/เคลียร์)
+            รายงานการเบิก
           </button>
         </div>
 
         <h1 className="text-2xl font-bold mb-4">
           {activeTab === 'report' ? 'รายงานการเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย' :
             activeTab === 'history' ? 'ประวัติการขอเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย' :
+            activeTab === 'checklist' ? 'Checklist - รายการที่ต้อง Key ข้อมูลเข้าระบบบัญชี' :
               'รายการรอตรวจสอบเบิกเงินล่วงหน้า/เคลียร์ค่าใช้จ่าย (บัญชี)'}
         </h1>
 
@@ -647,40 +739,24 @@ const GeneralAccountingReviewPage: React.FC = () => {
               <div className="flex flex-wrap gap-4 items-center">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  <span className="font-medium">ช่วงเวลา:</span>
-                  <select
-                    value={reportPeriod}
-                    onChange={e => setReportPeriod(e.target.value as 'month' | 'year')}
-                    className="px-3 py-1 border rounded"
-                  >
-                    <option value="month">รายเดือน</option>
-                    <option value="year">รายปี</option>
-                  </select>
+                  <span className="font-medium">วันที่เริ่มต้น:</span>
+                  <Input
+                    type="date"
+                    value={reportDateFrom}
+                    onChange={e => setReportDateFrom(e.target.value)}
+                    className="w-44"
+                  />
                 </div>
 
-                {reportPeriod === 'month' ? (
-                  <div className="flex items-center gap-2">
-                    <span>เดือน:</span>
-                    <input
-                      type="month"
-                      value={selectedMonth}
-                      onChange={e => setSelectedMonth(e.target.value)}
-                      className="px-3 py-1 border rounded"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span>ปี:</span>
-                    <input
-                      type="number"
-                      value={selectedYear}
-                      onChange={e => setSelectedYear(e.target.value)}
-                      min="2020"
-                      max="2030"
-                      className="px-3 py-1 border rounded w-20"
-                    />
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">วันที่สิ้นสุด:</span>
+                  <Input
+                    type="date"
+                    value={reportDateTo}
+                    onChange={e => setReportDateTo(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
 
                 <div className="flex items-center gap-2">
                   <span>ชื่อพนักงาน:</span>
@@ -752,7 +828,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
                               {(data.amount / data.count).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
                             </TableCell>
                             <TableCell className="text-center">
-                              {((data.amount / reportSummary.totalAmount) * 100).toFixed(1)}%
+                              {reportSummary.totalAmount !== 0 ? ((data.amount / reportSummary.totalAmount) * 100).toFixed(1) : 0}%
                             </TableCell>
                           </TableRow>
                         ))}
@@ -807,6 +883,145 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </>
+        ) : activeTab === 'checklist' ? (
+          <>
+            {/* Checklist Tab */}
+            <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleBulkChecklistDone}
+                  disabled={checklistSelectedIds.length === 0 || isChecklistProcessing}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {isChecklistProcessing ? 'กำลังประมวลผล...' : `ดำเนินการแล้ว (${checklistSelectedIds.length})`}
+                </Button>
+              </div>
+              <div className="text-sm text-gray-600">
+                {isLoading ? 'กำลังโหลดข้อมูล...' : `พบ ${totalItems} รายการ`}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
+                  <TableRow>
+                    <TableHead>
+                      <input
+                        type="checkbox"
+                        checked={checklistSelectedIds.length === filteredRequests.length && filteredRequests.length > 0}
+                        onChange={handleChecklistSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>วันที่อนุมัติ</TableHead>
+                    <TableHead>ชื่อพนักงาน</TableHead>
+                    <TableHead>แผนก/ฝ่าย</TableHead>
+                    <TableHead>ประเภทคำขอ</TableHead>
+                    <TableHead className="text-right">จำนวนเงิน</TableHead>
+                    <TableHead>การดำเนินการ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={checklistSelectedIds.includes(r.id)}
+                          onChange={() => handleChecklistSelect(r.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {r.accounting_approved_at
+                          ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>{r.employee_name}</TableCell>
+                      <TableCell>{r.department_request || '-'}</TableCell>
+                      <TableCell>{getRequestTypeLabel(r.request_type)}</TableCell>
+                      <TableCell className="text-right">
+                        {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 border-green-300 hover:bg-green-50"
+                          onClick={() => handleChecklistDone(r.id)}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          เสร็จสิ้น
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {isLoading ? (
+                <div className="text-center text-gray-500 py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  กำลังโหลดข้อมูล...
+                </div>
+              ) : filteredRequests.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">
+                  ไม่มีรายการที่ต้องทำ Checklist
+                </div>
+              ) : null}
+            </div>
+
+            {/* Pagination */}
+            {totalItems > 0 && (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  แสดงรายการ {startItem}-{endItem} จาก {totalItems} รายการ
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    ก่อนหน้า
+                  </Button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    ถัดไป
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -981,8 +1196,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     <TableHead>ประเภทคำขอ</TableHead>
                     <TableHead className="text-right">จำนวนเงิน</TableHead>
                     <TableHead>ผู้จัดการที่อนุมัติ</TableHead>
-                    <TableHead>HR อนุมัติ</TableHead>
-                    {activeTab === 'history' && <TableHead>สถานะ</TableHead>}
+                    <TableHead>สถานะ</TableHead>
                     <TableHead>ไฟล์แนบ</TableHead>
                     <TableHead>PDF</TableHead>
                     <TableHead>การดำเนินการ</TableHead>
@@ -1018,39 +1232,30 @@ const GeneralAccountingReviewPage: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          <div>{r.hr_approver_name || 'HR อนุมัติแล้ว'}</div>
-                          {r.hr_approved_at && (
-                            <div className="text-xs text-gray-500">
-                              {format(new Date(r.hr_approved_at), 'dd/MM/yyyy HH:mm')}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      {activeTab === 'history' && (
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : r.status === 'rejected_accounting'
-                              ? 'bg-red-100 text-red-800'
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : r.status === 'rejected_accounting'
+                            ? 'bg-red-100 text-red-800'
+                            : r.status === 'pending_accounting'
+                              ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {r.status === 'completed' ? 'อนุมัติแล้ว' :
-                              r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' : r.status}
-                          </span>
-                          {r.accounting_approved_at && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm')}
-                            </div>
-                          )}
-                          {r.accounting_notes && (
-                            <div className="text-xs text-gray-600 mt-1" title={r.accounting_notes}>
-                              หมายเหตุ: {r.accounting_notes.length > 20 ?
-                                r.accounting_notes.substring(0, 20) + '...' : r.accounting_notes}
-                            </div>
-                          )}
-                        </TableCell>
-                      )}
+                          }`}>
+                          {r.status === 'completed' ? 'อนุมัติแล้ว' :
+                            r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                            r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' : r.status}
+                        </span>
+                        {r.accounting_approved_at && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm')}
+                          </div>
+                        )}
+                        {r.accounting_notes && (
+                          <div className="text-xs text-gray-600 mt-1" title={r.accounting_notes}>
+                            หมายเหตุ: {r.accounting_notes.length > 20 ?
+                              r.accounting_notes.substring(0, 20) + '...' : r.accounting_notes}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-wrap gap-1 justify-center items-center">
                           {r.attachments && r.attachments.length > 0 && r.attachments.map((file, idx) => (
@@ -1076,20 +1281,11 @@ const GeneralAccountingReviewPage: React.FC = () => {
                       <TableCell className="text-center">
                         <div className="flex flex-wrap gap-1 justify-center items-center">
                           {(() => {
-                            // เลือก PDF URL ตามสถานะ
-                            let pdfUrl = null;
-                            let pdfTitle = "ดู PDF เอกสาร";
-                            
-                            if (r.status === 'pending_manager' && r.pdf_url) {
-                              pdfUrl = r.pdf_url;
-                              pdfTitle = "ดู PDF เอกสาร";
-                            } else if (r.status === 'pending_hr' && r.pdf_request_manager) {
-                              pdfUrl = r.pdf_request_manager;
-                              pdfTitle = "ดู PDF ที่ Manager อนุมัติแล้ว";
-                            } else if ((r.status === 'pending_accounting' || r.status === 'completed') && r.pdf_request_hr) {
-                              pdfUrl = r.pdf_request_hr;
-                              pdfTitle = "ดู PDF ที่ HR อนุมัติแล้ว";
-                            }
+                            // เลือก PDF URL ตามลำดับความสำคัญ: HR > Manager > Original
+                            const pdfUrl = r.pdf_request_hr || r.pdf_request_manager || r.pdf_url;
+                            const pdfTitle = r.pdf_request_hr ? "ดู PDF ที่ HR อนุมัติแล้ว"
+                              : r.pdf_request_manager ? "ดู PDF ที่ Manager อนุมัติแล้ว"
+                              : "ดู PDF เอกสาร";
 
                             return pdfUrl ? (
                               <Button asChild variant="ghost" size="icon">
@@ -1192,162 +1388,130 @@ const GeneralAccountingReviewPage: React.FC = () => {
           </>
         )}
         {/* Details Modal */}
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>รายละเอียดคำขอ {getRequestTypeLabel(selectedRequest?.request_type || '')}</DialogTitle>
-            </DialogHeader>
-            {selectedRequest && (
-              <div className="space-y-2 text-sm">
-                <div><b>ชื่อพนักงาน:</b> {selectedRequest.employee_name}</div>
-                <div><b>แผนก/ฝ่าย:</b> {selectedRequest.department_request || '-'}</div>
-                <div><b>ประเภทคำขอ:</b> {getRequestTypeLabel(selectedRequest.request_type)}</div>
-                <div><b>จำนวนเงิน:</b> {selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}</div>
-                <div><b>วันที่ยื่น:</b> {format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</div>
-                <div><b>ผู้จัดการที่อนุมัติ:</b> {selectedRequest.manager_approver_name || selectedRequest.manager_name || '-'}</div>
-                {selectedRequest.manager_approved_at && (
-                  <div><b>วันที่ผู้จัดการอนุมัติ:</b> {format(new Date(selectedRequest.manager_approved_at), 'dd/MM/yyyy HH:mm')}</div>
-                )}
-                <div><b>HR อนุมัติ:</b> {selectedRequest.hr_approver_name || 'อนุมัติแล้ว'}</div>
-                {selectedRequest.hr_approved_at && (
-                  <div><b>วันที่ HR อนุมัติ:</b> {format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')}</div>
-                )}
-                <div><b>รายละเอียด:</b> {selectedRequest.details || '-'}</div>
-
-                {/* Additional fields for specific request types */}
-                {selectedRequest.request_type === 'advance' && (
-                  <>
-                    <div><b>สถานที่:</b> {selectedRequest.advance_location || '-'}</div>
-                    <div><b>วัตถุประสงค์:</b> {selectedRequest.advance_purpose || '-'}</div>
-                    <div><b>วันที่เดินทาง:</b> {selectedRequest.advance_date ? format(new Date(selectedRequest.advance_date), 'dd/MM/yyyy') : '-'}</div>
-                  </>
-                )}
-
-                {selectedRequest.request_type === 'expense_clearing' && (
-                  <>
-                    <div><b>จำนวนเงินเคลียร์:</b> {selectedRequest.clearing_amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) || '-'}</div>
-                    <div><b>จำนวนเงินคงเหลือ:</b> {selectedRequest.remaining_amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) || '-'}</div>
-                    {selectedRequest.expense_items && selectedRequest.expense_items.length > 0 && (
-                      <div>
-                        <b>รายการค่าใช้จ่าย:</b>
-                        <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
-                          {selectedRequest.expense_items.map((item: any, idx: number) => (
-                            <div key={idx} className="text-xs bg-gray-100 p-2 rounded">
-                              {item.description}: {item.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <div>
-                  <b>ไฟล์แนบ:</b>
-                  <div className="mt-1 space-y-2">
-                    {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
-                      <div className="space-y-1">
-                        {selectedRequest.attachments.map((url, i) => (
-                          <div key={i}>
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1">
-                              <FileText className="h-4 w-4" />
-                              เอกสารแนบ {i + 1}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">ไม่มีไฟล์แนบ</span>
-                    )}
-
-                    {selectedRequest.pdf_request_hr && (
-                      <div>
-                        <button
-                          onClick={() => {
-                            if (selectedRequest.pdf_request_hr!.startsWith('http')) {
-                              window.open(selectedRequest.pdf_request_hr, '_blank');
-                            } else {
-                              try {
-                                const byteCharacters = atob(selectedRequest.pdf_request_hr!);
-                                const byteNumbers = new Array(byteCharacters.length);
-                                for (let i = 0; i < byteCharacters.length; i++) {
-                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                }
-                                const byteArray = new Uint8Array(byteNumbers);
-                                const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                const url = URL.createObjectURL(blob);
-                                window.open(url, '_blank');
-                                setTimeout(() => URL.revokeObjectURL(url), 1000);
-                              } catch (error) {
-                                console.error('Error opening PDF:', error);
-                                alert('ไม่สามารถเปิด PDF ได้');
-                              }
-                            }
-                          }}
-                          className="text-green-600 hover:text-green-800 underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          ดู PDF ที่ HR อนุมัติแล้ว (สำหรับตรวจสอบ)
-                        </button>
-                      </div>
-                    )}
-
-                    {!selectedRequest.attachment_url &&
-                      (!selectedRequest.attachments || selectedRequest.attachments.length === 0) &&
-                      !selectedRequest.pdf_request_hr && (
-                        <span className="text-gray-500">ไม่มีไฟล์แนบ</span>
+        {selectedRequest && (
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+              {/* Header สรุปข้อมูล */}
+              <div className="px-6 pt-6 pb-3 border-b bg-gray-50/80 rounded-t-lg flex-shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <DialogHeader className="p-0 space-y-0">
+                    <DialogTitle className="text-lg">
+                      {selectedRequest.employee_name} — {getRequestTypeLabel(selectedRequest.request_type)}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <Badge
+                    className={`text-sm px-3 py-1 ${
+                      selectedRequest.status === 'pending_accounting' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                      selectedRequest.status === 'completed' ? 'bg-green-100 text-green-800 border-green-300' :
+                      selectedRequest.status === 'rejected_accounting' ? 'bg-red-100 text-red-800 border-red-300' :
+                      'bg-gray-100 text-gray-800 border-gray-300'
+                    }`}
+                    variant="outline"
+                  >
+                    {selectedRequest.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
+                     selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
+                     selectedRequest.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                     selectedRequest.status}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                  <span>แผนก: <strong className="text-foreground">{selectedRequest.department_request || '-'}</strong></span>
+                  <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</strong></span>
+                  <span>จำนวนเงิน: <strong className="text-blue-700 text-base">{selectedRequest.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 2 })}</strong></span>
+                  {selectedRequest.manager_approver_name && (
+                    <span>ผู้จัดการ: <strong className="text-foreground">{selectedRequest.manager_approver_name}</strong>
+                      {selectedRequest.manager_approved_at && (
+                        <span className="text-xs ml-1">({format(new Date(selectedRequest.manager_approved_at), 'dd/MM/yyyy HH:mm')})</span>
                       )}
-                  </div>
-                </div>
-                <div><b>หมายเหตุจากผู้จัดการ:</b> {selectedRequest.manager_notes || '-'}</div>
-
-                {/* Audit Trail */}
-                <div className="bg-gray-100 rounded p-2 mt-2">
-                  <div><b>ประวัติการอนุมัติ</b></div>
-                  <div>- พนักงานยื่นคำขอ: {format(new Date(selectedRequest.created_at), 'dd/MM/yyyy HH:mm')}</div>
-                  {selectedRequest.manager_approver_name && selectedRequest.manager_approved_at && (
-                    <div>- ผู้จัดการอนุมัติ: {selectedRequest.manager_approver_name} ({format(new Date(selectedRequest.manager_approved_at), 'dd/MM/yyyy HH:mm')}) {selectedRequest.manager_notes ? `(หมายเหตุ: ${selectedRequest.manager_notes})` : ''}</div>
+                    </span>
                   )}
-                  {selectedRequest.hr_approved_at && (
-                    <div>- HR อนุมัติ: {selectedRequest.hr_approver_name || 'อนุมัติแล้ว'} ({format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')})</div>
+                  {selectedRequest.hr_approver_name && (
+                    <span>HR: <strong className="text-foreground">{selectedRequest.hr_approver_name}</strong>
+                      {selectedRequest.hr_approved_at && (
+                        <span className="text-xs ml-1">({format(new Date(selectedRequest.hr_approved_at), 'dd/MM/yyyy HH:mm')})</span>
+                      )}
+                    </span>
+                  )}
+                  {selectedRequest.details && (
+                    <span>รายละเอียด: <strong className="text-foreground">{selectedRequest.details}</strong></span>
+                  )}
+                  {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      เอกสารแนบ:
+                      {selectedRequest.attachments.map((file, idx) => (
+                        <a key={idx} href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                          <FileText className="h-3.5 w-3.5" />ไฟล์ {idx + 1}
+                        </a>
+                      ))}
+                    </span>
+                  )}
+                  {selectedRequest.manager_notes && (
+                    <span>หมายเหตุผู้จัดการ: <strong className="text-foreground">{selectedRequest.manager_notes}</strong></span>
                   )}
                 </div>
+              </div>
 
-                {activeTab === 'pending' && selectedRequest.status === 'pending_accounting' && (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="flex gap-2">
+              {/* PDF Preview */}
+              <div className="flex-1 min-h-0 px-6 py-3">
+                {(() => {
+                  const pdfUrl = selectedRequest.pdf_request_hr || selectedRequest.pdf_request_manager || selectedRequest.pdf_url;
+                  if (pdfUrl) {
+                    return (
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full h-full rounded-lg border"
+                        title="PDF Preview"
+                      />
+                    );
+                  }
+                  return (
+                    <div className="w-full h-full flex items-center justify-center border rounded-lg bg-gray-50">
+                      <div className="text-center text-muted-foreground">
+                        <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                        <p className="text-lg font-medium">ไม่มี PDF สำหรับแสดงตัวอย่าง</p>
+                        <p className="text-sm mt-1">PDF จะถูกสร้างหลังจากมีการอนุมัติ</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer — ปุ่ม Action */}
+              {activeTab === 'pending' && selectedRequest.status === 'pending_accounting' && (
+                <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="ระบุเหตุผลการไม่อนุมัติ (ถ้ามี)..."
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 text-white flex-1"
                         onClick={() => handleApprove(selectedRequest.id, (selectedRequest as any).table_source)}
+                        className="bg-green-600 hover:bg-green-700 px-6"
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />อนุมัติ
+                        <Check className="h-4 w-4 mr-2" />
+                        อนุมัติ
                       </Button>
                       <Button
                         variant="destructive"
-                        className="flex-1"
-                        disabled={!rejectReason}
                         onClick={() => handleReject(selectedRequest.id, (selectedRequest as any).table_source)}
+                        disabled={!rejectReason}
+                        className="px-6"
                       >
-                        <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
+                        <X className="h-4 w-4 mr-2" />
+                        ไม่อนุมัติ
                       </Button>
                     </div>
-                    <Input
-                      placeholder="เหตุผลการไม่อนุมัติ (จำเป็นสำหรับการไม่อนุมัติ)"
-                      value={rejectReason}
-                      onChange={e => setRejectReason(e.target.value)}
-                    />
                   </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">ปิด</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </Layout>
   );
