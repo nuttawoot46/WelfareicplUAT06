@@ -182,6 +182,11 @@ export const addSignatureToAdvancePDF = async (
       managerApprovedAt: updatedRequestData.manager_approved_at || (signatureType === 'manager' ? new Date().toISOString() : undefined),
       hrApproverName: updatedRequestData.hr_approver_name || (signatureType === 'hr' ? approverName : undefined),
       hrApprovedAt: updatedRequestData.hr_approved_at || (signatureType === 'hr' ? new Date().toISOString() : undefined),
+      // Executive approval fields
+      executiveSignature: (updatedRequestData as any).executive_signature,
+      executiveApproverName: (updatedRequestData as any).executive_approver_name,
+      executiveApproverPosition: (updatedRequestData as any).executive_approver_position,
+      executiveApprovedAt: (updatedRequestData as any).executive_approved_at,
       // Advance payment specific fields - use safe access
       advanceDepartment: (updatedRequestData as any).advance_department,
       advanceDepartmentOther: (updatedRequestData as any).advance_department_other,

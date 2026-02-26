@@ -166,6 +166,11 @@ export const addSignatureToExpenseClearingPDF = async (
       managerApprovedAt: updatedRequestData.manager_approved_at,
       hrApproverName: updatedRequestData.hr_approver_name,
       hrApprovedAt: updatedRequestData.hr_approved_at,
+      // Executive approval fields
+      executiveSignature: (updatedRequestData as any).executive_signature,
+      executiveApproverName: (updatedRequestData as any).executive_approver_name,
+      executiveApproverPosition: (updatedRequestData as any).executive_approver_position,
+      executiveApprovedAt: (updatedRequestData as any).executive_approved_at,
       runNumber: (updatedRequestData as any).run_number,
       start_date: (updatedRequestData as any).start_date,
       end_date: (updatedRequestData as any).end_date,
