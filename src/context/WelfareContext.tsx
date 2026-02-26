@@ -433,20 +433,19 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('📥 WelfareContext - Amount received:', requestData.amount, typeof requestData.amount);
       let managerId: number | null = null;
       let executiveId: number | null = null;
-      if (user?.id) {
+      // Use requestData.userId (Employee table numeric ID) instead of user.id (Supabase auth UUID)
+      const employeeNumericId = Number((requestData as any).employeeId || requestData.userId);
+      if (!isNaN(employeeNumericId) && employeeNumericId > 0) {
         try {
-          const userId = parseInt(user.id, 10);
-          if (!isNaN(userId)) {
-            const { data: employeeData, error: employeeError } = await supabase
-              .from('Employee')
-              .select('manager_id, executive_id')
-              .eq('id', userId)
-              .single() as { data: any; error: any };
+          const { data: employeeData, error: employeeError } = await supabase
+            .from('Employee')
+            .select('manager_id, executive_id')
+            .eq('id', employeeNumericId)
+            .single() as { data: any; error: any };
 
-            if (!employeeError && employeeData) {
-              managerId = employeeData.manager_id as number;
-              executiveId = employeeData.executive_id as number | null;
-            }
+          if (!employeeError && employeeData) {
+            managerId = employeeData.manager_id as number;
+            executiveId = employeeData.executive_id as number | null;
           }
         } catch (error) {
           console.error('Error fetching manager ID:', error);
