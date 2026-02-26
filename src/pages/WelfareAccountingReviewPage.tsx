@@ -845,7 +845,47 @@ const WelfareAccountingReviewPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile Card View - Checklist */}
+            <div className="xl:hidden space-y-3">
+              {filteredRequests.map(r => (
+                <div key={r.id} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checklistSelectedIds.includes(r.id)}
+                        onChange={() => handleChecklistSelect(r.id)}
+                      />
+                      <div>
+                        <p className="font-semibold text-sm">{r.employee_name}</p>
+                        <p className="text-xs text-muted-foreground">{r.department_request || '-'}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{getWelfareTypeLabel(r.request_type)}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm') : '-'}
+                    </span>
+                    <span className="font-bold text-blue-700">
+                      {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-green-600 border-green-300 hover:bg-green-50"
+                    onClick={() => handleChecklistDone(r.id)}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    เสร็จสิ้น
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View - Checklist */}
+            <div className="overflow-x-auto hidden xl:block">
               <Table>
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
@@ -1049,30 +1089,8 @@ const WelfareAccountingReviewPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Bulk Actions & Pagination Controls */}
-            <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
-              <div className="flex gap-2">
-                {activeTab === 'pending' && (
-                  <>
-                    <Button
-                      variant="default"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={handleBulkApprove}
-                      disabled={selectedIds.length === 0 || isBulkProcessing}
-                    >
-                      {isBulkProcessing ? 'กำลังประมวลผล...' : `อนุมัติ (${selectedIds.length})`}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleBulkReject}
-                      disabled={selectedIds.length === 0 || isBulkProcessing}
-                    >
-                      {isBulkProcessing ? 'กำลังประมวลผล...' : `ไม่อนุมัติ (${selectedIds.length})`}
-                    </Button>
-                  </>
-                )}
-              </div>
-
+            {/* Pagination Controls */}
+            <div className="mb-4 flex flex-wrap gap-2 items-center justify-end">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">แสดง</span>
                 <select
@@ -1089,20 +1107,139 @@ const WelfareAccountingReviewPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Request List — Mobile/Tablet Card View */}
+            <div className="xl:hidden space-y-3 mb-4">
+              {isFiltering ? (
+                <div className="text-center text-gray-500 py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  กำลังกรองข้อมูล...
+                </div>
+              ) : filteredRequests.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">ไม่พบรายการ</div>
+              ) : (
+                filteredRequests.map(r => (
+                  <div key={r.id} className="border rounded-lg p-4 bg-white shadow-sm space-y-2">
+                    {/* Header: name + status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{r.employee_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{r.department_request || '-'}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
+                        r.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : r.status === 'rejected_accounting'
+                            ? 'bg-red-100 text-red-800'
+                            : r.status === 'pending_accounting'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : r.status === 'pending_revision'
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {r.status === 'completed' ? 'อนุมัติแล้ว' :
+                         r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                         r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
+                         r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' : r.status}
+                      </span>
+                    </div>
+
+                    {/* Welfare type + amount */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="inline-block px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-medium">
+                        {getWelfareTypeLabel(r.request_type)}
+                      </span>
+                      <span className="font-semibold text-green-700">
+                        {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                      </span>
+                    </div>
+
+                    {/* Date + Manager + HR */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                      <div>
+                        <span className="text-gray-400">วันที่ยื่น:</span>{' '}
+                        {format(new Date(r.created_at), 'dd/MM/yyyy')}
+                      </div>
+                      <div>
+                        <span className="text-gray-400">ผู้จัดการ:</span>{' '}
+                        {r.manager_approver_name || r.manager_name || '-'}
+                      </div>
+                      <div>
+                        <span className="text-gray-400">HR:</span>{' '}
+                        {r.hr_approver_name || (r.hr_approved_at ? 'HR อนุมัติแล้ว' : '-')}
+                      </div>
+                      {r.accounting_approved_at && (
+                        <div>
+                          <span className="text-gray-400">บัญชี:</span>{' '}
+                          {format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm')}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Notes */}
+                    {r.accounting_notes && (
+                      <p className="text-xs text-gray-600 truncate" title={r.accounting_notes}>
+                        หมายเหตุ: {r.accounting_notes}
+                      </p>
+                    )}
+
+                    {/* Attachments + PDF + Action */}
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <div className="flex items-center gap-2">
+                        {r.attachments && r.attachments.length > 0 && r.attachments.map((file, idx) => (
+                          <a
+                            key={idx}
+                            href={file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800"
+                            title={`ดูเอกสารแนบ ${idx + 1}`}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </a>
+                        ))}
+                        {(() => {
+                          let pdfUrl = null;
+                          let pdfTitle = "ดู PDF เอกสาร";
+                          if (r.status === 'pending_manager' && r.pdf_url) {
+                            pdfUrl = r.pdf_url;
+                          } else if ((r.status as string) === 'pending_hr' && r.pdf_request_manager) {
+                            pdfUrl = r.pdf_request_manager;
+                            pdfTitle = "PDF Manager อนุมัติ";
+                          } else if ((r.status === 'pending_accounting' || r.status === 'completed') && r.pdf_request_hr) {
+                            pdfUrl = r.pdf_request_hr;
+                            pdfTitle = "PDF HR อนุมัติ";
+                          }
+                          return pdfUrl ? (
+                            <a
+                              href={pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-red-600 hover:text-red-800"
+                              title={pdfTitle}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </a>
+                          ) : null;
+                        })()}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDetails(r)}
+                      >
+                        ดูรายละเอียด
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
             {/* Request List Table */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto hidden xl:block">
               <Table>
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
-                    <TableHead>
-                      {activeTab === 'pending' && (
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
-                          onChange={handleSelectAll}
-                        />
-                      )}
-                    </TableHead>
                     <TableHead
                       className="cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('created_at')}
@@ -1143,15 +1280,6 @@ const WelfareAccountingReviewPage: React.FC = () => {
                 <TableBody>
                   {filteredRequests.map(r => (
                     <TableRow key={r.id}>
-                      <TableCell>
-                        {activeTab === 'pending' && (
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(r.id)}
-                            onChange={() => handleSelect(r.id)}
-                          />
-                        )}
-                      </TableCell>
                       <TableCell>{format(new Date(r.created_at), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{r.employee_name}</TableCell>
                       <TableCell>{r.department_request || '-'}</TableCell>

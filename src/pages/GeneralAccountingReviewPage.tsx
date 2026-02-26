@@ -904,7 +904,47 @@ const GeneralAccountingReviewPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile Card View - Checklist */}
+            <div className="xl:hidden space-y-3">
+              {filteredRequests.map(r => (
+                <div key={r.id} className="border rounded-lg p-3 bg-white shadow-sm space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checklistSelectedIds.includes(r.id)}
+                        onChange={() => handleChecklistSelect(r.id)}
+                      />
+                      <div>
+                        <p className="font-semibold text-sm">{r.employee_name}</p>
+                        <p className="text-xs text-muted-foreground">{r.department_request || '-'}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{getRequestTypeLabel(r.request_type)}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {r.accounting_approved_at ? format(new Date(r.accounting_approved_at), 'dd/MM/yyyy HH:mm') : '-'}
+                    </span>
+                    <span className="font-bold text-blue-700">
+                      {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-green-600 border-green-300 hover:bg-green-50"
+                    onClick={() => handleChecklistDone(r.id)}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    เสร็จสิ้น
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View - Checklist */}
+            <div className="overflow-x-auto hidden xl:block">
               <Table>
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
@@ -1113,30 +1153,8 @@ const GeneralAccountingReviewPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Bulk Actions & Pagination Controls */}
-            <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
-              <div className="flex gap-2">
-                {activeTab === 'pending' && (
-                  <>
-                    <Button
-                      variant="default"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={handleBulkApprove}
-                      disabled={selectedIds.length === 0 || isBulkProcessing}
-                    >
-                      {isBulkProcessing ? 'กำลังประมวลผล...' : `อนุมัติ (${selectedIds.length})`}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleBulkReject}
-                      disabled={selectedIds.length === 0 || isBulkProcessing}
-                    >
-                      {isBulkProcessing ? 'กำลังประมวลผล...' : `ไม่อนุมัติ (${selectedIds.length})`}
-                    </Button>
-                  </>
-                )}
-              </div>
-
+            {/* Pagination Controls */}
+            <div className="mb-4 flex flex-wrap gap-2 items-center justify-end">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">แสดง</span>
                 <select
@@ -1152,20 +1170,68 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 <span className="text-sm text-gray-600">รายการต่อหน้า</span>
               </div>
             </div>
-            {/* Request List Table */}
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="xl:hidden space-y-3">
+              {filteredRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">ไม่มีรายการ</div>
+              ) : (
+                filteredRequests.map(r => (
+                  <div key={r.id} className="border rounded-lg p-3 bg-white shadow-sm space-y-2" onClick={() => openDetails(r)}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{r.employee_name}</p>
+                        <p className="text-xs text-muted-foreground">{r.department_request || '-'}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+                        r.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        r.status === 'rejected_accounting' ? 'bg-red-100 text-red-800' :
+                        r.status === 'pending_accounting' ? 'bg-yellow-100 text-yellow-800' :
+                        r.status === 'pending_revision' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {r.status === 'completed' ? 'อนุมัติแล้ว' :
+                         r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                         r.status === 'pending_accounting' ? 'รอบัญชี' :
+                         r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                         r.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <Badge variant="outline" className="text-[10px]">{getRequestTypeLabel(r.request_type)}</Badge>
+                      <span className="font-bold text-blue-700">
+                        {r.amount?.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{format(new Date(r.created_at), 'dd/MM/yyyy')}</span>
+                      <div className="flex items-center gap-1">
+                        {r.attachments && r.attachments.length > 0 && (
+                          <a href={r.attachments[0]} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-foreground">
+                            <FileText className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {(r.pdf_request_hr || r.pdf_request_manager || r.pdf_url) && (
+                          <a href={r.pdf_request_hr || r.pdf_request_manager || r.pdf_url || ''} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-red-500 hover:text-red-700">
+                            <FileText className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    {(r.manager_approver_name || r.manager_name) && (
+                      <div className="text-xs text-muted-foreground">
+                        ผู้จัดการ: {r.manager_approver_name || r.manager_name}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="overflow-x-auto hidden xl:block">
               <Table>
                 <TableHeader className="bg-welfare-blue/100 [&_th]:text-white">
                   <TableRow>
-                    <TableHead>
-                      {activeTab === 'pending' && (
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
-                          onChange={handleSelectAll}
-                        />
-                      )}
-                    </TableHead>
                     <TableHead
                       className="cursor-pointer hover:bg-gray-100 select-none"
                       onClick={() => handleSort('created_at')}
@@ -1205,15 +1271,6 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 <TableBody>
                   {filteredRequests.map(r => (
                     <TableRow key={r.id}>
-                      <TableCell>
-                        {activeTab === 'pending' && (
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(r.id)}
-                            onChange={() => handleSelect(r.id)}
-                          />
-                        )}
-                      </TableCell>
                       <TableCell>{format(new Date(r.created_at), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{r.employee_name}</TableCell>
                       <TableCell>{r.department_request || '-'}</TableCell>
