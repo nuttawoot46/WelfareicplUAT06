@@ -50,6 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
   rejected_hr: 'HR ปฏิเสธ',
   rejected_accounting: 'บัญชีปฏิเสธ',
   rejected_special_approval: 'ผู้อนุมัติพิเศษปฏิเสธ',
+  pending_revision: 'รอเอกสารเพิ่มเติม',
   cancelled: 'ยกเลิก',
 };
 

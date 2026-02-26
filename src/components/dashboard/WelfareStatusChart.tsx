@@ -24,6 +24,7 @@ interface WelfareRequestItem {
   details?: string;
 
   manager_notes?: string;
+  revision_note?: string;
   attachment_url?: string;
   attachments?: string[];
   pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
@@ -67,7 +68,9 @@ const getStatusText = (status: string) => {
     case 'rejected_hr':
       return 'ปฏิเสธโดย HR';
     case 'pending_special_approval':
-      return 'รออนุมัติโดย ผู้บริหาร';      
+      return 'รออนุมัติโดย ผู้บริหาร';
+    case 'pending_revision':
+      return 'รอเอกสารเพิ่มเติม';
     default:
       return 'สถานะไม่ทราบ';
   }
@@ -91,7 +94,9 @@ const getStatusClass = (status: string) => {
     case 'rejected_hr':
       return 'bg-red-100 text-red-800';
     case 'pending_special_approval':
-      return 'bg-amber-200 text-amber-900';  
+      return 'bg-amber-200 text-amber-900';
+    case 'pending_revision':
+      return 'bg-orange-100 text-orange-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }

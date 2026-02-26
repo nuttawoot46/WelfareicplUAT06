@@ -902,6 +902,7 @@ export const ApprovalPage = () => {
                           {request.status === 'pending_manager' ? 'รอผู้จัดการ' :
                            request.status === 'pending_hr' ? 'รอ HR' :
                            request.status === 'pending_accounting' ? 'รอบัญชี' :
+                           request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                            request.status === 'approved' ? 'อนุมัติ' :
                            request.status === 'rejected_manager' ? 'ปฏิเสธ' :
                            request.status}
@@ -1007,6 +1008,7 @@ export const ApprovalPage = () => {
                                request.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
                                request.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                                request.status}
                             </Badge>
                           </TableCell>
@@ -1201,6 +1203,7 @@ export const ApprovalPage = () => {
                           {request.status === 'pending_manager' ? 'รอผู้จัดการ' :
                            request.status === 'pending_hr' ? 'รอ HR' :
                            request.status === 'pending_accounting' ? 'รอบัญชี' :
+                           request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                            request.status === 'approved' ? 'อนุมัติ' :
                            request.status === 'rejected_manager' ? 'ปฏิเสธ' :
                            request.status}
@@ -1306,6 +1309,7 @@ export const ApprovalPage = () => {
                                request.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
                                request.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                                request.status}
                             </Badge>
                           </TableCell>
@@ -2061,6 +2065,7 @@ export const ApprovalPage = () => {
                     selectedRequest.status === 'pending_manager' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
                     selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
                     selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                    selectedRequest.status === 'pending_revision' ? 'bg-orange-100 text-orange-800 border-orange-300' :
                     selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
                     'bg-green-100 text-green-800 border-green-300'
                   }`}
@@ -2074,6 +2079,7 @@ export const ApprovalPage = () => {
                    selectedRequest.status === 'rejected_manager' ? 'ปฏิเสธโดยผู้จัดการ' :
                    selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                    selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                   selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                    selectedRequest.status}
                 </Badge>
               </div>

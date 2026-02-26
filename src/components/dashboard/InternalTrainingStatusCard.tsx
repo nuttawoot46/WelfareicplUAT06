@@ -38,7 +38,8 @@ export function InternalTrainingStatusCard() {
       'completed': 'อนุมัติแล้ว',
       'rejected_manager': 'ปฏิเสธโดยผู้จัดการ',
       'rejected_hr': 'ปฏิเสธโดย HR',
-      'rejected_accounting': 'ปฏิเสธโดยบัญชี'
+      'rejected_accounting': 'ปฏิเสธโดยบัญชี',
+      'pending_revision': 'รอเอกสารเพิ่มเติม'
     };
     return statusMap[status] || status;
   };

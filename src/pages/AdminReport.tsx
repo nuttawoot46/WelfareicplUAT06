@@ -304,6 +304,7 @@ const AdminReport = () => {
       'rejected_manager': 0,
       'rejected_hr': 0,
       'rejected_accounting': 0,
+      'pending_revision': 0,
     };
 
     filteredRequests.forEach((req) => {
@@ -314,6 +315,7 @@ const AdminReport = () => {
       { status: 'pending_manager', count: detailedMap['pending_manager'], label: 'รอผู้จัดการอนุมัติ' },
       { status: 'pending_hr', count: detailedMap['pending_hr'], label: 'รอ HR อนุมัติ' },
       { status: 'pending_accounting', count: detailedMap['pending_accounting'], label: 'รอฝ่ายบัญชีตรวจสอบ' },
+      { status: 'pending_revision', count: detailedMap['pending_revision'], label: 'รอเอกสารเพิ่มเติม' },
       { status: 'completed', count: detailedMap['completed'], label: 'อนุมัติแล้ว' },
       { status: 'rejected_manager', count: detailedMap['rejected_manager'], label: 'ผู้จัดการไม่อนุมัติ' },
       { status: 'rejected_hr', count: detailedMap['rejected_hr'], label: 'HR ไม่อนุมัติ' },
@@ -755,6 +757,7 @@ const AdminReport = () => {
                   <SelectItem value="pending_manager">รอผู้จัดการอนุมัติ</SelectItem>
                   <SelectItem value="pending_hr">รอ HR อนุมัติ</SelectItem>
                   <SelectItem value="pending_accounting">รอฝ่ายบัญชีตรวจสอบ</SelectItem>
+                  <SelectItem value="pending_revision">รอเอกสารเพิ่มเติม</SelectItem>
                   <SelectItem value="completed">อนุมัติแล้ว</SelectItem>
                   <SelectItem value="rejected_manager">ผู้จัดการไม่อนุมัติ</SelectItem>
                   <SelectItem value="rejected_hr">HR ไม่อนุมัติ</SelectItem>

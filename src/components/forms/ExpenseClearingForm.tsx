@@ -288,6 +288,8 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
         return 'HR ปฏิเสธ';
       case 'rejected_accounting':
         return 'บัญชีปฏิเสธ';
+      case 'pending_revision':
+        return 'รอเอกสารเพิ่มเติม';
       default:
         return 'ไม่ทราบสถานะ';
     }

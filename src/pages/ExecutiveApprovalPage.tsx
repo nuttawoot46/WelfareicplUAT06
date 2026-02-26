@@ -499,7 +499,7 @@ export const ExecutiveApprovalPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            <span>แดชบอร์ดอนุมัติคำร้อง (Marketing Executive)</span>
+            <span>แดชบอร์ดอนุมัติคำร้อง</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

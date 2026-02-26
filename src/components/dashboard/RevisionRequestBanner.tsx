@@ -8,13 +8,14 @@ import { RevisionUploadModal } from '@/components/forms/RevisionUploadModal';
 import { WelfareRequest } from '@/types';
 
 export function RevisionRequestBanner() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { welfareRequests } = useWelfare();
   const [selectedRequest, setSelectedRequest] = useState<WelfareRequest | null>(null);
 
   // Filter requests that need revision for current user
+  const employeeId = profile?.employee_id?.toString();
   const revisionRequests = welfareRequests.filter(
-    r => r.userId === user?.id && r.status === 'pending_revision'
+    r => r.userId === employeeId && r.status === 'pending_revision'
   );
 
   if (revisionRequests.length === 0) return null;

@@ -563,6 +563,7 @@ export const AccountingApprovalPage = () => {
                               {request.status === 'pending_accounting' ? 'รอบัญชี' :
                                request.status === 'approved' ? 'อนุมัติ' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                                request.status}
                             </Badge>
                           </TableCell>
@@ -740,6 +741,7 @@ export const AccountingApprovalPage = () => {
                             >
                               {request.status === 'approved' ? 'อนุมัติ' :
                                request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                                request.status}
                             </Badge>
                           </TableCell>

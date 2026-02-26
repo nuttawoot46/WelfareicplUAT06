@@ -20,6 +20,7 @@ interface AccountingRequestItem {
   created_at: string;
   details?: string;
   manager_notes?: string;
+  revision_note?: string;
   attachment_url?: string;
   attachments?: string[];
   pdf_request_hr?: string; // PDF ที่ HR approve แล้ว
@@ -63,6 +64,8 @@ const getStatusText = (status: string) => {
       return 'ปฏิเสธโดยบัญชี';
     case 'rejected_hr':
       return 'ปฏิเสธโดย HR';
+    case 'pending_revision':
+      return 'รอเอกสารเพิ่มเติม';
     default:
       return 'สถานะไม่ทราบ';
   }
@@ -85,6 +88,8 @@ const getStatusClass = (status: string) => {
       return 'bg-red-100 text-red-800';
     case 'rejected_hr':
       return 'bg-red-100 text-red-800';
+    case 'pending_revision':
+      return 'bg-orange-100 text-orange-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }
@@ -589,8 +594,12 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[200px]">
-                        <div className="text-sm text-gray-700 truncate" title={request.manager_notes || ''}>
-                          {request.manager_notes || '-'}
+                        <div className="text-sm text-gray-700 truncate" title={request.status === 'pending_revision' ? (request.revision_note || '') : (request.manager_notes || '')}>
+                          {request.status === 'pending_revision' && request.revision_note ? (
+                            <span className="text-orange-600">{request.revision_note}</span>
+                          ) : (
+                            request.manager_notes || '-'
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

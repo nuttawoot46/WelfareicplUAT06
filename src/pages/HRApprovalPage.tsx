@@ -1336,6 +1336,7 @@ export const HRApprovalPage = () => {
                     selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
                     selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
                     selectedRequest.status === 'pending_special_approval' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                    selectedRequest.status === 'pending_revision' ? 'bg-amber-100 text-amber-800 border-amber-300' :
                     selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
                     selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
                     'bg-gray-100 text-gray-800 border-gray-300'
@@ -1349,6 +1350,7 @@ export const HRApprovalPage = () => {
                    selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
                    selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
                    selectedRequest.status === 'rejected_special_approval' ? 'ปฏิเสธโดยอนุมัติพิเศษ' :
+                   selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
                    selectedRequest.status}
                 </Badge>
               </div>

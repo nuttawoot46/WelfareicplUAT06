@@ -293,6 +293,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
       case 'rejected_manager': return 'ผู้จัดการปฏิเสธ';
       case 'rejected_hr': return 'HR ปฏิเสธ';
       case 'rejected_accounting': return 'บัญชีปฏิเสธ';
+      case 'pending_revision': return 'รอเอกสารเพิ่มเติม';
       default: return 'ไม่ทราบสถานะ';
     }
   };
