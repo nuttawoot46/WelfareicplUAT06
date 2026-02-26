@@ -352,6 +352,24 @@ export const generateSalesAdvancePDF = async (
   document.body.appendChild(tempDiv);
 
   try {
+    // Wait for all images (signatures, logo) to load before capturing
+    const images = tempDiv.querySelectorAll('img');
+    if (images.length > 0) {
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) {
+                resolve();
+              } else {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }
+            })
+        )
+      );
+    }
+
     // Convert HTML to canvas with optimized settings
     const canvas = await html2canvas(tempDiv.firstElementChild as HTMLElement, {
       scale: 1.5,
