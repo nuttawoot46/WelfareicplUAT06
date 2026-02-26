@@ -423,10 +423,12 @@ export const ApprovalPage = () => {
       setIsSignaturePopupOpen(false);
 
       // Add signature to PDF in background (non-blocking)
+      const requestType = pendingApprovalRequest.type;
+      const approverNameForPDF = profile?.display_name || user.email || '';
       setTimeout(async () => {
         try {
-          // Check if it's internal training or welfare request
-          if (pendingApprovalRequest.type === 'internal_training') {
+          // Route to appropriate PDF manager based on request type
+          if (requestType === 'internal_training') {
             // Handle internal training PDF generation
             const { generateInternalTrainingPDF } = await import('@/components/pdf/InternalTrainingPDFGenerator');
             const pdfBlob = await generateInternalTrainingPDF(
@@ -440,15 +442,25 @@ export const ApprovalPage = () => {
 
             // Store PDF in database
             const { storePDFInDatabase } = await import('@/utils/pdfManager');
-            await storePDFInDatabase(requestId, pdfBlob, signature, 'manager', profile?.display_name || user.email);
+            await storePDFInDatabase(requestId, pdfBlob, signature, 'manager', approverNameForPDF);
+          } else if (requestType === 'advance' || requestType === 'general-advance') {
+            // Handle advance payment PDF - call specialized manager directly
+            const { addSignatureToAdvancePDF } = await import('@/utils/advancePdfManager');
+            const result = await addSignatureToAdvancePDF(requestId, 'manager', signature, approverNameForPDF);
+            console.log('Advance PDF manager signature result:', result);
+          } else if (requestType === 'expense-clearing' || requestType === 'general-expense-clearing') {
+            // Handle expense clearing PDF - call specialized manager directly
+            const { addSignatureToExpenseClearingPDF } = await import('@/utils/expenseClearingPdfManager');
+            const result = await addSignatureToExpenseClearingPDF(requestId, 'manager', signature, approverNameForPDF);
+            console.log('Expense clearing PDF manager signature result:', result);
           } else {
-            // Handle welfare PDF
+            // Handle other welfare PDFs (training, wedding, etc.)
             const { addSignatureToPDF, debugPDFColumns } = await import('@/utils/pdfManager');
             await addSignatureToPDF(
               requestId,
               'manager',
               signature,
-              profile?.display_name || user.email
+              approverNameForPDF
             );
             // Debug PDF columns after adding signature
             await debugPDFColumns(requestId);
