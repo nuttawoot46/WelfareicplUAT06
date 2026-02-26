@@ -944,31 +944,31 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
               </Button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
+            <div className="overflow-x-auto relative">
+              <table className="border-collapse border border-gray-300" style={{minWidth: '1200px'}}>
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ลำดับ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ชื่อรายการ</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">อัตราภาษี</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">จำนวนเบิก</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">จำนวนใช้<br/>(ก่อนภาษีมูลค่าเพิ่ม)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ภาษีมูลค่าเพิ่ม</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">ภาษีหัก ณ ที่จ่าย</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">รวมจำนวนเงินทั้งสิ้น</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-base font-medium"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium sticky left-0 z-20 bg-gray-50 min-w-[50px]">ลำดับ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium sticky z-20 bg-gray-50 min-w-[200px]" style={{left: 50}}>ชื่อรายการ</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium sticky z-20 bg-gray-50 min-w-[80px]" style={{left: 250}}>อัตราภาษี</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium sticky z-20 bg-gray-50 min-w-[130px]" style={{left: 330, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)'}}>จำนวนเบิก</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[130px]">จำนวนใช้<br/>(ก่อนภาษีมูลค่าเพิ่ม)</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[120px]">ภาษีมูลค่าเพิ่ม</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[120px]">ภาษีหัก ณ ที่จ่าย</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[140px]">รวมจำนวนเงินทั้งสิ้น</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[140px]">คืนเงินบริษัท(+)<br/>เบิกเงินบริษัท(-)</th>
+                    <th className="border border-gray-300 px-2 py-2 text-base font-medium min-w-[50px]"><Trash2 className="h-4 w-4 mx-auto text-gray-500" /></th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenseFields.map((field, index) => (
                     <tr key={field.id}>
                       {/* ลำดับ */}
-                      <td className="border border-gray-300 p-1 text-center">
+                      <td className="border border-gray-300 p-1 text-center sticky left-0 z-10 bg-white min-w-[50px]">
                         <span className="font-medium">{index + 1}</span>
                       </td>
                       {/* ชื่อรายการ */}
-                      <td className="border border-gray-300 p-1">
+                      <td className="border border-gray-300 p-1 sticky z-10 bg-white min-w-[200px]" style={{left: 50}}>
                         <div className="space-y-2">
                           <Select
                             onValueChange={(value) => {
@@ -1028,13 +1028,13 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         </div>
                       </td>
                       {/* อัตราภาษี */}
-                      <td className="border border-gray-300 p-1">
+                      <td className="border border-gray-300 p-1 sticky z-10 bg-white min-w-[80px]" style={{left: 250}}>
                         <Input
                           type="number"
                           step="0.01"
                           min="0"
                           max="100"
-                          className="w-20 bg-gray-100"
+                          className="w-full bg-gray-100"
                           placeholder="0"
                           value={watch(`expenseClearingItems.${index}.taxRate`) || 0}
                           readOnly
@@ -1042,7 +1042,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         <input type="hidden" {...register(`expenseClearingItems.${index}.taxRate` as const)} />
                       </td>
                       {/* จำนวนเบิก */}
-                      <td className="border border-gray-300 p-1">
+                      <td className="border border-gray-300 p-1 sticky z-10 bg-white min-w-[130px]" style={{left: 330, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)'}}>
                         <Input
                           type="text"
                           className="w-28 text-left"
@@ -1164,9 +1164,9 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                     </tr>
                   ))}
                   <tr className="bg-welfare-blue/10 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={2}>รวม</td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-center sticky left-0 z-10 bg-blue-50" colSpan={2} style={{minWidth: 250}}>รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 sticky z-10 bg-blue-50" style={{left: 250}}></td>
+                    <td className="border border-gray-300 px-2 py-2 text-left sticky z-10 bg-blue-50" style={{left: 330, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)'}}>
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
