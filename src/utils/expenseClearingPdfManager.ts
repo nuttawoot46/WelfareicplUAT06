@@ -66,7 +66,7 @@ export const createInitialExpenseClearingPDF = async (
  */
 export const addSignatureToExpenseClearingPDF = async (
   requestId: number,
-  signatureType: 'manager' | 'hr' | 'accounting',
+  signatureType: 'manager' | 'hr' | 'accounting' | 'executive',
   signature: string,
   approverName: string
 ): Promise<boolean> => {
@@ -86,6 +86,7 @@ export const addSignatureToExpenseClearingPDF = async (
     }
 
     // Update signature fields in database
+    // For 'executive', signature is already saved by ExecutiveApprovalPage - skip DB update
     const updateData: any = {};
     if (signatureType === 'manager') {
       updateData.manager_signature = signature;
@@ -101,14 +102,17 @@ export const addSignatureToExpenseClearingPDF = async (
       updateData.accounting_approved_at = new Date().toISOString();
     }
 
-    const { error: updateError } = await supabase
-      .from('welfare_requests')
-      .update(updateData)
-      .eq('id', requestId);
+    // Only update DB if there are fields to update (skip for executive)
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabase
+        .from('welfare_requests')
+        .update(updateData)
+        .eq('id', requestId);
 
-    if (updateError) {
-      console.error('❌ Error updating Expense Clearing signature:', updateError);
-      return false;
+      if (updateError) {
+        console.error('❌ Error updating Expense Clearing signature:', updateError);
+        return false;
+      }
     }
 
     // Get updated request data with new signature
@@ -290,6 +294,29 @@ export const addSignatureToExpenseClearingPDF = async (
           console.log('Expense Clearing PDF uploaded to accounting bucket:', storageUrl);
         } else {
           console.error('Failed to upload Expense Clearing PDF to accounting bucket');
+          return false;
+        }
+      } else if (signatureType === 'executive') {
+        // Upload to welfare-pdfs bucket (overwrite initial PDF with executive signature)
+        const actualEmployeeName = await getActualEmployeeName(updatedRequestData.employee_id?.toString());
+        const employeeName = actualEmployeeName || employeeData?.Name || updatedRequestData.employee_name || 'user';
+        const safeEmployeeName = employeeName
+          .replace(/\s+/g, '_')
+          .replace(/[^\x00-\x7F]/g, '')
+          .replace(/[^a-zA-Z0-9_]/g, '')
+          .substring(0, 50) || 'employee';
+
+        const timestamp = Date.now();
+        const filename = `expense_clearing_${safeEmployeeName}_executive_approved_${timestamp}.pdf`;
+
+        const { uploadPDFToSupabase } = await import('@/utils/pdfUtils');
+        const storageUrl = await uploadPDFToSupabase(pdfBlob, filename, updatedRequestData.employee_id?.toString());
+
+        if (storageUrl) {
+          updateData.pdf_url = storageUrl;
+          console.log('Expense Clearing PDF uploaded with executive signature:', storageUrl);
+        } else {
+          console.error('Failed to upload Expense Clearing PDF with executive signature');
           return false;
         }
       }

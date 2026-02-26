@@ -152,6 +152,21 @@ export const ExecutiveApprovalPage = () => {
         throw error;
       }
 
+      // Regenerate PDF with executive signature
+      try {
+        const requestType = pendingApprovalRequest.type;
+        const approverName = profile?.display_name || user.email || '';
+        if (requestType === 'advance') {
+          const { addSignatureToAdvancePDF } = await import('@/utils/advancePdfManager');
+          await addSignatureToAdvancePDF(pendingApprovalRequest.id, 'executive', signature, approverName);
+        } else if (requestType === 'expense-clearing') {
+          const { addSignatureToExpenseClearingPDF } = await import('@/utils/expenseClearingPdfManager');
+          await addSignatureToExpenseClearingPDF(pendingApprovalRequest.id, 'executive', signature, approverName);
+        }
+      } catch (pdfError) {
+        console.error('Error regenerating PDF with executive signature:', pdfError);
+      }
+
       addNotification({
         userId: user.id,
         title: 'สำเร็จ',
