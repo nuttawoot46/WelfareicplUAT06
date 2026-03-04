@@ -4,9 +4,15 @@ import { SupportTicket, SupportTicketComment, CreateTicketData, CreateCommentDat
 class SupportApiService {
   // Create a new support ticket
   async createTicket(data: CreateTicketData): Promise<SupportTicket> {
+    // Get current user ID for the ticket
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
     const { data: ticket, error } = await supabase
       .from('support_tickets')
-      .insert([data])
+      .insert([{ ...data, user_id: user.id }])
       .select()
       .single();
 
