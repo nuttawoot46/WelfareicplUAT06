@@ -19,13 +19,37 @@ export const createInitialExpenseClearingPDF = async (
   try {
     console.log('Creating initial Expense Clearing PDF for request:', request.id);
 
+    // For MR position, show all 3 signature fields from the start
+    const isMR = employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
+    const showManagerSignature = true;
+    const showExecutiveSignature = isMR;
+
     // Generate PDF Blob with user signature only
-    const pdfBlob = await generateExpenseClearingPDF(
-      request,
-      user,
-      employeeData,
-      request.userSignature // Include user signature in initial PDF
-    );
+    // Use sales-specific generator for 'expense-clearing' type, general for 'general-expense-clearing'
+    let pdfBlob: Blob;
+    if (request.type === 'expense-clearing') {
+      pdfBlob = await generateSalesExpenseClearingPDF(
+        request,
+        user,
+        employeeData,
+        request.userSignature,
+        undefined,
+        undefined,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    } else {
+      pdfBlob = await generateExpenseClearingPDF(
+        request,
+        user,
+        employeeData,
+        request.userSignature,
+        undefined,
+        undefined,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    }
 
     // Convert Blob to base64 for database storage
     const pdfBase64 = await new Promise<string>((resolve, reject) => {
@@ -220,9 +244,11 @@ export const addSignatureToExpenseClearingPDF = async (
     // Show manager signature slot only when manager or later approver signs
     const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'hr' || signatureType === 'accounting';
 
-    // Show executive (ME) signature slot only if the request went through executive approval (MR submitted)
-    // If ME submitted directly, executive_signature will be null → hide executive slot
-    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature;
+    // Show executive (ME) signature slot if:
+    // 1. Current signer is executive, OR
+    // 2. Executive has already signed, OR
+    // 3. Employee position is MR (MR employees always need executive approval)
+    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature || employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
 
     // Generate new PDF with signatures
     const newPdfBase64 = await generateExpenseClearingPDFAsBase64(
@@ -399,7 +425,9 @@ const generateExpenseClearingPDFAsBase64 = async (
         employeeData,
         userSignature,
         managerSignature,
-        hrSignature
+        hrSignature,
+        showManagerSignature,
+        showExecutiveSignature
       );
     }
 

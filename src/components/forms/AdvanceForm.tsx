@@ -1064,7 +1064,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           signature || userSignature,
           undefined, // managerSignature
           undefined, // accountingSignature
-          false, // showManagerSignature
+          true, // showManagerSignature - always show หัวหน้า field
           hasExecutive // showExecutiveSignature - true for MR (has executive), false for ME
         );
 

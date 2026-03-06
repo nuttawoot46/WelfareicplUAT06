@@ -299,8 +299,26 @@ const createSalesAdvanceFormHTML = (
           </div>
         </div>
 
+        ${showManagerSignature ? `
+        <!-- Center Signature - Manager/หัวหน้า -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">หัวหน้า</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${managerSignature ? `
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${advanceData.managerApproverName || ''} )</div>
+            ${advanceData.managerApproverDepartment ? `<div>แผนก: ${advanceData.managerApproverDepartment}</div>` : ''}
+            <div>ตำแหน่ง: ${advanceData.managerApproverPosition || ''}</div>
+            <div>วันที่: ${advanceData.managerApprovedAt ? formatThaiDate(advanceData.managerApprovedAt) : ''}</div>
+          </div>
+        </div>
+        ` : ''}
+
         ${showExecutiveSignature ? `
-        <!-- Center Signature - Executive (ME) - only shown for MR requests -->
+        <!-- Right Signature - Executive/ผู้จัดการ -->
         <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้จัดการ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
@@ -310,27 +328,8 @@ const createSalesAdvanceFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${advanceData.executiveApproverName || ''} )</div>
-            <div>ผู้จัดการ</div>
             <div>ตำแหน่ง: ${advanceData.executiveApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${advanceData.executiveApprovedAt ? formatThaiDate(advanceData.executiveApprovedAt) : ''}</div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${showManagerSignature ? `
-        <!-- Right Signature - Manager (only shown after manager approval) -->
-        <div style="text-align: center; width: 180px;">
-          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
-            ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
-            ` : ''}
-          </div>
-          <div style="margin-top: 5px; font-size: 10px;">
-            <div>( ${advanceData.managerApproverName || ''} )</div>
-            ${advanceData.managerApproverDepartment ? `<div>แผนก: ${advanceData.managerApproverDepartment}</div>` : ''}
-            <div>ตำแหน่ง: ${advanceData.managerApproverPosition || 'ผู้จัดการ'}</div>
-            <div>วันที่: ${advanceData.managerApprovedAt ? formatThaiDate(advanceData.managerApprovedAt) : ''}</div>
           </div>
         </div>
         ` : ''}

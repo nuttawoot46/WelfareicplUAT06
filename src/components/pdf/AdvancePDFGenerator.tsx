@@ -20,7 +20,9 @@ const createAdvanceFormHTML = (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = true,
+  showExecutiveSignature: boolean = false
 ) => {
   const employeeName = employeeData?.Name || userData.name || '';
   const employeePosition = employeeData?.Position || userData.position || '';
@@ -262,13 +264,13 @@ const createAdvanceFormHTML = (
       </div>
 
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-top: 3em; margin-bottom: 30px;">
-        <!-- Left Signature - Department -->
-        <div style="text-align: center; width: 200px;">
+      <div style="display: flex; justify-content: ${(showExecutiveSignature && showManagerSignature) ? 'space-between' : (showExecutiveSignature || showManagerSignature) ? 'space-around' : 'center'}; margin-top: 3em; margin-bottom: 30px;">
+        <!-- Left Signature - Employee -->
+        <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้ขอเบิก</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
             ${userSignature ? `
-              <img src="${userSignature}" alt="User Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${userSignature}" alt="User Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
@@ -279,20 +281,39 @@ const createAdvanceFormHTML = (
           </div>
         </div>
 
-        <!-- Right Signature - Manager -->
-        <div style="text-align: center; width: 200px;">
-          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
+        ${showManagerSignature ? `
+        <!-- Center Signature - Manager/หัวหน้า -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">หัวหน้า</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
             ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${advanceData.managerApproverName || ''} )</div>
-            <div>ตำแหน่ง: ${advanceData.managerApproverPosition || 'ผู้จัดการ'}</div>
+            <div>ตำแหน่ง: ${advanceData.managerApproverPosition || ''}</div>
             <div>วันที่: ${advanceData.managerApprovedAt ? formatThaiDate(advanceData.managerApprovedAt) : ''}</div>
           </div>
         </div>
+        ` : ''}
+
+        ${showExecutiveSignature ? `
+        <!-- Right Signature - Executive/ผู้จัดการ -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">ผู้จัดการ</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dotted black;">
+            ${advanceData.executiveSignature ? `
+              <img src="${advanceData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${advanceData.executiveApproverName || ''} )</div>
+            <div>ตำแหน่ง: ${advanceData.executiveApproverPosition || 'ผู้จัดการ'}</div>
+            <div>วันที่: ${advanceData.executiveApprovedAt ? formatThaiDate(advanceData.executiveApprovedAt) : ''}</div>
+          </div>
+        </div>
+        ` : ''}
       </div>
 
  
@@ -306,7 +327,9 @@ export const generateAdvancePDF = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = true,
+  showExecutiveSignature: boolean = false
 ): Promise<Blob> => {
   console.log('📄 generateAdvancePDF called with signatures:', {
     userSignature: userSignature ? `${userSignature.substring(0, 30)}... (${userSignature.length} chars)` : 'none',
@@ -316,7 +339,7 @@ export const generateAdvancePDF = async (
 
   // Create a temporary div to hold the HTML content
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = createAdvanceFormHTML(advanceData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+  tempDiv.innerHTML = createAdvanceFormHTML(advanceData, userData, employeeData, userSignature, managerSignature, accountingSignature, showManagerSignature, showExecutiveSignature);
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';

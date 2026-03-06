@@ -19,13 +19,37 @@ export const createInitialAdvancePDF = async (
   try {
     console.log('Creating initial Advance Payment PDF for request:', request.id);
 
+    // For MR position, show all 3 signature fields from the start
+    const isMR = employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
+    const showManagerSignature = true;
+    const showExecutiveSignature = isMR;
+
     // Generate PDF Blob with user signature only
-    const pdfBlob = await generateAdvancePDF(
-      request,
-      user,
-      employeeData,
-      request.userSignature // Include user signature in initial PDF
-    );
+    // Use sales-specific generator for 'advance' type, general for 'general-advance'
+    let pdfBlob: Blob;
+    if (request.type === 'advance') {
+      pdfBlob = await generateSalesAdvancePDF(
+        request,
+        user,
+        employeeData,
+        request.userSignature,
+        undefined,
+        undefined,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    } else {
+      pdfBlob = await generateAdvancePDF(
+        request,
+        user,
+        employeeData,
+        request.userSignature,
+        undefined,
+        undefined,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    }
 
     // Convert Blob to base64 for database storage
     const pdfBase64 = await new Promise<string>((resolve, reject) => {
@@ -256,9 +280,11 @@ export const addSignatureToAdvancePDF = async (
     // Show manager signature slot only when manager or later approver signs
     const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'hr' || signatureType === 'accounting';
 
-    // Show executive (ME) signature slot only if the request went through executive approval (MR submitted)
-    // If ME submitted directly, executive_signature will be null → hide executive slot
-    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature;
+    // Show executive (ME) signature slot if:
+    // 1. Current signer is executive, OR
+    // 2. Executive has already signed, OR
+    // 3. Employee position is MR (MR employees always need executive approval)
+    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature || employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
 
     const newPdfBase64 = await generateAdvancePDFAsBase64(
       advanceRequestForPDF,
@@ -438,7 +464,9 @@ const generateAdvancePDFAsBase64 = async (
         employeeData,
         userSignature,
         managerSignature,
-        accountingSignature
+        accountingSignature,
+        showManagerSignature,
+        showExecutiveSignature
       );
     }
 

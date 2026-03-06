@@ -20,7 +20,9 @@ const createExpenseClearingFormHTML = (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = true,
+  showExecutiveSignature: boolean = false
 ) => {
   const employeeName = employeeData?.Name || userData.name || '';
   const employeePosition = employeeData?.Position || userData.position || '';
@@ -257,13 +259,13 @@ const createExpenseClearingFormHTML = (
       </div>
 
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-top: auto;">
-        <!-- Left Signature - User -->
-        <div style="text-align: center; width: 200px;">
+      <div style="display: flex; justify-content: ${(showExecutiveSignature && showManagerSignature) ? 'space-between' : (showExecutiveSignature || showManagerSignature) ? 'space-around' : 'center'}; margin-top: auto;">
+        <!-- Left Signature - Employee -->
+        <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้เคลียร์ค่าใช้จ่าย</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${userSignature ? `
-              <img src="${userSignature}" alt="User Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${userSignature}" alt="User Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
@@ -274,20 +276,39 @@ const createExpenseClearingFormHTML = (
           </div>
         </div>
 
-        <!-- Right Signature - Manager -->
-        <div style="text-align: center; width: 200px;">
-          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
+        ${showManagerSignature ? `
+        <!-- Center Signature - Manager/หัวหน้า -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">หัวหน้า</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 150px; max-height: 50px;" />
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
             ` : ''}
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${expenseClearingData.managerApproverName || ''} )</div>
-            <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || 'ผู้จัดการ'}</div>
+            <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || ''}</div>
             <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
           </div>
         </div>
+        ` : ''}
+
+        ${showExecutiveSignature ? `
+        <!-- Right Signature - Executive/ผู้จัดการ -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">ผู้จัดการ</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${expenseClearingData.executiveSignature ? `
+              <img src="${expenseClearingData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${expenseClearingData.executiveApproverName || ''} )</div>
+            <div>ตำแหน่ง: ${expenseClearingData.executiveApproverPosition || 'ผู้จัดการ'}</div>
+            <div>วันที่: ${expenseClearingData.executiveApprovedAt ? formatThaiDate(expenseClearingData.executiveApprovedAt) : ''}</div>
+          </div>
+        </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -299,11 +320,13 @@ export const generateExpenseClearingPDF = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = true,
+  showExecutiveSignature: boolean = false
 ): Promise<Blob> => {
   // Create a temporary div to hold the HTML content
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = createExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+  tempDiv.innerHTML = createExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature, showManagerSignature, showExecutiveSignature);
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';

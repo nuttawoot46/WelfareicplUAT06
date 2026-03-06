@@ -1116,7 +1116,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           signature || userSignature,
           undefined, // managerSignature
           undefined, // accountingSignature
-          false, // showManagerSignature
+          true, // showManagerSignature - always show หัวหน้า field
           hasExecutive // showExecutiveSignature - true for MR (has executive), false for ME
         );
 

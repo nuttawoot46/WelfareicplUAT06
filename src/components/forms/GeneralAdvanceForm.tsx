@@ -839,6 +839,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
 
       // Generate PDF and upload to Supabase
       try {
+        const isMR = employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
         const blob = await generateAdvancePDF(
           {
             ...requestData,
@@ -850,7 +851,11 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
           },
           user as any,
           employeeData,
-          signature || userSignature
+          signature || userSignature,
+          undefined, // managerSignature
+          undefined, // accountingSignature
+          true, // showManagerSignature - always show หัวหน้า field
+          isMR // showExecutiveSignature - true for MR position
         );
 
         // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย

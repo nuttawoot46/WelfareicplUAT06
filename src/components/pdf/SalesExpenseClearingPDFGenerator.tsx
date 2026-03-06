@@ -297,8 +297,26 @@ const createSalesExpenseClearingFormHTML = (
           </div>
         </div>
 
+        ${showManagerSignature ? `
+        <!-- Center Signature - Manager/หัวหน้า -->
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 5px;">หัวหน้า</div>
+          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
+            ${managerSignature ? `
+              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
+            ` : ''}
+          </div>
+          <div style="margin-top: 5px; font-size: 10px;">
+            <div>( ${expenseClearingData.managerApproverName || ''} )</div>
+            ${expenseClearingData.managerApproverDepartment ? `<div>แผนก: ${expenseClearingData.managerApproverDepartment}</div>` : ''}
+            <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || ''}</div>
+            <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
+          </div>
+        </div>
+        ` : ''}
+
         ${showExecutiveSignature ? `
-        <!-- Center Signature - Executive (ME) - only shown for MR requests -->
+        <!-- Right Signature - Executive/ผู้จัดการ -->
         <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้จัดการ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
@@ -310,24 +328,6 @@ const createSalesExpenseClearingFormHTML = (
             <div>( ${expenseClearingData.executiveApproverName || ''} )</div>
             <div>ตำแหน่ง: ${expenseClearingData.executiveApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${expenseClearingData.executiveApprovedAt ? formatThaiDate(expenseClearingData.executiveApprovedAt) : ''}</div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${showManagerSignature ? `
-        <!-- Right Signature - Manager (only shown after manager approval) -->
-        <div style="text-align: center; width: 180px;">
-          <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
-          <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
-            ${managerSignature ? `
-              <img src="${managerSignature}" alt="Manager Signature" style="max-width: 140px; max-height: 50px;" />
-            ` : ''}
-          </div>
-          <div style="margin-top: 5px; font-size: 10px;">
-            <div>( ${expenseClearingData.managerApproverName || ''} )</div>
-            ${expenseClearingData.managerApproverDepartment ? `<div>แผนก: ${expenseClearingData.managerApproverDepartment}</div>` : ''}
-            <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || ''}</div>
-            <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
           </div>
         </div>
         ` : ''}

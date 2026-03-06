@@ -748,6 +748,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
       await refreshRequests();
 
       try {
+        const isMR = employeeData?.Position === 'MR' || employeeData?.Position === 'Marketing Representative';
         const blob = await generateExpenseClearingPDF(
           {
             ...requestData,
@@ -759,7 +760,11 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           },
           user as any,
           employeeData,
-          signature || userSignature
+          signature || userSignature,
+          undefined, // managerSignature
+          undefined, // accountingSignature
+          true, // showManagerSignature - always show หัวหน้า field
+          isMR // showExecutiveSignature - true for MR position
         );
         const employeeId = employeeData?.employee_id || user?.id?.slice(-8) || 'user';
         const timestamp = Date.now();
