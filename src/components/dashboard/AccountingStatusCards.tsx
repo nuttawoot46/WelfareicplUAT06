@@ -8,7 +8,8 @@ export function AccountingStatusCards() {
 
   // All requests are already filtered for accounting (advance, general-advance, expense-clearing, general-expense-clearing)
 
-  // Count requests by status (accounting flow: manager -> accounting -> completed, no HR)
+  // Count requests by status (accounting flow: executive -> manager -> accounting -> completed)
+  const pendingExecutiveCount = requests.filter(r => r.status?.toLowerCase() === 'pending_executive').length;
   const pendingManagerCount = requests.filter(r => r.status?.toLowerCase() === 'pending_manager').length;
   const pendingAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'pending_accounting').length;
   const completedCount = requests.filter(r => r.status?.toLowerCase() === 'completed').length;
@@ -16,9 +17,16 @@ export function AccountingStatusCards() {
   const rejectedAccountingCount = requests.filter(r => r.status?.toLowerCase() === 'rejected_accounting').length;
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
       <StatusCard
         title="รอหัวหน้าอนุมัติ"
+        count={pendingExecutiveCount}
+        status="pending_executive"
+        icon={<Clock className="h-5 w-5" />}
+        description="รายการ"
+      />
+      <StatusCard
+        title="รอผู้จัดการอนุมัติ"
         count={pendingManagerCount}
         status="pending_manager"
         icon={<Clock className="h-5 w-5" />}
@@ -39,7 +47,7 @@ export function AccountingStatusCards() {
         description="รายการ"
       />
       <StatusCard
-        title="หัวหน้าปฏิเสธ"
+        title="ผู้จัดการปฏิเสธ"
         count={rejectedManagerCount}
         status="rejected_manager"
         icon={<XCircle className="h-5 w-5" />}

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { File } from 'lucide-react';
 import N8nChatbot from '@/components/chatbot/N8nChatbot';
+import { RevisionRequestBanner } from '@/components/dashboard/RevisionRequestBanner';
 
 const AccountingDashboard = () => {
   const { user } = useAuth();
@@ -16,6 +17,9 @@ const AccountingDashboard = () => {
 
   return (
     <Layout>
+      {/* Revision Request Banner - show when employee has pending revision requests */}
+      <RevisionRequestBanner />
+
       {/* Employee's Remaining Budget Card - Only show for employees */}
       {user?.role === 'employee' && (
         <div className="mb-8">

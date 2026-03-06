@@ -147,6 +147,19 @@ export const addSignatureToExpenseClearingPDF = async (
       original_training_budget: (employeeData as any)?.Original_Budget_Training
     };
 
+    // Look up manager's department from Employee table for PDF display
+    let managerDepartment = '';
+    if (updatedRequestData.manager_approver_name) {
+      const { data: managerInfo } = await supabase
+        .from('Employee')
+        .select('Team')
+        .eq('Name', updatedRequestData.manager_approver_name)
+        .single();
+      if (managerInfo?.Team) {
+        managerDepartment = managerInfo.Team;
+      }
+    }
+
     // Convert database fields to WelfareRequest format
     const expenseClearingRequestForPDF: WelfareRequest = {
       id: updatedRequestData.id,
@@ -167,6 +180,7 @@ export const addSignatureToExpenseClearingPDF = async (
       hrSignature: updatedRequestData.hr_signature,
       managerApproverName: updatedRequestData.manager_approver_name,
       managerApproverPosition: (updatedRequestData as any).manager_approver_position || '',
+      managerApproverDepartment: managerDepartment || undefined,
       managerApprovedAt: updatedRequestData.manager_approved_at,
       hrApproverName: updatedRequestData.hr_approver_name,
       hrApprovedAt: updatedRequestData.hr_approved_at,
@@ -203,6 +217,13 @@ export const addSignatureToExpenseClearingPDF = async (
       department_request: updatedRequestData.department_request,
     };
 
+    // Show manager signature slot only when manager or later approver signs
+    const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'hr' || signatureType === 'accounting';
+
+    // Show executive (ME) signature slot only if the request went through executive approval (MR submitted)
+    // If ME submitted directly, executive_signature will be null → hide executive slot
+    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature;
+
     // Generate new PDF with signatures
     const newPdfBase64 = await generateExpenseClearingPDFAsBase64(
       expenseClearingRequestForPDF,
@@ -210,7 +231,9 @@ export const addSignatureToExpenseClearingPDF = async (
       employeeData,
       updatedRequestData.user_signature,
       updatedRequestData.manager_signature,
-      updatedRequestData.hr_signature
+      updatedRequestData.hr_signature,
+      shouldShowManagerSignature,
+      shouldShowExecutiveSignature
     );
 
     if (newPdfBase64) {
@@ -351,19 +374,34 @@ const generateExpenseClearingPDFAsBase64 = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  hrSignature?: string
+  hrSignature?: string,
+  showManagerSignature: boolean = false,
+  showExecutiveSignature: boolean = true
 ): Promise<string | null> => {
   try {
     // Use sales-specific PDF generator for 'expense-clearing' (ฝ่ายขาย), general for 'general-expense-clearing'
-    const pdfGenerator = expenseClearingData.type === 'expense-clearing' ? generateSalesExpenseClearingPDF : generateExpenseClearingPDF;
-    const pdfBlob = await pdfGenerator(
-      expenseClearingData,
-      userData,
-      employeeData,
-      userSignature,
-      managerSignature,
-      hrSignature
-    );
+    let pdfBlob: Blob;
+    if (expenseClearingData.type === 'expense-clearing') {
+      pdfBlob = await generateSalesExpenseClearingPDF(
+        expenseClearingData,
+        userData,
+        employeeData,
+        userSignature,
+        managerSignature,
+        hrSignature,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    } else {
+      pdfBlob = await generateExpenseClearingPDF(
+        expenseClearingData,
+        userData,
+        employeeData,
+        userSignature,
+        managerSignature,
+        hrSignature
+      );
+    }
 
     // Convert Blob to base64
     return new Promise((resolve, reject) => {

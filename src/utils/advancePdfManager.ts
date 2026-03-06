@@ -94,10 +94,10 @@ export const addSignatureToAdvancePDF = async (
       updateData.manager_approver_name = approverName;
       updateData.manager_approved_at = new Date().toISOString();
 
-      // Look up manager's position from Employee table
+      // Look up manager's position and team from Employee table
       const { data: managerData } = await supabase
         .from('Employee')
-        .select('Position')
+        .select('Position, Team')
         .eq('Name', approverName)
         .single();
 
@@ -159,6 +159,19 @@ export const addSignatureToAdvancePDF = async (
       original_training_budget: (employeeData as any)?.Original_Budget_Training
     };
 
+    // Look up manager's department from Employee table for PDF display
+    let managerDepartment = '';
+    if (updatedRequestData.manager_approver_name) {
+      const { data: managerInfo } = await supabase
+        .from('Employee')
+        .select('Team')
+        .eq('Name', updatedRequestData.manager_approver_name)
+        .single();
+      if (managerInfo?.Team) {
+        managerDepartment = managerInfo.Team;
+      }
+    }
+
     // Convert database fields to WelfareRequest format
     const advanceRequestForPDF: WelfareRequest = {
       id: updatedRequestData.id,
@@ -183,6 +196,7 @@ export const addSignatureToAdvancePDF = async (
       hrSignature: updatedRequestData.hr_signature || (signatureType === 'hr' ? signature : undefined),
       managerApproverName: updatedRequestData.manager_approver_name || (signatureType === 'manager' ? approverName : undefined),
       managerApproverPosition: (updatedRequestData as any).manager_approver_position,
+      managerApproverDepartment: managerDepartment || undefined,
       managerApprovedAt: updatedRequestData.manager_approved_at || (signatureType === 'manager' ? new Date().toISOString() : undefined),
       hrApproverName: updatedRequestData.hr_approver_name || (signatureType === 'hr' ? approverName : undefined),
       hrApprovedAt: updatedRequestData.hr_approved_at || (signatureType === 'hr' ? new Date().toISOString() : undefined),
@@ -239,13 +253,22 @@ export const addSignatureToAdvancePDF = async (
       fallbackUsed: !updatedRequestData.manager_signature && signatureType === 'manager' ? 'YES - using function param' : 'NO - using DB value',
     });
 
+    // Show manager signature slot only when manager or later approver signs
+    const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'hr' || signatureType === 'accounting';
+
+    // Show executive (ME) signature slot only if the request went through executive approval (MR submitted)
+    // If ME submitted directly, executive_signature will be null → hide executive slot
+    const shouldShowExecutiveSignature = signatureType === 'executive' || !!(updatedRequestData as any).executive_signature;
+
     const newPdfBase64 = await generateAdvancePDFAsBase64(
       advanceRequestForPDF,
       userForPDF,
       employeeData,
       updatedRequestData.user_signature,
       managerSig,
-      accountingSig || hrSig
+      accountingSig || hrSig,
+      shouldShowManagerSignature,
+      shouldShowExecutiveSignature
     );
 
     if (newPdfBase64) {
@@ -390,19 +413,34 @@ const generateAdvancePDFAsBase64 = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = false,
+  showExecutiveSignature: boolean = true
 ): Promise<string | null> => {
   try {
     // Use sales-specific PDF generator for 'advance' (ฝ่ายขาย), general for 'general-advance'
-    const pdfGenerator = advanceData.type === 'advance' ? generateSalesAdvancePDF : generateAdvancePDF;
-    const pdfBlob = await pdfGenerator(
-      advanceData,
-      userData,
-      employeeData,
-      userSignature,
-      managerSignature,
-      accountingSignature
-    );
+    let pdfBlob: Blob;
+    if (advanceData.type === 'advance') {
+      pdfBlob = await generateSalesAdvancePDF(
+        advanceData,
+        userData,
+        employeeData,
+        userSignature,
+        managerSignature,
+        accountingSignature,
+        showManagerSignature,
+        showExecutiveSignature
+      );
+    } else {
+      pdfBlob = await generateAdvancePDF(
+        advanceData,
+        userData,
+        employeeData,
+        userSignature,
+        managerSignature,
+        accountingSignature
+      );
+    }
 
     // Convert Blob to base64
     return new Promise((resolve, reject) => {

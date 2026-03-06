@@ -200,6 +200,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
   const [dealerSearchTerm, setDealerSearchTerm] = useState('');
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
   const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
+  const [isDealerFieldsLocked, setIsDealerFieldsLocked] = useState<boolean>(false);
   const [showLotteryInfoModal, setShowLotteryInfoModal] = useState(false);
 
   // Document type files state
@@ -945,17 +946,6 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
       return;
     }
 
-    // Validate at least 1 attachment is required
-    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
-    if (totalFiles === 0) {
-      toast({
-        title: 'กรุณาแนบเอกสาร',
-        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     // Validate required attachments - if checkbox is checked, file must be uploaded
     const missingAttachments = DOCUMENT_TYPES.filter(
       docType => documentSelections[docType.key] && documentFiles[docType.key].length === 0
@@ -1111,6 +1101,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
 
       // Generate PDF and upload to Supabase
       try {
+        const hasExecutive = !!profile?.executive_id;
         const blob = await generateSalesExpenseClearingPDF(
           {
             ...requestData,
@@ -1122,7 +1113,11 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           },
           user as any,
           employeeData,
-          signature || userSignature
+          signature || userSignature,
+          undefined, // managerSignature
+          undefined, // accountingSignature
+          false, // showManagerSignature
+          hasExecutive // showExecutiveSignature - true for MR (has executive), false for ME
         );
 
         const employeeId = employeeData?.employee_id || user?.id?.slice(-8) || 'user';
@@ -1428,6 +1423,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   onChange={(e) => {
                     setDealerSearchTerm(e.target.value);
                     setValue('advanceDealerName', e.target.value);
+                    setIsDealerFieldsLocked(false);
                   }}
                   onFocus={() => {
                     if (dealerSearchTerm && filteredDealers.length > 0) {
@@ -1472,6 +1468,9 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                             setValue('advanceProvince', dealer.County);
                             console.log('✅ Set province to:', dealer.County);
                           }
+                          if (dealer.City || dealer.County) {
+                            setIsDealerFieldsLocked(true);
+                          }
                           setShowDealerDropdown(false);
                         }}
                       >
@@ -1510,10 +1509,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 </label>
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
-                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
-                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
                 />
                 <input
                   type="hidden"
@@ -1541,10 +1540,10 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 </label>
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
-                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
-                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
                 />
                 <input
                   type="hidden"
@@ -1741,11 +1740,18 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
                             e.target.value = formatted;
-                            const numValue = parseFormattedNumber(formatted);
+                            let numValue = parseFormattedNumber(formatted);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                              e.target.value = formatNumberForInput(numValue);
+                            }
                             setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
                           }}
                           onBlur={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            let numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                            }
                             if (numValue >= 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
@@ -1756,7 +1762,11 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                         <input
                           type="hidden"
                           {...register(`expenseClearingItems.${index}.usedAmount` as const, {
-                            valueAsNumber: true
+                            valueAsNumber: true,
+                            max: {
+                              value: 999999,
+                              message: 'จำนวนเงินต้องไม่เกิน 999,999'
+                            }
                           })}
                         />
                       </td>
@@ -2021,11 +2031,16 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                   placeholder="ระบุเลขที่บัญชีธนาคาร"
                   className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   readOnly={!!watch('originalAdvanceRequestId')}
+                  maxLength={15}
                   {...register('bankAccountNumber', {
                     required: 'กรุณาระบุเลขที่บัญชี',
                     pattern: {
                       value: /^[0-9-]+$/,
                       message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
+                    },
+                    maxLength: {
+                      value: 15,
+                      message: 'เลขที่บัญชีต้องไม่เกิน 15 หลัก'
                     }
                   })}
                 />
@@ -2198,25 +2213,44 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                           {/* Show uploaded files for this document type */}
                           {documentFiles[docType.key].length > 0 && (
                             <div className="space-y-1">
-                              {documentFiles[docType.key].map((fileUrl, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
-                                  <div className="flex items-center space-x-2">
-                                    <Check className="h-4 w-4 text-green-600" />
-                                    <span className="text-sm text-green-700 truncate max-w-[150px]">
-                                      ไฟล์ {index + 1}
-                                    </span>
+                              {documentFiles[docType.key].map((fileUrl, index) => {
+                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
+                                return (
+                                  <div key={index} className="space-y-2">
+                                    <div className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                                      <div className="flex items-center space-x-2">
+                                        <Check className="h-4 w-4 text-green-600" />
+                                        <a
+                                          href={fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-green-700 hover:text-green-900 underline truncate max-w-[150px]"
+                                        >
+                                          ไฟล์ {index + 1}
+                                        </a>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    {isImage && (
+                                      <div className="pl-6">
+                                        <img
+                                          src={fileUrl}
+                                          alt={`Preview ${index + 1}`}
+                                          className="max-w-[200px] max-h-[200px] rounded border border-gray-300"
+                                        />
+                                      </div>
+                                    )}
                                   </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRemoveDocumentFile(docType.key, index)}
-                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </>

@@ -336,7 +336,7 @@ export function Sidebar() {
             )}>
               <CheckSquare className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (Marketing Executive)</span>
+                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง</span>
               )}
             </Link>
           )}

@@ -109,7 +109,17 @@ export function SupportPage() {
     
     try {
       await supportApi.createTicket(ticketForm);
-      
+
+      // Send email notification to IT (non-blocking)
+      supportApi.sendTicketEmailNotification({
+        ticketTitle: ticketForm.title,
+        ticketDescription: ticketForm.description,
+        ticketCategory: ticketForm.category,
+        ticketPriority: ticketForm.priority,
+        submitterName: profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'พนักงาน',
+        submitterEmail: user?.email || '',
+      }).catch(err => console.error('Email notification failed (non-blocking):', err));
+
       setSubmitSuccess(true);
       setTicketForm({
         title: '',
@@ -117,12 +127,12 @@ export function SupportPage() {
         category: 'other',
         priority: 'medium'
       });
-      
+
       // Reload tickets if on status tab
       if (activeTab === 'status') {
         loadUserTickets();
       }
-      
+
       setTimeout(() => setSubmitSuccess(false), 5000);
     } catch (error) {
       console.error('Error submitting ticket:', error);

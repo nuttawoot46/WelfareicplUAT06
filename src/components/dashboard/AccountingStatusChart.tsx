@@ -50,16 +50,20 @@ const formatCurrency = (amount: number) => {
 const getStatusText = (status: string) => {
   if (!status) return 'รออนุมัติโดยหัวหน้า';
   switch (status.toLowerCase()) {
-    case 'pending_manager':
+    case 'pending_executive':
       return 'รออนุมัติโดยหัวหน้า';
+    case 'pending_manager':
+      return 'รออนุมัติโดยผู้จัดการ';
     case 'pending_hr':
       return 'รอตรวจสอบโดย HR';
     case 'pending_accounting':
       return 'รอตรวจสอบโดยบัญชี';
     case 'completed':
       return 'เสร็จสมบูรณ์';
-    case 'rejected_manager':
+    case 'rejected_executive':
       return 'ปฏิเสธโดยหัวหน้า';
+    case 'rejected_manager':
+      return 'ปฏิเสธโดยผู้จัดการ';
     case 'rejected_accounting':
       return 'ปฏิเสธโดยบัญชี';
     case 'rejected_hr':
@@ -74,6 +78,8 @@ const getStatusText = (status: string) => {
 const getStatusClass = (status: string) => {
   if (!status) return 'bg-yellow-100 text-yellow-800';
   switch (status.toLowerCase()) {
+    case 'pending_executive':
+      return 'bg-orange-100 text-orange-800';
     case 'pending_manager':
       return 'bg-yellow-100 text-yellow-800';
     case 'pending_hr':
@@ -82,6 +88,8 @@ const getStatusClass = (status: string) => {
       return 'bg-amber-200 text-amber-900';
     case 'completed':
       return 'bg-green-100 text-green-800';
+    case 'rejected_executive':
+      return 'bg-red-100 text-red-800';
     case 'rejected_manager':
       return 'bg-red-100 text-red-800';
     case 'rejected_accounting':
@@ -169,9 +177,9 @@ const AccountingStatusChart: React.FC = React.memo(() => {
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Double click handler for editing - เฉพาะสถานะ pending_manager เท่านั้น
+  // Double click handler for editing - เฉพาะสถานะ pending_executive หรือ pending_manager เท่านั้น
   const handleDoubleClick = (request: AccountingRequestItem) => {
-    if (request.status === 'pending_manager') {
+    if (request.status === 'pending_executive' || request.status === 'pending_manager') {
       setEditId(request.id);
       setEditType(request.request_type);
       setEditModalOpen(true);
@@ -379,11 +387,12 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
                 <option value="all">สถานะทั้งหมด</option>
-                <option value="pending_manager">รออนุมัติโดยหัวหน้า</option>
-                <option value="pending_hr">รอตรวจสอบโดย HR</option>
+                <option value="pending_executive">รออนุมัติโดยหัวหน้า</option>
+                <option value="pending_manager">รออนุมัติโดยผู้จัดการ</option>
                 <option value="pending_accounting">รอตรวจสอบโดยบัญชี</option>
                 <option value="completed">เสร็จสมบูรณ์</option>
-                <option value="rejected_manager">ปฏิเสธโดยหัวหน้า</option>
+                <option value="rejected_executive">ปฏิเสธโดยหัวหน้า</option>
+                <option value="rejected_manager">ปฏิเสธโดยผู้จัดการ</option>
                 <option value="rejected_accounting">ปฏิเสธโดยบัญชี</option>
               </select>
               {/* Year Filter */}
@@ -497,7 +506,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                   {filteredRequests.map((request) => (
                     <TableRow
                       key={request.id}
-                      className={`hover:bg-gray-50 ${request.status === 'pending_manager' ? 'cursor-pointer' : 'cursor-default'}`}
+                      className={`hover:bg-gray-50 ${(request.status === 'pending_executive' || request.status === 'pending_manager') ? 'cursor-pointer' : 'cursor-default'}`}
                       onDoubleClick={() => handleDoubleClick(request)}
                     >
                       <TableCell className="font-medium">
@@ -556,7 +565,10 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                             let pdfUrl = null;
                             let pdfTitle = "ดู PDF เอกสาร";
 
-                            if (request.status === 'pending_manager' && request.pdf_url) {
+                            if (request.status === 'pending_executive' && request.pdf_url) {
+                              pdfUrl = request.pdf_url;
+                              pdfTitle = "ดู PDF เอกสาร";
+                            } else if (request.status === 'pending_manager' && request.pdf_url) {
                               pdfUrl = request.pdf_url;
                               pdfTitle = "ดู PDF เอกสาร";
                             } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
@@ -603,7 +615,7 @@ const AccountingStatusChart: React.FC = React.memo(() => {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {request.status === 'pending_manager' ? (
+                        {(request.status === 'pending_executive' || request.status === 'pending_manager') ? (
                           <Button
                             variant="ghost"
                             size="icon"

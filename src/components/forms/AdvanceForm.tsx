@@ -194,6 +194,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
   const [dealerSearchTerm, setDealerSearchTerm] = useState<string>('');
   const [showDealerDropdown, setShowDealerDropdown] = useState<boolean>(false);
   const [filteredDealers, setFilteredDealers] = useState<Array<{ No: string; Name: string; City: string; County: string }>>([]);
+  const [isDealerFieldsLocked, setIsDealerFieldsLocked] = useState<boolean>(false);
 
   // Document type files state for advance form
   const [documentFiles, setDocumentFiles] = useState<{
@@ -736,17 +737,6 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
       return;
     }
 
-    // Validate at least 1 attachment is required
-    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
-    if (totalFiles === 0) {
-      toast({
-        title: 'กรุณาแนบเอกสาร',
-        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     // Validate required attachments - if checkbox is checked, file must be uploaded
     const missingAttachments = ADVANCE_DOCUMENT_TYPES.filter(
       docType => documentSelections[docType.key] && documentFiles[docType.key].length === 0
@@ -1059,6 +1049,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
 
       // Generate PDF and upload to Supabase
       try {
+        const hasExecutive = !!profile?.executive_id;
         const blob = await generateSalesAdvancePDF(
           {
             ...requestData,
@@ -1070,7 +1061,11 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           },
           user as any,
           employeeData,
-          signature || userSignature
+          signature || userSignature,
+          undefined, // managerSignature
+          undefined, // accountingSignature
+          false, // showManagerSignature
+          hasExecutive // showExecutiveSignature - true for MR (has executive), false for ME
         );
 
         // สร้างชื่อไฟล์ที่ปลอดภัยโดยใช้ employee_id หรือ timestamp แทนชื่อไทย
@@ -1351,6 +1346,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                   onChange={(e) => {
                     setDealerSearchTerm(e.target.value);
                     setValue('advanceDealerName', e.target.value);
+                    setIsDealerFieldsLocked(false);
                   }}
                   onFocus={() => {
                     if (dealerSearchTerm && filteredDealers.length > 0) {
@@ -1391,7 +1387,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           setDealerSearchTerm(dealer.Name);
                           setValue('advanceDealerName', dealer.Name);
 
-                          // Auto-populate amphur and province
+                          // Auto-populate amphur and province and lock fields
                           if (dealer.City) {
                             setValue('advanceAmphur', dealer.City);
                             console.log('✅ Set amphur to:', dealer.City);
@@ -1399,6 +1395,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           if (dealer.County) {
                             setValue('advanceProvince', dealer.County);
                             console.log('✅ Set province to:', dealer.County);
+                          }
+                          if (dealer.City || dealer.County) {
+                            setIsDealerFieldsLocked(true);
                           }
 
                           setShowDealerDropdown(false);
@@ -1439,10 +1438,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 </label>
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
-                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
-                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
                 />
                 <input
                   type="hidden"
@@ -1470,10 +1469,10 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 </label>
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
-                  className={`form-input ${watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
-                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน '}
+                  disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
                 />
                 <input
                   type="hidden"
@@ -1610,11 +1609,16 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
                             e.target.value = formatted;
-                            const numValue = parseFormattedNumber(formatted);
+                            let numValue = parseFormattedNumber(formatted);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                              e.target.value = formatNumberForInput(numValue);
+                            }
                             setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
                           }}
                           onBlur={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            let numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 999999) numValue = 999999;
                             if (numValue > 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
@@ -1626,6 +1630,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
                             min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
+                            max: { value: 999999, message: 'จำนวนเงินต้องไม่เกิน 999,999' },
                             valueAsNumber: true
                           })}
                         />
@@ -1764,8 +1769,13 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุเลขที่บัญชีธนาคาร"
                   className="form-input"
+                  maxLength={15}
                   {...register('bankAccountNumber', {
                     required: 'กรุณาระบุเลขที่บัญชี',
+                    maxLength: {
+                      value: 15,
+                      message: 'เลขที่บัญชีต้องไม่เกิน 15 ตัวอักษร'
+                    },
                     pattern: {
                       value: /^[0-9-]+$/,
                       message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
@@ -1824,26 +1834,41 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         </label>
                       </div>
 
-                      {/* Show uploaded files for this document type */}
+                      {/* Show uploaded files for this document type with preview */}
                       {documentFiles[docType.key].length > 0 && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {documentFiles[docType.key].map((fileUrl, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                              <div className="flex items-center space-x-2">
-                                <Check className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm text-blue-700 truncate max-w-[150px]">
-                                  ไฟล์ {index + 1}
-                                </span>
+                            <div key={index} className="p-2 bg-blue-50 rounded border border-blue-200">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center space-x-2">
+                                  <Check className="h-4 w-4 text-blue-600" />
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-700 hover:text-blue-900 hover:underline truncate max-w-[200px]"
+                                  >
+                                    ไฟล์ {index + 1} - คลิกเพื่อดูตัวอย่าง
+                                  </a>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                  className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
-                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              {/* Image preview */}
+                              {fileUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) && (
+                                <img
+                                  src={fileUrl}
+                                  alt={`ตัวอย่างไฟล์ ${index + 1}`}
+                                  className="w-full max-h-32 object-contain rounded border mt-1"
+                                />
+                              )}
                             </div>
                           ))}
                         </div>

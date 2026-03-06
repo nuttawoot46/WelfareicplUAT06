@@ -1058,6 +1058,8 @@ const WelfareAccountingReviewPage: React.FC = () => {
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     >
                       <option value="">ทุกสถานะ</option>
+                      <option value="pending_executive">รออนุมัติโดยหัวหน้า</option>
+                      <option value="pending_manager">รออนุมัติโดยผู้จัดการ</option>
                       <option value="completed">อนุมัติแล้ว</option>
                       <option value="rejected_accounting">ไม่อนุมัติ</option>
                     </select>
@@ -1134,12 +1136,18 @@ const WelfareAccountingReviewPage: React.FC = () => {
                               ? 'bg-yellow-100 text-yellow-800'
                               : r.status === 'pending_revision'
                                 ? 'bg-orange-100 text-orange-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : (r.status as string) === 'pending_executive'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : r.status === 'pending_manager'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800'
                       }`}>
                         {r.status === 'completed' ? 'อนุมัติแล้ว' :
                          r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
                          r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
-                         r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' : r.status}
+                         r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                         (r.status as string) === 'pending_executive' ? 'รอหัวหน้า' :
+                         r.status === 'pending_manager' ? 'รอผู้จัดการ' : r.status}
                       </span>
                     </div>
 
@@ -1315,11 +1323,17 @@ const WelfareAccountingReviewPage: React.FC = () => {
                               ? 'bg-red-100 text-red-800'
                               : r.status === 'pending_accounting'
                                 ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : (r.status as string) === 'pending_executive'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : r.status === 'pending_manager'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800'
                         }`}>
                           {r.status === 'completed' ? 'อนุมัติแล้ว' :
                            r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
-                           r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' : r.status}
+                           r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
+                           (r.status as string) === 'pending_executive' ? 'รอหัวหน้าตรวจสอบ' :
+                           r.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' : r.status}
                         </span>
                         {r.accounting_approved_at && (
                           <div className="text-xs text-gray-500 mt-1">
@@ -1491,6 +1505,8 @@ const WelfareAccountingReviewPage: React.FC = () => {
                       selectedRequest.status === 'pending_accounting' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
                       selectedRequest.status === 'completed' ? 'bg-green-100 text-green-800 border-green-300' :
                       selectedRequest.status === 'rejected_accounting' ? 'bg-red-100 text-red-800 border-red-300' :
+                      (selectedRequest.status as string) === 'pending_executive' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                      selectedRequest.status === 'pending_manager' ? 'bg-blue-100 text-blue-800 border-blue-300' :
                       'bg-gray-100 text-gray-800 border-gray-300'
                     }`}
                     variant="outline"
@@ -1498,6 +1514,8 @@ const WelfareAccountingReviewPage: React.FC = () => {
                     {selectedRequest.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
                      selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
                      selectedRequest.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                     (selectedRequest.status as string) === 'pending_executive' ? 'รอหัวหน้าตรวจสอบ' :
+                     selectedRequest.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' :
                      selectedRequest.status}
                   </Badge>
                 </div>

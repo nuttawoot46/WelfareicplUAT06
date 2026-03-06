@@ -113,6 +113,7 @@ export interface WelfareRequest {
   managerApproverId?: string; // ID of manager who approved
   managerApproverName?: string; // Name of manager who approved
   managerApproverPosition?: string; // Position of manager who approved
+  managerApproverDepartment?: string; // Department of manager who approved
   managerApprovedAt?: string; // Date and time when manager approved
   // Executive approval fields (for Marketing Representative → Marketing Executive)
   executiveId?: number; // ID of the executive assigned to this request

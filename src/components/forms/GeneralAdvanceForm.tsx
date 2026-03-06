@@ -193,6 +193,8 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
       const draftData = {
         ...formData,
         files,
+        documentFiles,
+        documentSelections,
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
@@ -246,6 +248,12 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
         });
         if (draftData.files) {
           setFiles(draftData.files);
+        }
+        if (draftData.documentFiles) {
+          setDocumentFiles(draftData.documentFiles);
+        }
+        if (draftData.documentSelections) {
+          setDocumentSelections(draftData.documentSelections);
         }
         toast({
           title: 'โหลดฉบับร่างสำเร็จ',
@@ -637,17 +645,6 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
       toast({
         title: 'กรุณาเพิ่มรายการค่าใช้จ่าย',
         description: 'กรุณาเพิ่มรายการค่าใช้จ่ายอย่างน้อย 1 รายการ พร้อมระบุชื่อรายการและจำนวนเงิน',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate at least 1 attachment is required
-    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
-    if (totalFiles === 0) {
-      toast({
-        title: 'กรุณาแนบเอกสาร',
-        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
         variant: 'destructive',
       });
       return;
@@ -1154,11 +1151,18 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
                             e.target.value = formatted;
-                            const numValue = parseFormattedNumber(formatted);
+                            let numValue = parseFormattedNumber(formatted);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                              e.target.value = formatNumberForInput(numValue);
+                            }
                             setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
                           }}
                           onBlur={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            let numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                            }
                             if (numValue > 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`advanceExpenseItems.${index}.requestAmount`, numValue);
@@ -1170,6 +1174,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                           type="hidden"
                           {...register(`advanceExpenseItems.${index}.requestAmount` as const, {
                             min: { value: 0, message: 'ต้องไม่น้อยกว่า 0' },
+                            max: { value: 999999, message: 'จำนวนเงินต้องไม่เกิน 999,999' },
                             valueAsNumber: true
                           })}
                         />
@@ -1323,12 +1328,14 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                 <Input
                   placeholder="ระบุเลขที่บัญชีธนาคาร"
                   className="form-input"
+                  maxLength={15}
                   {...register('bankAccountNumber', {
                     required: 'กรุณาระบุเลขที่บัญชี',
                     pattern: {
                       value: /^[0-9-]+$/,
                       message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
-                    }
+                    },
+                    maxLength: { value: 15, message: 'เลขที่บัญชีต้องไม่เกิน 15 ตัวอักษร' }
                   })}
                 />
                 {errors.bankAccountNumber && (
@@ -1385,26 +1392,45 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
 
                       {/* Show uploaded files for this document type */}
                       {documentFiles[docType.key].length > 0 && (
-                        <div className="space-y-1">
-                          {documentFiles[docType.key].map((fileUrl, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                              <div className="flex items-center space-x-2">
-                                <Check className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm text-blue-700 truncate max-w-[150px]">
-                                  ไฟล์ {index + 1}
-                                </span>
+                        <div className="space-y-2">
+                          {documentFiles[docType.key].map((fileUrl, index) => {
+                            const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(fileUrl);
+                            return (
+                              <div key={index} className="space-y-2">
+                                <div className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
+                                  <div className="flex items-center space-x-2">
+                                    <Check className="h-4 w-4 text-blue-600" />
+                                    <a
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-700 hover:text-blue-900 underline truncate max-w-[150px]"
+                                    >
+                                      ไฟล์ {index + 1}
+                                    </a>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveDocTypeFile(docType.key, index)}
+                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                {isImage && (
+                                  <div className="ml-6">
+                                    <img
+                                      src={fileUrl}
+                                      alt={`Preview ${index + 1}`}
+                                      className="max-w-xs max-h-48 rounded border border-gray-300"
+                                    />
+                                  </div>
+                                )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveDocTypeFile(docType.key, index)}
-                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import { SupportTicket, SupportTicketComment, CreateTicketData, CreateCommentData } from '@/types';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const IT_NOTIFY_EMAIL = 'nuttawoot.s@icpladda.com';
+
 class SupportApiService {
   // Create a new support ticket
   async createTicket(data: CreateTicketData): Promise<SupportTicket> {
@@ -182,6 +185,48 @@ class SupportApiService {
     }
 
     return comments || [];
+  }
+
+  // Send email notification for new ticket
+  async sendTicketEmailNotification(params: {
+    ticketTitle: string;
+    ticketDescription: string;
+    ticketCategory: string;
+    ticketPriority: string;
+    submitterName: string;
+    submitterEmail: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-outlook-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          email_type: 'ticket',
+          ticket_title: params.ticketTitle,
+          ticket_description: params.ticketDescription,
+          ticket_category: params.ticketCategory,
+          ticket_priority: params.ticketPriority,
+          submitter_name: params.submitterName,
+          submitter_email: params.submitterEmail,
+          notify_email: IT_NOTIFY_EMAIL,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error sending ticket email:', data.error);
+        return { success: false, error: data.error };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending ticket email notification:', error);
+      return { success: false, error: 'Failed to send email notification' };
+    }
   }
 
   // Get ticket statistics (admin only)

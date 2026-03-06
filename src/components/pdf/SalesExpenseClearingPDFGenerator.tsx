@@ -20,7 +20,9 @@ const createSalesExpenseClearingFormHTML = (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = false,
+  showExecutiveSignature: boolean = true
 ) => {
   const employeeName = employeeData?.Name || userData.name || '';
   const employeePosition = employeeData?.Position || userData.position || '';
@@ -279,7 +281,7 @@ const createSalesExpenseClearingFormHTML = (
       </div>
 
       <!-- Signature Section -->
-      <div style="display: flex; justify-content: space-between; margin-top: auto;">
+      <div style="display: flex; justify-content: ${(showExecutiveSignature && showManagerSignature) ? 'space-between' : (showExecutiveSignature || showManagerSignature) ? 'space-around' : 'center'}; margin-top: auto;">
         <!-- Left Signature - User -->
         <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้เคลียร์ค่าใช้จ่าย</div>
@@ -295,9 +297,10 @@ const createSalesExpenseClearingFormHTML = (
           </div>
         </div>
 
-        <!-- Center Signature - Executive (ME) -->
+        ${showExecutiveSignature ? `
+        <!-- Center Signature - Executive (ME) - only shown for MR requests -->
         <div style="text-align: center; width: 180px;">
-          <div style="margin-bottom: 5px;">ผู้ตรวจสอบ</div>
+          <div style="margin-bottom: 5px;">ผู้จัดการ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
             ${expenseClearingData.executiveSignature ? `
               <img src="${expenseClearingData.executiveSignature}" alt="Executive Signature" style="max-width: 140px; max-height: 50px;" />
@@ -305,12 +308,14 @@ const createSalesExpenseClearingFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${expenseClearingData.executiveApproverName || ''} )</div>
-            <div>ตำแหน่ง: ${expenseClearingData.executiveApproverPosition || 'Marketing Executive'}</div>
+            <div>ตำแหน่ง: ${expenseClearingData.executiveApproverPosition || 'ผู้จัดการ'}</div>
             <div>วันที่: ${expenseClearingData.executiveApprovedAt ? formatThaiDate(expenseClearingData.executiveApprovedAt) : ''}</div>
           </div>
         </div>
+        ` : ''}
 
-        <!-- Right Signature - Manager -->
+        ${showManagerSignature ? `
+        <!-- Right Signature - Manager (only shown after manager approval) -->
         <div style="text-align: center; width: 180px;">
           <div style="margin-bottom: 5px;">ผู้อนุมัติ</div>
           <div style="height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: none;">
@@ -320,10 +325,12 @@ const createSalesExpenseClearingFormHTML = (
           </div>
           <div style="margin-top: 5px; font-size: 10px;">
             <div>( ${expenseClearingData.managerApproverName || ''} )</div>
+            ${expenseClearingData.managerApproverDepartment ? `<div>แผนก: ${expenseClearingData.managerApproverDepartment}</div>` : ''}
             <div>ตำแหน่ง: ${expenseClearingData.managerApproverPosition || ''}</div>
             <div>วันที่: ${expenseClearingData.managerApprovedAt ? formatThaiDate(expenseClearingData.managerApprovedAt) : ''}</div>
           </div>
         </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -335,11 +342,13 @@ export const generateSalesExpenseClearingPDF = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = false,
+  showExecutiveSignature: boolean = true
 ): Promise<Blob> => {
   // Create a temporary div to hold the HTML content
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = createSalesExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+  tempDiv.innerHTML = createSalesExpenseClearingFormHTML(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature, showManagerSignature, showExecutiveSignature);
   tempDiv.style.position = 'absolute';
   tempDiv.style.left = '-9999px';
   tempDiv.style.top = '-9999px';
@@ -396,10 +405,12 @@ export const generateAndDownloadSalesExpenseClearingPDF = async (
   employeeData?: { Name: string; Position: string; Team: string; start_date?: string },
   userSignature?: string,
   managerSignature?: string,
-  accountingSignature?: string
+  accountingSignature?: string,
+  showManagerSignature: boolean = false,
+  showExecutiveSignature: boolean = true
 ) => {
   try {
-    const pdfBlob = await generateSalesExpenseClearingPDF(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature);
+    const pdfBlob = await generateSalesExpenseClearingPDF(expenseClearingData, userData, employeeData, userSignature, managerSignature, accountingSignature, showManagerSignature, showExecutiveSignature);
 
     const employeeName = employeeData?.Name || userData.name || '';
     const filename = `sales_expense_clearing_${employeeName.replace(/\s+/g, '_')}_${Date.now()}.pdf`;

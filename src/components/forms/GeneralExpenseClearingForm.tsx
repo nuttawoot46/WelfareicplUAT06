@@ -258,6 +258,9 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
           advanceParticipants: draftData.advanceParticipants || 0,
           expenseClearingItems: draftData.expenseClearingItems || [{ name: '', taxRate: 0, requestAmount: 0, usedAmount: 0, vatAmount: 0, taxAmount: 0, netAmount: 0, refund: 0, otherDescription: '' }],
           attachmentSelections: draftData.attachmentSelections || {},
+          bankAccountName: draftData.bankAccountName || '',
+          bankName: draftData.bankName || '',
+          bankAccountNumber: draftData.bankAccountNumber || '',
         });
         if (draftData.documentFiles) {
           setDocumentFiles(draftData.documentFiles);
@@ -638,16 +641,6 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
       });
       return;
     }
-    // Validate at least 1 attachment is required
-    const totalFiles = Object.values(documentFiles).reduce((sum, files) => sum + files.length, 0);
-    if (totalFiles === 0) {
-      toast({
-        title: 'กรุณาแนบเอกสาร',
-        description: 'กรุณาแนบเอกสารอย่างน้อย 1 ไฟล์',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     // Validate required attachments - if checkbox is checked, file must be uploaded
     const missingAttachments = DOCUMENT_TYPES.filter(
@@ -869,6 +862,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                   <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
                 </SelectContent>
               </Select>
+              <input type="hidden" {...register('advanceDepartment')} />
             </div>
 
             {/* ฟิลด์ระบุแผนกอื่นๆ */}
@@ -1074,11 +1068,18 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                           onChange={(e) => {
                             const formatted = formatInputWhileTyping(e.target.value);
                             e.target.value = formatted;
-                            const numValue = parseFormattedNumber(formatted);
+                            let numValue = parseFormattedNumber(formatted);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                              e.target.value = formatNumberForInput(numValue);
+                            }
                             setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
                           }}
                           onBlur={(e) => {
-                            const numValue = parseFormattedNumber(e.target.value);
+                            let numValue = parseFormattedNumber(e.target.value);
+                            if (numValue > 999999) {
+                              numValue = 999999;
+                            }
                             if (numValue >= 0) {
                               e.target.value = formatNumberOnBlur(numValue);
                               setValue(`expenseClearingItems.${index}.usedAmount`, numValue);
@@ -1086,7 +1087,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                           }}
                           defaultValue={formatNumberForInput(watch(`expenseClearingItems.${index}.usedAmount`))}
                         />
-                        <input type="hidden" {...register(`expenseClearingItems.${index}.usedAmount` as const, { valueAsNumber: true })} />
+                        <input type="hidden" {...register(`expenseClearingItems.${index}.usedAmount` as const, { valueAsNumber: true, max: { value: 999999, message: 'จำนวนเงินต้องไม่เกิน 999,999' } })} />
                       </td>
                       {/* ภาษีมูลค่าเพิ่ม (VAT) - Manual Entry */}
                       <td className="border border-gray-300 p-1">
@@ -1342,12 +1343,14 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                   placeholder="ระบุเลขที่บัญชีธนาคาร"
                   className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
                   readOnly={!!watch('originalAdvanceRequestId')}
+                  maxLength={15}
                   {...register('bankAccountNumber', {
                     required: 'กรุณาระบุเลขที่บัญชี',
                     pattern: {
                       value: /^[0-9-]+$/,
                       message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น'
-                    }
+                    },
+                    maxLength: { value: 15, message: 'เลขที่บัญชีต้องไม่เกิน 15 ตัวอักษร' }
                   })}
                 />
                 {errors.bankAccountNumber && (
@@ -1404,26 +1407,45 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
 
                       {/* Show uploaded files for this document type */}
                       {documentFiles[docType.key].length > 0 && (
-                        <div className="space-y-1">
-                          {documentFiles[docType.key].map((fileUrl, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
-                              <div className="flex items-center space-x-2">
-                                <Check className="h-4 w-4 text-green-600" />
-                                <span className="text-sm text-green-700 truncate max-w-[150px]">
-                                  ไฟล์ {index + 1}
-                                </span>
+                        <div className="space-y-2">
+                          {documentFiles[docType.key].map((fileUrl, index) => {
+                            const isImage = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(fileUrl);
+                            return (
+                              <div key={index} className="space-y-2">
+                                <div className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                                  <div className="flex items-center space-x-2">
+                                    <Check className="h-4 w-4 text-green-600" />
+                                    <a
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-green-700 hover:text-green-900 hover:underline truncate max-w-[150px]"
+                                    >
+                                      ไฟล์ {index + 1}
+                                    </a>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveDocumentFile(docType.key, index)}
+                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                {isImage && (
+                                  <div className="ml-6">
+                                    <img
+                                      src={fileUrl}
+                                      alt={`Preview ${index + 1}`}
+                                      className="max-w-xs max-h-48 rounded border border-gray-300 shadow-sm"
+                                    />
+                                  </div>
+                                )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveDocumentFile(docType.key, index)}
-                                className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
