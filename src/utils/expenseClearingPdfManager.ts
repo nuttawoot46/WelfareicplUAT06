@@ -241,8 +241,9 @@ export const addSignatureToExpenseClearingPDF = async (
       department_request: updatedRequestData.department_request,
     };
 
-    // Show manager signature slot only when manager or later approver signs
-    const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'hr' || signatureType === 'accounting';
+    // Show manager signature slot when manager, executive, or later approver signs
+    // Executive is included because for MR employees, the executive signature is displayed in the หัวหน้า field
+    const shouldShowManagerSignature = signatureType === 'manager' || signatureType === 'executive' || signatureType === 'hr' || signatureType === 'accounting';
 
     // Show executive (ME) signature slot if:
     // 1. Current signer is executive, OR
