@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { FileText, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar, ExternalLink, ArrowLeft, Check, X, ClipboardCheck } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, Download, Filter, BarChart3, Calendar, ExternalLink, ArrowLeft, Check, X, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,6 +43,12 @@ interface GeneralRequestItem {
   manager_approver_id?: string;
   manager_approver_name?: string;
   manager_approved_at?: string;
+  // Revision fields
+  revision_requested_by?: string;
+  revision_note?: string;
+  revision_requested_at?: string;
+  revision_completed?: boolean;
+  revision_completed_at?: string;
   // Additional fields for advance/expense clearing
   advance_location?: string;
   advance_purpose?: string;
@@ -116,6 +122,11 @@ const GeneralAccountingReviewPage: React.FC = () => {
   const [isFiltering, setIsFiltering] = useState(false);
   const [isBulkProcessing, setBulkProcessing] = useState(false);
 
+  // Revision states (ขอเอกสารเพิ่มเติม)
+  const [isRevisionDialogOpen, setIsRevisionDialogOpen] = useState(false);
+  const [revisionNote, setRevisionNote] = useState('');
+  const [revisionRequestId, setRevisionRequestId] = useState<number | null>(null);
+
   // Report states
   const [reportDateFrom, setReportDateFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [reportDateTo, setReportDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -162,6 +173,15 @@ const GeneralAccountingReviewPage: React.FC = () => {
 
   const accountingTypes = ['advance', 'general-advance', 'expense-clearing', 'general-expense-clearing'];
 
+  // Build approval trail for a request - shows which stages it has passed through
+  const getApprovalTrail = (r: GeneralRequestItem) => {
+    const stages: { label: string; done: boolean }[] = [];
+    stages.push({ label: 'ผู้จัดการ', done: !!r.manager_approved_at });
+    stages.push({ label: 'HR', done: !!r.hr_approved_at });
+    stages.push({ label: 'บัญชี', done: !!r.accounting_approved_at || r.status === 'completed' });
+    return stages;
+  };
+
   const fetchCounts = async () => {
     // Fetch pending count
     const { count: pCount } = await supabase
@@ -197,7 +217,7 @@ const GeneralAccountingReviewPage: React.FC = () => {
         .order('accounting_approved_at', { ascending: false });
     } else if (activeTab === 'history') {
       query = query
-        .in('status', ['completed', 'rejected_accounting'])
+        .in('status', ['completed', 'rejected_accounting', 'pending_revision'])
         .order('created_at', { ascending: false });
     } else {
       // pending
@@ -525,6 +545,39 @@ const GeneralAccountingReviewPage: React.FC = () => {
       setSelectedIds([]);
     } finally {
       setBulkProcessing(false);
+    }
+  };
+
+  // Revision request handler (ขอเอกสารเพิ่มเติม)
+  const handleRevisionRequest = async () => {
+    if (!revisionRequestId || !revisionNote.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('welfare_requests')
+        .update({
+          status: 'pending_revision',
+          revision_requested_by: 'accounting',
+          revision_note: revisionNote.trim(),
+          revision_requested_at: new Date().toISOString(),
+          revision_completed: false,
+          revision_completed_at: null,
+        } as any)
+        .eq('id', revisionRequestId);
+
+      if (error) {
+        console.error('Error requesting revision:', error);
+        return;
+      }
+
+      fetchRequests();
+      fetchCounts();
+      setIsRevisionDialogOpen(false);
+      setRevisionNote('');
+      setRevisionRequestId(null);
+      closeDetails();
+    } catch (error) {
+      console.error('Error requesting revision:', error);
     }
   };
 
@@ -1199,9 +1252,27 @@ const GeneralAccountingReviewPage: React.FC = () => {
                          r.status === 'pending_executive' ? 'รอหัวหน้า' :
                          r.status === 'pending_manager' ? 'รอผู้จัดการ' :
                          r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                         r.status?.includes('rejected') ? 'ปฏิเสธ' :
+                         r.status?.includes('pending') ? 'รอดำเนินการ' :
                          r.status}
                       </span>
                     </div>
+                    {/* Revision completed badge */}
+                    {r.revision_completed && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
+                        แนบเอกสารเรียบร้อย
+                      </span>
+                    )}
+                    {/* Approval trail */}
+                    {(r.status === 'pending_revision' || r.status === 'pending_accounting' && r.revision_completed) && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {getApprovalTrail(r).map((stage, idx) => (
+                          <span key={idx} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                            {stage.done ? '✓' : '○'} {stage.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-xs">
                       <Badge variant="outline" className="text-[10px]">{getRequestTypeLabel(r.request_type)}</Badge>
                       <span className="font-bold text-blue-700">
@@ -1305,13 +1376,18 @@ const GeneralAccountingReviewPage: React.FC = () => {
                                 ? 'bg-orange-100 text-orange-800'
                                 : r.status === 'pending_manager'
                                   ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  : r.status === 'pending_revision'
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : 'bg-gray-100 text-gray-800'
                           }`}>
                           {r.status === 'completed' ? 'อนุมัติแล้ว' :
                             r.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
                             r.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
                             r.status === 'pending_executive' ? 'รอหัวหน้าตรวจสอบ' :
-                            r.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' : r.status}
+                            r.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' :
+                            r.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                            r.status?.includes('rejected') ? 'ปฏิเสธ' :
+                            r.status?.includes('pending') ? 'รอดำเนินการ' : r.status}
                         </span>
                         {r.accounting_approved_at && (
                           <div className="text-xs text-gray-500 mt-1">
@@ -1322,6 +1398,20 @@ const GeneralAccountingReviewPage: React.FC = () => {
                           <div className="text-xs text-gray-600 mt-1" title={r.accounting_notes}>
                             หมายเหตุ: {r.accounting_notes.length > 20 ?
                               r.accounting_notes.substring(0, 20) + '...' : r.accounting_notes}
+                          </div>
+                        )}
+                        {r.revision_completed && (
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
+                            แนบเอกสารเรียบร้อย
+                          </span>
+                        )}
+                        {(r.status === 'pending_revision' || (r.status === 'pending_accounting' && r.revision_completed)) && (
+                          <div className="flex items-center gap-1 mt-1 flex-wrap">
+                            {getApprovalTrail(r).map((stage, idx) => (
+                              <span key={idx} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                                {stage.done ? '✓' : '○'} {stage.label}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </TableCell>
@@ -1468,25 +1558,45 @@ const GeneralAccountingReviewPage: React.FC = () => {
                       {selectedRequest.employee_name} — {getRequestTypeLabel(selectedRequest.request_type)}
                     </DialogTitle>
                   </DialogHeader>
-                  <Badge
-                    className={`text-sm px-3 py-1 ${
-                      selectedRequest.status === 'pending_accounting' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                      selectedRequest.status === 'pending_executive' ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                      selectedRequest.status === 'pending_manager' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                      selectedRequest.status === 'completed' ? 'bg-green-100 text-green-800 border-green-300' :
-                      selectedRequest.status === 'rejected_accounting' ? 'bg-red-100 text-red-800 border-red-300' :
-                      'bg-gray-100 text-gray-800 border-gray-300'
-                    }`}
-                    variant="outline"
-                  >
-                    {selectedRequest.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
-                     selectedRequest.status === 'pending_executive' ? 'รอหัวหน้าตรวจสอบ' :
-                     selectedRequest.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' :
-                     selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
-                     selectedRequest.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
-                     selectedRequest.status}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      className={`text-sm px-3 py-1 ${
+                        selectedRequest.status === 'pending_accounting' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        selectedRequest.status === 'pending_executive' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                        selectedRequest.status === 'pending_manager' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                        selectedRequest.status === 'pending_revision' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                        selectedRequest.status === 'completed' ? 'bg-green-100 text-green-800 border-green-300' :
+                        selectedRequest.status === 'rejected_accounting' ? 'bg-red-100 text-red-800 border-red-300' :
+                        'bg-gray-100 text-gray-800 border-gray-300'
+                      }`}
+                      variant="outline"
+                    >
+                      {selectedRequest.status === 'pending_accounting' ? 'รอบัญชีตรวจสอบ' :
+                       selectedRequest.status === 'pending_executive' ? 'รอหัวหน้าตรวจสอบ' :
+                       selectedRequest.status === 'pending_manager' ? 'รอผู้จัดการตรวจสอบ' :
+                       selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                       selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
+                       selectedRequest.status === 'rejected_accounting' ? 'ไม่อนุมัติ' :
+                       selectedRequest.status}
+                    </Badge>
+                    {selectedRequest.revision_completed && (
+                      <Badge className="text-xs bg-green-100 text-green-800 border-green-300" variant="outline">
+                        แนบเอกสารเรียบร้อย
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+                {/* Approval trail */}
+                {(selectedRequest.status === 'pending_revision' || selectedRequest.status === 'pending_accounting' && selectedRequest.revision_completed) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-muted-foreground">ผ่านขั้นตอน:</span>
+                    {getApprovalTrail(selectedRequest).map((stage, idx) => (
+                      <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                        {stage.done ? '✓' : '○'} {stage.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
                   <span>แผนก: <strong className="text-foreground">{selectedRequest.department_request || '-'}</strong></span>
                   <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</strong></span>
@@ -1563,6 +1673,17 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
+                        onClick={() => {
+                          setRevisionRequestId(selectedRequest.id);
+                          setRevisionNote('');
+                          setIsRevisionDialogOpen(true);
+                        }}
+                        className="bg-amber-500 hover:bg-amber-600 px-4"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        ขอเอกสารเพิ่ม
+                      </Button>
+                      <Button
                         onClick={() => handleApprove(selectedRequest.id, (selectedRequest as any).table_source)}
                         className="bg-green-600 hover:bg-green-700 px-6"
                       >
@@ -1585,6 +1706,45 @@ const GeneralAccountingReviewPage: React.FC = () => {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Revision Dialog (ขอเอกสารเพิ่มเติม) */}
+        <Dialog open={isRevisionDialogOpen} onOpenChange={(open) => {
+          setIsRevisionDialogOpen(open);
+          if (!open) {
+            setRevisionNote('');
+            setRevisionRequestId(null);
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>ขอเอกสารเพิ่มเติม</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              กรุณาระบุเอกสารที่ต้องการให้พนักงานแนบเพิ่มเติม
+            </p>
+            <textarea
+              value={revisionNote}
+              onChange={(e) => setRevisionNote(e.target.value)}
+              placeholder="เช่น กรุณาแนบใบเสร็จรับเงิน, สำเนาบัตรประชาชน..."
+              className="w-full border rounded-md p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-amber-500"
+              maxLength={255}
+              rows={3}
+            />
+            <DialogFooter className="gap-2">
+              <DialogClose asChild>
+                <Button variant="outline">ยกเลิก</Button>
+              </DialogClose>
+              <Button
+                onClick={handleRevisionRequest}
+                disabled={!revisionNote.trim()}
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                ส่งคำขอ
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

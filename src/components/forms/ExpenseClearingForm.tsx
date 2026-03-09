@@ -393,19 +393,22 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     fetchEmployeeData();
   }, [user?.email, setValue]);
 
-  // Fetch dealer list when component mounts
+  // Fetch dealer list filtered by employee's sales_zone
   useEffect(() => {
     let isMounted = true;
 
     const fetchDealerList = async () => {
       try {
-        console.log('🔍 Fetching dealer list for expense clearing...');
+        const zoneCode = employeeData?.sales_zone || null;
+        console.log('🔍 Fetching dealer list for expense clearing, zone:', zoneCode || 'ALL');
 
-        // Try RPC function first
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any);
+        // Try RPC function first with zone filter
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any, {
+          p_zone_code: zoneCode
+        });
 
         if (!rpcError && rpcData && isMounted) {
-          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers');
+          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers for zone:', zoneCode || 'ALL');
           setDealerList(rpcData.map((d: any) => ({
             No: d['No.'] || d.No || '',
             Name: d.Name || '',
@@ -419,11 +422,16 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
           console.warn('⚠️ RPC function not available, trying direct query:', rpcError.message);
         }
 
-        // Fallback: Direct query
-        const { data, error } = await supabase
+        // Fallback: Direct query with zone filter
+        let query = supabase
           .from('data_dealer' as any)
-          .select('*')
-          .order('Name', { ascending: true });
+          .select('*');
+
+        if (zoneCode) {
+          query = query.eq('ZoneCode', zoneCode);
+        }
+
+        const { data, error } = await query.order('Name', { ascending: true });
 
         if (!error && data && isMounted) {
           console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
@@ -452,7 +460,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [employeeData]);
 
   // Fetch available advance requests for this user (exclude already-linked ones)
   useEffect(() => {
@@ -1266,6 +1274,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder="แผนก"
                   className="form-input bg-gray-100 cursor-not-allowed"
+                  maxLength={255}
                   disabled={true}
                   value={watch('advanceDepartment') || employeeData?.Team || ''}
                   readOnly
@@ -1286,6 +1295,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder="เขต"
                   className="form-input bg-gray-100 cursor-not-allowed"
+                  maxLength={255}
                   disabled={true}
                   value={watch('advanceDistrict') || ''}
                   readOnly
@@ -1304,6 +1314,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder="ระบุแผนกอื่นๆ"
                   className="form-input"
+                  maxLength={255}
                   {...register('advanceActivityOther', {
                     required: watch('advanceDepartment') === 'อื่นๆ' ? 'กรุณาระบุแผนก' : false
                   })}
@@ -1351,6 +1362,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 placeholder="ระบุรายละเอียด"
                 className="form-input"
                 rows={3}
+                maxLength={255}
                 {...register('details', { required: 'กรุณาระบุรายละเอียด' })}
               />
               {errors.details && (
@@ -1419,6 +1431,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder="ค้นหาดีลเลอร์..."
                   className="form-input"
+                  maxLength={255}
                   value={dealerSearchTerm}
                   onChange={(e) => {
                     setDealerSearchTerm(e.target.value);
@@ -1491,6 +1504,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder="ระบุซับดีลเลอร์"
                   className="form-input"
+                  maxLength={255}
                   {...register('advanceSubdealerName')}
                 />
               </div>
@@ -1510,6 +1524,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
                   className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  maxLength={255}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
                   disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
@@ -1541,6 +1556,7 @@ export function ExpenseClearingForm({ onBack, editId }: ExpenseClearingFormProps
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
                   className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  maxLength={255}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
                   disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}

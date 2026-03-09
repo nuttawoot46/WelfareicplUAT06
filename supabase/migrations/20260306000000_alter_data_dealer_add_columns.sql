@@ -12,6 +12,11 @@ ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "ZoneName" text NULL;
 ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "DepartmentCode" text NULL;
 ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "DepartmentName" text NULL;
 
+-- Add contact columns (from Excel/Customer data)
+ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "Phone No." text NULL;
+ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "SellCoda Phone" text NULL;
+ALTER TABLE public.data_dealer ADD COLUMN IF NOT EXISTS "Email" text NULL;
+
 -- Add unique constraint on "No." for N8n upsert operations
 -- First handle possible duplicates by keeping the first occurrence
 DO $$
@@ -24,19 +29,23 @@ BEGIN
   END IF;
 END $$;
 
--- Drop existing function first (cannot change return type with CREATE OR REPLACE)
+-- Drop existing functions first (cannot change return type with CREATE OR REPLACE)
 DROP FUNCTION IF EXISTS public.get_dealer_list();
+DROP FUNCTION IF EXISTS public.get_dealer_list(text);
 
--- Recreate with new return columns
-CREATE FUNCTION public.get_dealer_list()
+-- Recreate with zone_code filter parameter
+-- When zone_code is NULL or empty, returns all dealers
+-- When zone_code is provided, filters by ZoneCode matching employee's sales_zone
+CREATE FUNCTION public.get_dealer_list(p_zone_code text DEFAULT NULL)
 RETURNS TABLE("No." text, "Name" text, "City" text, "County" text)
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
   SELECT "No.", "Name", "City", "County"
   FROM public.data_dealer
+  WHERE (p_zone_code IS NULL OR p_zone_code = '' OR "ZoneCode" = p_zone_code)
   ORDER BY "Name" ASC NULLS LAST;
 $$;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION public.get_dealer_list() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_dealer_list(text) TO authenticated;

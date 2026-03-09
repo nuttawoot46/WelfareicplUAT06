@@ -365,20 +365,22 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     }
   }, []);
 
-  // Fetch dealer list when component mounts
+  // Fetch dealer list filtered by employee's sales_zone
   useEffect(() => {
     let isMounted = true;
 
     const fetchDealerList = async () => {
       try {
-        console.log('🔍 Fetching dealer list...');
+        const zoneCode = employeeData?.sales_zone || null;
+        console.log('🔍 Fetching dealer list for zone:', zoneCode || 'ALL');
 
-        // Try RPC function first
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any);
+        // Try RPC function first with zone filter
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any, {
+          p_zone_code: zoneCode
+        });
 
         if (!rpcError && rpcData && isMounted) {
-          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers');
-          console.log('📋 Sample dealer data from RPC:', rpcData[0]);
+          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers for zone:', zoneCode || 'ALL');
           setDealerList(rpcData.map((d: any) => ({
             No: d['No.'] || d.No || '',
             Name: d.Name || '',
@@ -392,23 +394,25 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
           console.warn('⚠️ RPC function not available, trying direct query:', rpcError.message);
         }
 
-        // Fallback: Direct query with proper error handling
-        const { data, error } = await supabase
+        // Fallback: Direct query with zone filter
+        let query = supabase
           .from('data_dealer' as any)
-          .select('*')
-          .order('Name', { ascending: true });
+          .select('*');
+
+        if (zoneCode) {
+          query = query.eq('ZoneCode', zoneCode);
+        }
+
+        const { data, error } = await query.order('Name', { ascending: true });
 
         if (!error && data && isMounted) {
           console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
-          console.log('📋 Sample dealer data from direct query:', data[0]);
-          const mappedData = data.map((d: any) => ({
+          setDealerList(data.map((d: any) => ({
             No: d['No.'] || '',
             Name: d.Name || '',
             City: d.City || '',
             County: d.County || ''
-          }));
-          console.log('📋 Mapped dealer data sample:', mappedData[0]);
-          setDealerList(mappedData);
+          })));
         } else if (error) {
           console.warn('⚠️ Dealer table not available:', error.message);
           if (isMounted) {
@@ -428,7 +432,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [employeeData]);
 
   // Filter dealers based on search term
   useEffect(() => {
@@ -1193,6 +1197,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุเขต"
                   className="form-input"
+                  maxLength={255}
                   readOnly={!!employeeData?.sales_zone}
                   {...register('advanceDistrict')}
                 />
@@ -1206,6 +1211,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุแผนกอื่นๆ"
                   className="form-input"
+                  maxLength={255}
                   {...register('advanceDepartmentOther', {
                     required: watch('advanceDepartment') === 'อื่นๆ' ? 'กรุณาระบุแผนก' : false
                   })}
@@ -1268,6 +1274,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
               placeholder="ระบุรายละเอียด"
               className="form-input"
               rows={3}
+              maxLength={255}
               {...register('details', {
                 required: 'กรุณาระบุรายละเอียด'
               })}
@@ -1420,6 +1427,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder="ระบุซับดีลเลอร์"
                   className="form-input"
+                  maxLength={255}
                   {...register('advanceSubdealerName')}
                 />
               </div>
@@ -1439,6 +1447,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุอำเภอ'}
                   className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  maxLength={255}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceAmphur') || '')}
                   onChange={(e) => setValue('advanceAmphur', e.target.value)}
                   disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}
@@ -1470,6 +1479,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                 <Input
                   placeholder={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '-' : 'ระบุจังหวัด'}
                   className={`form-input ${(watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked) ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  maxLength={255}
                   value={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' ? '' : (watch('advanceProvince') || '')}
                   onChange={(e) => setValue('advanceProvince', e.target.value)}
                   disabled={watch('advanceActivityType') === 'ค่าน้ำมันรถทดแทน ' || isDealerFieldsLocked}

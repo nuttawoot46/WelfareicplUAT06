@@ -90,6 +90,7 @@ export const ExecutiveApprovalPage = () => {
       'rejected_manager',
       'rejected_hr',
       'rejected_accounting',
+      'pending_revision',
     ];
     let base = executiveRequests.filter(req => processedStatuses.includes(req.status));
 
@@ -319,6 +320,8 @@ export const ExecutiveApprovalPage = () => {
           revision_requested_by: 'executive',
           revision_note: revisionNote.trim(),
           revision_requested_at: new Date().toISOString(),
+          revision_completed: false,
+          revision_completed_at: null,
         } as any)
         .eq('id', revisionRequestId);
 
@@ -425,6 +428,12 @@ export const ExecutiveApprovalPage = () => {
         return (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
             ปฏิเสธโดยบัญชี
+          </Badge>
+        );
+      case 'pending_revision':
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            รอเอกสารเพิ่มเติม
           </Badge>
         );
       default:
@@ -624,7 +633,14 @@ export const ExecutiveApprovalPage = () => {
                             {request.amount ? `฿${request.amount.toLocaleString()}` : '-'}
                           </TableCell>
                           <TableCell>{format(new Date(request.date), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{renderStatusBadge(request.status)}</TableCell>
+                          <TableCell>
+                            <div>
+                              {renderStatusBadge(request.status)}
+                              {(request as any).revision_completed && (
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-center">
                             {renderPdfCell(request)}
                           </TableCell>
@@ -759,7 +775,14 @@ export const ExecutiveApprovalPage = () => {
                               : '-'}
                           </TableCell>
                           <TableCell>{format(new Date(request.date), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{renderStatusBadge(request.status)}</TableCell>
+                          <TableCell>
+                            <div>
+                              {renderStatusBadge(request.status)}
+                              {(request as any).revision_completed && (
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {request.executiveApprovedAt
                               ? format(new Date(request.executiveApprovedAt), 'dd/MM/yyyy')
@@ -800,7 +823,12 @@ export const ExecutiveApprovalPage = () => {
                 <DialogHeader className="p-0 space-y-0">
                   <DialogTitle className="text-lg">{selectedRequest.userName} — {getWelfareTypeLabel(selectedRequest.type)}</DialogTitle>
                 </DialogHeader>
-                {renderStatusBadge(selectedRequest.status)}
+                <div className="flex items-center gap-2">
+                  {renderStatusBadge(selectedRequest.status)}
+                  {(selectedRequest as any).revision_completed && (
+                    <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">แนบเอกสารเรียบร้อย</Badge>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span>แผนก: <strong className="text-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</strong></span>

@@ -877,6 +877,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 <Input
                   placeholder="ระบุแผนกอื่นๆ"
                   className="form-input"
+                  maxLength={255}
                   {...register('advanceDepartmentOther')}
                 />
               </div>
@@ -888,6 +889,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
               <Input
                 placeholder="ระบุประเภทกิจกรรม เช่น จัดประชุม, ออกบูธ, อบรม, สัมมนา"
                 className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                maxLength={255}
                 readOnly={!!watch('originalAdvanceRequestId')}
                 {...register('advanceActivityType')}
               />
@@ -1010,6 +1012,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                             <Input
                               placeholder="ระบุรายละเอียด"
                               className="w-full text-base"
+                              maxLength={255}
                               {...register(`expenseClearingItems.${index}.otherDescription` as const, {
                                 required: watch(`expenseClearingItems.${index}.name`) === 'ค่าใช้จ่ายอื่น ๆ (โปรดระบุรายละเอียด)' ? 'กรุณาระบุรายละเอียด' : false
                               })}
@@ -1293,6 +1296,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
               placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
               className="form-input"
               rows={3}
+              maxLength={255}
               {...register('details')}
             />
           </div>
@@ -1307,6 +1311,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                 <Input
                   placeholder="ระบุชื่อบัญชีธนาคาร"
                   className={`form-input ${watch('originalAdvanceRequestId') ? 'bg-gray-200 cursor-not-allowed text-gray-500' : ''}`}
+                  maxLength={255}
                   readOnly={!!watch('originalAdvanceRequestId')}
                   {...register('bankAccountName', { required: 'กรุณาระบุชื่อบัญชี' })}
                 />

@@ -111,9 +111,8 @@ export function RevisionUploadModal({
         .update({
           attachment_url: JSON.stringify(allAttachments),
           status: returnStatus,
-          revision_note: null,
-          revision_requested_by: null,
-          revision_requested_at: null,
+          revision_completed: true,
+          revision_completed_at: new Date().toISOString(),
         } as any)
         .eq('id', requestId);
 

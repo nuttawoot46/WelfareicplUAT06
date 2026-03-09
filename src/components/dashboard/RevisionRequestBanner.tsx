@@ -33,31 +33,33 @@ export function RevisionRequestBanner() {
             คุณมี {revisionRequests.length} คำร้องที่ต้องแนบเอกสารเพิ่มเติม
           </h3>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {revisionRequests.map(req => (
             <div
               key={req.id}
-              className="flex items-center justify-between gap-3 bg-white rounded-md px-3 py-2.5 border border-amber-200"
+              className="bg-white rounded-md px-3 py-2.5 border border-amber-200"
             >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 truncate">
-                  คำร้อง #{req.id} — {getWelfareTypeLabel(req.type)}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800">
+                  เลขที่เอกสาร: {req.runNumber || `#${req.id}`} — {getWelfareTypeLabel(req.type)}
                   {req.amount ? ` (${Number(req.amount).toLocaleString('th-TH')} บาท)` : ''}
                 </p>
                 {req.revisionNote && (
-                  <p className="text-xs text-amber-700 mt-0.5 truncate">
+                  <p className="text-xs text-amber-700 mt-0.5">
                     หมายเหตุ: "{req.revisionNote}"
                   </p>
                 )}
               </div>
-              <Button
-                size="sm"
-                className="bg-amber-600 hover:bg-amber-700 flex-shrink-0"
-                onClick={() => setSelectedRequest(req)}
-              >
-                <Upload className="h-4 w-4 mr-1.5" />
-                แนบเอกสาร
-              </Button>
+              <div className="mt-2">
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 w-full sm:w-auto"
+                  onClick={() => setSelectedRequest(req)}
+                >
+                  <Upload className="h-4 w-4 mr-1.5" />
+                  แนบเอกสาร
+                </Button>
+              </div>
             </div>
           ))}
         </div>

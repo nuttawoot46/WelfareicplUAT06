@@ -110,7 +110,7 @@ export const HRApprovalPage = () => {
           if (req.type !== 'advance' && req.type !== 'expense-clearing') return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by HR (approved or rejected)
-          const processedStatuses = ['pending_accounting', 'pending_special_approval', 'approved', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval'];
+          const processedStatuses = ['pending_accounting', 'pending_special_approval', 'approved', 'rejected_hr', 'rejected_accounting', 'rejected_special_approval', 'pending_revision'];
           if (!processedStatuses.includes(req.status)) return false;
         }
 
@@ -518,6 +518,8 @@ export const HRApprovalPage = () => {
           revision_requested_by: 'hr',
           revision_note: revisionNote.trim(),
           revision_requested_at: new Date().toISOString(),
+          revision_completed: false,
+          revision_completed_at: null,
         } as any)
         .eq('id', revisionRequestId);
 
@@ -1120,17 +1122,26 @@ export const HRApprovalPage = () => {
                           <p className="font-semibold text-sm">{req.userName}</p>
                           <p className="text-xs text-muted-foreground">{req.userDepartment || '-'}</p>
                         </div>
-                        {req.status === 'pending_accounting' ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] shrink-0">รอบัญชี</Badge>
-                        ) : req.status === 'pending_special_approval' ? (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] shrink-0">รอผู้บริหาร</Badge>
-                        ) : req.status === 'completed' ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] shrink-0">เสร็จสมบูรณ์</Badge>
-                        ) : req.status?.includes('rejected') ? (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[10px] shrink-0">ปฏิเสธ</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] shrink-0">{req.status}</Badge>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                          {req.status === 'pending_accounting' ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] shrink-0">รอบัญชี</Badge>
+                          ) : req.status === 'pending_special_approval' ? (
+                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] shrink-0">รอผู้บริหาร</Badge>
+                          ) : req.status === 'pending_revision' ? (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] shrink-0">รอเอกสารเพิ่มเติม</Badge>
+                          ) : req.status === 'completed' ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] shrink-0">เสร็จสมบูรณ์</Badge>
+                          ) : req.status?.includes('rejected') ? (
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[10px] shrink-0">ปฏิเสธ</Badge>
+                          ) : req.status?.includes('pending') ? (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[10px] shrink-0">รอดำเนินการ</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] shrink-0">{req.status}</Badge>
+                          )}
+                          {(req as any).revision_completed && (
+                            <Badge variant="outline" className="text-[9px] bg-green-50 text-green-700 border-green-200 shrink-0">แนบเอกสารเรียบร้อย</Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <Badge variant="outline" className="text-[10px]">{getWelfareTypeLabel(req.type)}</Badge>
@@ -1204,35 +1215,52 @@ export const HRApprovalPage = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {req.status === 'pending_accounting' ? (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                Pending Accounting
-                              </Badge>
-                            ) : req.status === 'pending_special_approval' ? (
-                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                Pending Special Approval
-                              </Badge>
-                            ) : req.status === 'approved' ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                Approved
-                              </Badge>
-                            ) : req.status === 'rejected_hr' ? (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by HR
-                              </Badge>
-                            ) : req.status === 'rejected_accounting' ? (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by Accounting
-                              </Badge>
-                            ) : req.status === 'rejected_special_approval' ? (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Rejected by Special Approval
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">
-                                {req.status}
-                              </Badge>
-                            )}
+                            <div>
+                              {req.status === 'pending_accounting' ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  รอบัญชี
+                                </Badge>
+                              ) : req.status === 'pending_special_approval' ? (
+                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  รอผู้บริหาร
+                                </Badge>
+                              ) : req.status === 'pending_revision' ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                  รอเอกสารเพิ่มเติม
+                                </Badge>
+                              ) : req.status === 'completed' ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  อนุมัติแล้ว
+                                </Badge>
+                              ) : req.status === 'rejected_hr' ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  ปฏิเสธโดย HR
+                                </Badge>
+                              ) : req.status === 'rejected_accounting' ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  ปฏิเสธโดยบัญชี
+                                </Badge>
+                              ) : req.status === 'rejected_special_approval' ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  ปฏิเสธโดยผู้บริหาร
+                                </Badge>
+                              ) : req.status?.includes('rejected') ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                  ปฏิเสธ
+                                </Badge>
+                              ) : req.status?.includes('pending') ? (
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                                  รอดำเนินการ
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">
+                                  {req.status}
+                                </Badge>
+                              )}
+                              {(req as any).revision_completed && (
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {req.hrApprovedAt ? format(new Date(req.hrApprovedAt), 'PP') :
@@ -1331,28 +1359,33 @@ export const HRApprovalPage = () => {
                 <DialogHeader className="p-0 space-y-0">
                   <DialogTitle className="text-lg">{selectedRequest.userName} — {getWelfareTypeLabel(selectedRequest.type)}</DialogTitle>
                 </DialogHeader>
-                <Badge
-                  className={`text-sm px-3 py-1 ${
-                    selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
-                    selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                    selectedRequest.status === 'pending_special_approval' ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                    selectedRequest.status === 'pending_revision' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                    selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
-                    selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
-                    'bg-gray-100 text-gray-800 border-gray-300'
-                  }`}
-                  variant="outline"
-                >
-                  {selectedRequest.status === 'pending_hr' ? 'รอ HR' :
-                   selectedRequest.status === 'pending_accounting' ? 'รอบัญชี' :
-                   selectedRequest.status === 'pending_special_approval' ? 'รออนุมัติพิเศษ' :
-                   selectedRequest.status === 'approved' ? 'อนุมัติแล้ว' :
-                   selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
-                   selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
-                   selectedRequest.status === 'rejected_special_approval' ? 'ปฏิเสธโดยอนุมัติพิเศษ' :
-                   selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
-                   selectedRequest.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={`text-sm px-3 py-1 ${
+                      selectedRequest.status === 'pending_hr' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                      selectedRequest.status === 'pending_accounting' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      selectedRequest.status === 'pending_special_approval' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                      selectedRequest.status === 'pending_revision' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                      selectedRequest.status.includes('rejected') ? 'bg-red-100 text-red-800 border-red-300' :
+                      selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' :
+                      'bg-gray-100 text-gray-800 border-gray-300'
+                    }`}
+                    variant="outline"
+                  >
+                    {selectedRequest.status === 'pending_hr' ? 'รอ HR' :
+                     selectedRequest.status === 'pending_accounting' ? 'รอบัญชี' :
+                     selectedRequest.status === 'pending_special_approval' ? 'รออนุมัติพิเศษ' :
+                     selectedRequest.status === 'approved' ? 'อนุมัติแล้ว' :
+                     selectedRequest.status === 'rejected_hr' ? 'ปฏิเสธโดย HR' :
+                     selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                     selectedRequest.status === 'rejected_special_approval' ? 'ปฏิเสธโดยอนุมัติพิเศษ' :
+                     selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                     selectedRequest.status}
+                  </Badge>
+                  {(selectedRequest as any).revision_completed && (
+                    <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">แนบเอกสารเรียบร้อย</Badge>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span>แผนก: <strong className="text-foreground">{selectedRequest.userDepartment || selectedRequest.department_user || '-'}</strong></span>

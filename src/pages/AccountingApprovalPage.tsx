@@ -80,7 +80,7 @@ export const AccountingApprovalPage = () => {
           if (req.status !== 'pending_accounting') return false;
         } else if (activeTab === 'history') {
           // Show requests that have been processed by accounting
-          const processedStatuses = ['approved', 'rejected_accounting'];
+          const processedStatuses = ['approved', 'rejected_accounting', 'pending_revision'];
           if (!processedStatuses.includes(req.status)) return false;
         }
         
@@ -348,6 +348,8 @@ export const AccountingApprovalPage = () => {
           revision_requested_by: 'accounting',
           revision_note: revisionNote.trim(),
           revision_requested_at: new Date().toISOString(),
+          revision_completed: false,
+          revision_completed_at: null,
         } as any)
         .eq('id', revisionRequestId);
 
@@ -553,19 +555,28 @@ export const AccountingApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={
-                                request.status === 'approved' ? 'default' :
-                                request.status === 'pending_accounting' ? 'secondary' :
-                                request.status.includes('rejected') ? 'destructive' : 'secondary'
-                              }
-                            >
-                              {request.status === 'pending_accounting' ? 'รอบัญชี' :
-                               request.status === 'approved' ? 'อนุมัติ' :
-                               request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
-                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
-                               request.status}
-                            </Badge>
+                            <div>
+                              <Badge
+                                variant={
+                                  request.status === 'completed' ? 'default' :
+                                  request.status === 'pending_accounting' ? 'secondary' :
+                                  request.status === 'pending_revision' ? 'outline' :
+                                  request.status.includes('rejected') ? 'destructive' : 'secondary'
+                                }
+                                className={request.status === 'pending_revision' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                              >
+                                {request.status === 'pending_accounting' ? 'รอบัญชี' :
+                                 request.status === 'completed' ? 'อนุมัติแล้ว' :
+                                 request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                                 request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                                 request.status.includes('rejected') ? 'ปฏิเสธ' :
+                                 request.status.includes('pending') ? 'รอดำเนินการ' :
+                                 request.status}
+                              </Badge>
+                              {(request as any).revision_completed && (
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {request.pdfUrl ? (
@@ -733,17 +744,26 @@ export const AccountingApprovalPage = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={
-                                request.status === 'approved' ? 'default' :
-                                request.status.includes('rejected') ? 'destructive' : 'secondary'
-                              }
-                            >
-                              {request.status === 'approved' ? 'อนุมัติ' :
-                               request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
-                               request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
-                               request.status}
-                            </Badge>
+                            <div>
+                              <Badge
+                                variant={
+                                  request.status === 'completed' ? 'default' :
+                                  request.status === 'pending_revision' ? 'outline' :
+                                  request.status.includes('rejected') ? 'destructive' : 'secondary'
+                                }
+                                className={request.status === 'pending_revision' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                              >
+                                {request.status === 'completed' ? 'อนุมัติแล้ว' :
+                                 request.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                                 request.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                                 request.status.includes('rejected') ? 'ปฏิเสธ' :
+                                 request.status.includes('pending') ? 'รอดำเนินการ' :
+                                 request.status}
+                              </Badge>
+                              {(request as any).revision_completed && (
+                                <Badge variant="outline" className="ml-1 text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {request.pdfUrl ? (
@@ -817,7 +837,27 @@ export const AccountingApprovalPage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium">สถานะ</label>
-                  <Badge variant="outline">{selectedRequest.status}</Badge>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Badge
+                      variant="outline"
+                      className={
+                        selectedRequest.status === 'pending_accounting' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                        selectedRequest.status === 'pending_revision' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                        selectedRequest.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                        selectedRequest.status.includes('rejected') ? 'bg-red-50 text-red-700 border-red-200' :
+                        ''
+                      }
+                    >
+                      {selectedRequest.status === 'pending_accounting' ? 'รอบัญชี' :
+                       selectedRequest.status === 'pending_revision' ? 'รอเอกสารเพิ่มเติม' :
+                       selectedRequest.status === 'completed' ? 'อนุมัติแล้ว' :
+                       selectedRequest.status === 'rejected_accounting' ? 'ปฏิเสธโดยบัญชี' :
+                       selectedRequest.status}
+                    </Badge>
+                    {(selectedRequest as any).revision_completed && (
+                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">แนบเอกสารเรียบร้อย</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               {selectedRequest.details && (

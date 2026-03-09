@@ -17,9 +17,6 @@ const AccountingDashboard = () => {
 
   return (
     <Layout>
-      {/* Revision Request Banner - show when employee has pending revision requests */}
-      <RevisionRequestBanner />
-
       {/* Employee's Remaining Budget Card - Only show for employees */}
       {user?.role === 'employee' && (
         <div className="mb-8">
@@ -35,6 +32,9 @@ const AccountingDashboard = () => {
       <div className="mb-10">
         <AccountingStatusCards />
       </div>
+
+      {/* Revision Request Banner - show below status cards */}
+      <RevisionRequestBanner />
 
       {user?.role === 'employee' && (
         <div className="mb-8 flex justify-center">

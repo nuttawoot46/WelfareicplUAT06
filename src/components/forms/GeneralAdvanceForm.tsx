@@ -1277,6 +1277,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
               placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
               className="form-input"
               rows={3}
+              maxLength={255}
               {...register('details')}
             />
           </div>
@@ -1291,6 +1292,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                 <Input
                   placeholder="ระบุชื่อบัญชีธนาคาร"
                   className="form-input"
+                  maxLength={255}
                   {...register('bankAccountName', {
                     required: 'กรุณาระบุชื่อบัญชี'
                   })}

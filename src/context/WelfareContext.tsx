@@ -201,6 +201,8 @@ export const WelfareProvider: React.FC<{ children: React.ReactNode }> = ({ child
               revisionRequestedBy: row.revision_requested_by,
               revisionNote: row.revision_note,
               revisionRequestedAt: row.revision_requested_at,
+              revision_completed: row.revision_completed,
+              revision_completed_at: row.revision_completed_at,
               // PDF fields
               pdfUrl: row.pdf_url,
               pdf_url: row.pdf_url,

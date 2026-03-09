@@ -610,9 +610,16 @@ export type CompositeTypes<
 export type StatusType =
   | 'pending_manager'
   | 'pending_accounting'
+  | 'pending_executive'
+  | 'pending_hr'
+  | 'pending_special_approval'
+  | 'pending_revision'
   | 'completed'
   | 'rejected_manager'
-  | 'rejected_accounting';
+  | 'rejected_accounting'
+  | 'rejected_executive'
+  | 'rejected_hr'
+  | 'rejected_special_approval';
 
 export const Constants = {
   public: {
