@@ -350,15 +350,305 @@ function createFlexMessage(
   }
 }
 
+// สร้าง Flex Message สำหรับแจ้งการชำระเงินจากลูกค้า
+function createPaymentNotificationFlexMessage(
+  runNumber: string,
+  customerName: string,
+  amount: number,
+  _paymentCondition: string,
+  paymentType: string,
+  documentNumbers: string[],
+  userName: string,
+  _team: string,
+  _requestDate?: string
+) {
+  const primaryBlue = "#004F9F"
+  const successGreen = "#06C755"
+
+  const docNoText = documentNumbers.length > 0
+    ? documentNumbers.join(", ")
+    : "-"
+
+  return {
+    type: "flex",
+    altText: `💰 แจ้งชำระเงิน ${runNumber} - ${customerName} ฿${amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ICP Welfare System",
+                    color: "#FFFFFF",
+                    size: "xs",
+                    weight: "bold",
+                  },
+                ],
+                flex: 4,
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "image",
+                    url: `${FRONTEND_URL}/Logo_ICPL.png`,
+                    size: "40px",
+                    aspectMode: "fit",
+                    aspectRatio: "1:1",
+                  },
+                ],
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "flex-end",
+              },
+            ],
+          },
+          {
+            type: "text",
+            text: "แจ้งชำระเงิน",
+            color: "#FFFFFF",
+            size: "xl",
+            weight: "bold",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: runNumber || "-",
+            color: "#B3D4FC",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+        backgroundColor: primaryBlue,
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          // Status Badge
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "✅ ส่งแจ้งชำระเงินเรียบร้อย",
+                    size: "sm",
+                    color: successGreen,
+                    weight: "bold",
+                    align: "center",
+                  },
+                ],
+                backgroundColor: "#ECFDF5",
+                cornerRadius: "xl",
+                paddingAll: "8px",
+                paddingStart: "12px",
+                paddingEnd: "12px",
+              },
+            ],
+            margin: "none",
+          },
+          // Separator
+          {
+            type: "separator",
+            margin: "lg",
+          },
+          // Detail rows
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              // ผู้แจ้ง
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ผู้แจ้ง:",
+                    size: "sm",
+                    color: "#666666",
+                    flex: 3,
+                  },
+                  {
+                    type: "text",
+                    text: userName || "-",
+                    size: "sm",
+                    color: "#333333",
+                    weight: "bold",
+                    flex: 7,
+                    align: "end",
+                  },
+                ],
+              },
+              // ชื่อร้าน
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ชื่อร้าน:",
+                    size: "sm",
+                    color: "#666666",
+                    flex: 3,
+                  },
+                  {
+                    type: "text",
+                    text: customerName || "-",
+                    size: "sm",
+                    color: "#333333",
+                    weight: "bold",
+                    flex: 7,
+                    align: "end",
+                    wrap: true,
+                  },
+                ],
+              },
+              // เลขที่เอกสาร
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "เลขที่เอกสาร:",
+                    size: "sm",
+                    color: "#666666",
+                    flex: 4,
+                  },
+                  {
+                    type: "text",
+                    text: docNoText,
+                    size: "sm",
+                    color: "#333333",
+                    weight: "bold",
+                    flex: 6,
+                    align: "end",
+                    wrap: true,
+                  },
+                ],
+              },
+              // จำนวนเงิน
+              {
+                type: "box",
+                layout: "horizontal",
+                margin: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "จำนวนเงิน:",
+                    size: "sm",
+                    color: "#666666",
+                    flex: 4,
+                  },
+                  {
+                    type: "text",
+                    text: `฿${amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}`,
+                    size: "md",
+                    color: primaryBlue,
+                    weight: "bold",
+                    flex: 6,
+                    align: "end",
+                  },
+                ],
+              },
+              // ประเภท
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ประเภท:",
+                    size: "sm",
+                    color: "#666666",
+                    flex: 3,
+                  },
+                  {
+                    type: "text",
+                    text: paymentType || "-",
+                    size: "sm",
+                    color: "#333333",
+                    flex: 7,
+                    align: "end",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            action: {
+              type: "uri",
+              label: "📋 ดูรายการแจ้งชำระ",
+              uri: `${FRONTEND_URL}/payment-notification-list`,
+            },
+            style: "primary",
+            color: primaryBlue,
+            height: "sm",
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                text: "ICP Ladda Co., Ltd.",
+                size: "xxs",
+                color: "#AAAAAA",
+                align: "center",
+              },
+            ],
+            margin: "md",
+          },
+        ],
+        paddingAll: "15px",
+        backgroundColor: "#F8FAFC",
+      },
+    },
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
 
   try {
-    const { employeeEmail, type, status, amount, userName, remainingBudget, requestDate } = await req.json()
+    const {
+      employeeEmail, type, status, amount, userName, remainingBudget, requestDate,
+      // Payment notification fields
+      customerName, paymentCondition, paymentType, documentNumbers, runNumber, team,
+    } = await req.json()
 
-    if (!employeeEmail || !type || !status) {
+    if (!employeeEmail || !type) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -380,8 +670,23 @@ serve(async (req) => {
       )
     }
 
-    // ส่ง Flex Message
-    const message = createFlexMessage(type, status, amount || 0, userName || "", remainingBudget, requestDate)
+    // สร้าง Flex Message ตามประเภท
+    let message
+    if (type === "payment-notification") {
+      message = createPaymentNotificationFlexMessage(
+        runNumber || "-",
+        customerName || "-",
+        amount || 0,
+        paymentCondition || "-",
+        paymentType || "-",
+        documentNumbers || [],
+        userName || "",
+        team || "",
+        requestDate
+      )
+    } else {
+      message = createFlexMessage(type, status, amount || 0, userName || "", remainingBudget, requestDate)
+    }
 
     const pushResponse = await fetch("https://api.line.me/v2/bot/message/push", {
       method: "POST",

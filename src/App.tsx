@@ -38,6 +38,8 @@ import UserGuidePage from "./pages/UserGuidePage";
 import LineCallbackPage from "./pages/auth/LineCallbackPage";
 import { ActivityHistoryPage } from "./pages/ActivityHistoryPage";
 import TestPDFPage from "./pages/TestPDFPage";
+import { PaymentNotificationPage } from "./pages/PaymentNotificationPage";
+import { PaymentNotificationListPage } from "./pages/PaymentNotificationListPage";
 
 
 // Import หน้าอื่นๆ ของคุณตามต้องการ
@@ -267,6 +269,22 @@ const App = () => (
                   <Route path="/auth/line/callback" element={
                     <ProtectedRoute>
                       <LineCallbackPage />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Payment Notification (แจ้งการชำระเงินจากลูกค้า) */}
+                  <Route path="/payment-notification" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <PaymentNotificationPage />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/payment-notification-list" element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <PaymentNotificationListPage />
+                      </MainLayout>
                     </ProtectedRoute>
                   } />
 

@@ -25,7 +25,9 @@ import {
   Activity,
   HelpCircle,
   Layout,
-  BookOpen
+  BookOpen,
+  Banknote,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -40,6 +42,7 @@ export function Sidebar() {
   const isAdmin = userRole === 'admin';
   const isSuperAdmin = userRole === 'superadmin';
   const [isExecutive, setIsExecutive] = useState(false);
+  const [hasSalesZone, setHasSalesZone] = useState(false);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
 
@@ -111,6 +114,29 @@ export function Sidebar() {
       }
     };
     checkExecutiveStatus();
+  }, [profile?.employee_id]);
+
+  // Check if user has sales_zone (sales team)
+  useEffect(() => {
+    const checkSalesZone = async () => {
+      if (!profile?.employee_id) return;
+      try {
+        const { data, error } = await (supabase
+          .from('Employee')
+          .select('sales_zone') as any)
+          .eq('id', profile.employee_id)
+          .single();
+
+        if (!error && data && data.sales_zone) {
+          setHasSalesZone(true);
+        } else {
+          setHasSalesZone(false);
+        }
+      } catch {
+        setHasSalesZone(false);
+      }
+    };
+    checkSalesZone();
   }, [profile?.employee_id]);
 
   return (
@@ -314,6 +340,53 @@ export function Sidebar() {
           </div>
 
 
+
+          {/* Payment Notification - แจ้งการชำระเงินจากลูกค้า */}
+          {(hasSalesZone || userRole === 'accounting' || userRole === 'accountingandmanager' || userRole === 'admin' || isSuperAdmin) && (
+            <div className="relative">
+              <div
+                className={cn(
+                  "nav-link group cursor-pointer",
+                  isSubmenuActive(['/payment-notification']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                )}
+                onClick={() => isOpen && toggleSubmenu('paymentNotification')}
+                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, paymentNotification: true }))}
+                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, paymentNotification: false }))}
+              >
+                <Banknote className="h-5 w-5 flex-shrink-0" />
+                {isOpen && (
+                  <>
+                    <span className="transition-all duration-300 text-white font-medium">แจ้งชำระเงิน</span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      openSubmenus.paymentNotification && "rotate-180"
+                    )} />
+                  </>
+                )}
+              </div>
+
+              {(openSubmenus.paymentNotification || !isOpen) && (
+                <div className={cn(
+                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                )}>
+                  <Link to="/payment-notification" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <Plus className="h-4 w-4" />
+                    <span>แจ้งชำระเงินใหม่</span>
+                  </Link>
+                  <Link to="/payment-notification-list" className={cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    <span>รายการแจ้งชำระเงิน</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Approval Page */}
           {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (

@@ -99,6 +99,12 @@ export async function sendLineNotification(params: {
   runNumber?: string;
   remainingBudget?: number;
   requestDate?: string;
+  // Payment notification fields
+  customerName?: string;
+  paymentCondition?: string;
+  paymentType?: string;
+  documentNumbers?: string[];
+  team?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/line-notify`, {
     method: 'POST',

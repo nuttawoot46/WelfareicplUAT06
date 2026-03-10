@@ -571,3 +571,50 @@ export interface CreateAuditLogData {
   metadata?: Record<string, any>;
   department?: string;
 }
+
+// Payment Notification Types (แจ้งการชำระเงินจากลูกค้า)
+export type PaymentCondition = 'เช็คฝากล่วงหน้า' | 'เครดิต' | 'เงินสด' | 'โอนเงิน';
+export type PaymentType = 'เช็ค' | 'โอนเงิน' | 'เงินสด';
+
+export interface PaymentNotification {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_email?: string;
+  team?: string;
+  run_number?: string;
+
+  payment_date: string;
+  payment_condition: PaymentCondition;
+  payment_type: PaymentType;
+  customer_name: string;
+  customer_no?: string;
+  amount: number;
+
+  transfer_date?: string;
+  check_date?: string;
+
+  document_numbers: { value: string }[];
+  late_payment_days: number;
+
+  attachment_urls: string[];
+  notes?: string;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentNotificationFormValues {
+  paymentDate: string;
+  paymentCondition: PaymentCondition;
+  paymentType: PaymentType;
+  customerName: string;
+  customerNo?: string;
+  salesTeam: string;
+  department: string;
+  amount: string;
+  transferDate?: string;
+  checkDate?: string;
+  documentNumbers: { value: string }[];
+  notes?: string;
+}
