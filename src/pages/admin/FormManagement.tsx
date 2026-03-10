@@ -26,6 +26,8 @@ const formLabels: Record<string, { title: string; category: string }> = {
   'general-advance': { title: 'เบิกเงินล่วงหน้า (ทั่วไป)', category: 'บัญชี' },
   'expense-clearing': { title: 'เคลียร์ค่าใช้จ่าย (ฝ่ายขาย)', category: 'บัญชี' },
   'general-expense-clearing': { title: 'เคลียร์ค่าใช้จ่าย (ทั่วไป)', category: 'บัญชี' },
+  // Payment Notification forms
+  'payment-notification': { title: 'แจ้งการชำระเงินจากลูกค้า', category: 'แจ้งชำระเงิน' },
 };
 
 // Component for each form item with role selection
@@ -201,6 +203,7 @@ export function FormManagement() {
   const welfareForms = forms.filter(f => formLabels[f.form_type]?.category === 'สวัสดิการ');
   const employmentForms = forms.filter(f => formLabels[f.form_type]?.category === 'ขออนุมัติจ้างงาน');
   const accountingForms = forms.filter(f => formLabels[f.form_type]?.category === 'บัญชี');
+  const paymentForms = forms.filter(f => formLabels[f.form_type]?.category === 'แจ้งชำระเงิน');
 
   if (loading) {
     return (
@@ -279,6 +282,25 @@ export function FormManagement() {
         <CardContent>
           <div className="space-y-4">
             {accountingForms.map((form) => (
+              <FormItem
+                key={form.id}
+                form={form}
+                onToggle={handleToggle}
+                onRolesChange={handleRolesChange}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>ฟอร์มแจ้งชำระเงิน</CardTitle>
+          <CardDescription>จัดการการแสดงฟอร์มแจ้งการชำระเงินจากลูกค้า รวมถึงกำหนดว่า Role ใดสามารถเห็นฟอร์มได้</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {paymentForms.map((form) => (
               <FormItem
                 key={form.id}
                 form={form}
