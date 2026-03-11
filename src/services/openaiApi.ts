@@ -1,3 +1,138 @@
+export interface SlipAnalysisResult {
+  sender: string;       // ผู้โอน
+  receiver: string;     // ผู้รับ
+  amount: string;       // จำนวนเงิน
+  transferDate: string; // วันที่โอน
+}
+
+export const analyzeSlipImage = async (base64Image: string): Promise<SlipAnalysisResult> => {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'คุณเป็นผู้เชี่ยวชาญในการอ่านสลิปโอนเงินธนาคารไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'อ่านสลิปโอนเงินนี้แล้วตอบเป็น JSON format ดังนี้:\n{"sender":"ชื่อผู้โอน","receiver":"ชื่อผู้รับ","amount":"จำนวนเงิน","transferDate":"วันที่โอน"}\n\nถ้าอ่านไม่ได้หรือไม่มีข้อมูลให้ใส่ "-"'
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+                detail: 'high'
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.1,
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI Vision API Error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content?.trim();
+
+  if (!content) {
+    throw new Error('No content from OpenAI Vision API');
+  }
+
+  // Parse JSON — ลอง extract JSON จาก response
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Could not parse JSON from response');
+  }
+
+  return JSON.parse(jsonMatch[0]) as SlipAnalysisResult;
+};
+
+export interface SenderMatchResult {
+  matches: boolean;
+  matchedName: string | null;
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+}
+
+export const compareSlipSender = async (
+  senderName: string,
+  customerName: string,
+  contactName?: string
+): Promise<SenderMatchResult> => {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const namesToCompare = contactName
+    ? `1. "${customerName}" (ชื่อบริษัท/ลูกค้า)\n2. "${contactName}" (ชื่อกรรมการบริษัท)`
+    : `1. "${customerName}" (ชื่อบริษัท/ลูกค้า)`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'คุณเป็นผู้เชี่ยวชาญในการเปรียบเทียบชื่อภาษาไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
+        },
+        {
+          role: 'user',
+          content: `เปรียบเทียบชื่อผู้โอนเงินจากสลิป: "${senderName}"\nกับรายชื่อต่อไปนี้:\n${namesToCompare}\n\nพิจารณาว่าชื่อผู้โอนตรงกับชื่อใดหรือไม่ โดยอนุโลมชื่อย่อ คำนำหน้า (บริษัท, จำกัด, นาย, นาง, น.ส.) และตัวสะกดที่ใกล้เคียง\n\nตอบเป็น JSON: {"matches":true/false,"matchedName":"ชื่อที่ตรง หรือ null","confidence":"high/medium/low","reason":"เหตุผลสั้นๆ"}`
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.1,
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API Error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content?.trim();
+
+  if (!content) {
+    throw new Error('No content from OpenAI API');
+  }
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Could not parse comparison result');
+  }
+
+  return JSON.parse(jsonMatch[0]) as SenderMatchResult;
+};
+
 export type OpenAIModel =
   | 'gpt-5'
   | 'gpt-5-mini'
