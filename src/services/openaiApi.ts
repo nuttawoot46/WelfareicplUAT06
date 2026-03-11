@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Helper: เรียก OpenAI ผ่าน Supabase Edge Function (แก้ CORS)
 const callOpenAIProxy = async (body: {
@@ -7,13 +8,21 @@ const callOpenAIProxy = async (body: {
   max_tokens?: number;
   temperature?: number;
 }) => {
-  const { data, error } = await supabase.functions.invoke('openai-proxy', {
-    body,
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/openai-proxy`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(body),
   });
 
-  if (error) {
-    throw new Error(`Edge Function Error: ${error.message}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Edge Function Error: ${response.status} - ${errorText}`);
   }
+
+  const data = await response.json();
 
   if (data?.error) {
     throw new Error(data.error);
