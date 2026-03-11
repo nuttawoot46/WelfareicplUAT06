@@ -1,3 +1,27 @@
+import { supabase } from '@/lib/supabase';
+
+// Helper: เรียก OpenAI ผ่าน Supabase Edge Function (แก้ CORS)
+const callOpenAIProxy = async (body: {
+  messages: any[];
+  model?: string;
+  max_tokens?: number;
+  temperature?: number;
+}) => {
+  const { data, error } = await supabase.functions.invoke('openai-proxy', {
+    body,
+  });
+
+  if (error) {
+    throw new Error(`Edge Function Error: ${error.message}`);
+  }
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
+};
+
 export interface SlipAnalysisResult {
   sender: string;       // ผู้โอน
   receiver: string;     // ผู้รับ
@@ -6,53 +30,34 @@ export interface SlipAnalysisResult {
 }
 
 export const analyzeSlipImage = async (base64Image: string): Promise<SlipAnalysisResult> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'คุณเป็นผู้เชี่ยวชาญในการอ่านสลิปโอนเงินธนาคารไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'อ่านสลิปโอนเงินนี้แล้วตอบเป็น JSON format ดังนี้:\n{"sender":"ชื่อผู้โอน","receiver":"ชื่อผู้รับ","amount":"จำนวนเงิน","transferDate":"วันที่โอน"}\n\nถ้าอ่านไม่ได้หรือไม่มีข้อมูลให้ใส่ "-"'
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
-                detail: 'high'
-              }
+  const result = await callOpenAIProxy({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'คุณเป็นผู้เชี่ยวชาญในการอ่านสลิปโอนเงินธนาคารไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'อ่านสลิปโอนเงินนี้แล้วตอบเป็น JSON format ดังนี้:\n{"sender":"ชื่อผู้โอน","receiver":"ชื่อผู้รับ","amount":"จำนวนเงิน","transferDate":"วันที่โอน"}\n\nถ้าอ่านไม่ได้หรือไม่มีข้อมูลให้ใส่ "-"'
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`,
+              detail: 'high'
             }
-          ]
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.1,
-    })
+          }
+        ]
+      }
+    ],
+    max_tokens: 500,
+    temperature: 0.1,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI Vision API Error: ${response.status} - ${errorText}`);
-  }
-
-  const result = await response.json();
   const content = result.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
@@ -80,45 +85,26 @@ export const compareSlipSender = async (
   customerName: string,
   contactName?: string
 ): Promise<SenderMatchResult> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
-
   const namesToCompare = contactName
     ? `1. "${customerName}" (ชื่อบริษัท/ลูกค้า)\n2. "${contactName}" (ชื่อกรรมการบริษัท)`
     : `1. "${customerName}" (ชื่อบริษัท/ลูกค้า)`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'คุณเป็นผู้เชี่ยวชาญในการเปรียบเทียบชื่อภาษาไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
-        },
-        {
-          role: 'user',
-          content: `เปรียบเทียบชื่อผู้โอนเงินจากสลิป: "${senderName}"\nกับรายชื่อต่อไปนี้:\n${namesToCompare}\n\nพิจารณาว่าชื่อผู้โอนตรงกับชื่อใดหรือไม่ โดยอนุโลมชื่อย่อ คำนำหน้า (บริษัท, จำกัด, นาย, นาง, น.ส.) และตัวสะกดที่ใกล้เคียง\n\nตอบเป็น JSON: {"matches":true/false,"matchedName":"ชื่อที่ตรง หรือ null","confidence":"high/medium/low","reason":"เหตุผลสั้นๆ"}`
-        }
-      ],
-      max_tokens: 200,
-      temperature: 0.1,
-    })
+  const result = await callOpenAIProxy({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'คุณเป็นผู้เชี่ยวชาญในการเปรียบเทียบชื่อภาษาไทย ให้ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบายเพิ่มเติม'
+      },
+      {
+        role: 'user',
+        content: `เปรียบเทียบชื่อผู้โอนเงินจากสลิป: "${senderName}"\nกับรายชื่อต่อไปนี้:\n${namesToCompare}\n\nพิจารณาว่าชื่อผู้โอนตรงกับชื่อใดหรือไม่ โดยอนุโลมชื่อย่อ คำนำหน้า (บริษัท, จำกัด, นาย, นาง, น.ส.) และตัวสะกดที่ใกล้เคียง\n\nตอบเป็น JSON: {"matches":true/false,"matchedName":"ชื่อที่ตรง หรือ null","confidence":"high/medium/low","reason":"เหตุผลสั้นๆ"}`
+      }
+    ],
+    max_tokens: 200,
+    temperature: 0.1,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API Error: ${response.status} - ${errorText}`);
-  }
-
-  const result = await response.json();
   const content = result.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
@@ -157,12 +143,6 @@ interface GenerateAnnouncementHtmlRequest {
 export const generateAnnouncementHtmlWithAI = async (
   data: GenerateAnnouncementHtmlRequest
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
-
   const priorityLabels = {
     high: 'สำคัญมาก',
     medium: 'ปานกลาง',
@@ -218,75 +198,37 @@ ${data.youtube_embed_url ? '9. ฝัง YouTube video แบบ responsive (16:
     // Models ที่รองรับ temperature แบบปรับได้ (ไม่ใช่ o1 และ GPT-5)
     const supportsCustomTemperature = !isO1Model && !isGPT5Model;
 
-    const requestBody: any = {
+    const messages = isO1Model
+      ? [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+      : [
+        {
+          role: 'system',
+          content: 'คุณเป็นผู้เชี่ยวชาญด้านการออกแบบ HTML/CSS ของบริษัท ICP Ladda Co., Ltd. สร้างหน้าเว็บที่สวยงาม ทันสมัย โดยใช้สีน้ำเงิน #004F9F เป็นสีหลักเสมอ ฟอนต์ Kanit สำหรับหัวข้อ และ Sarabun สำหรับเนื้อหา'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+    const maxTokens = isNewModel ? 16000 : 4000;
+    const temperature = supportsCustomTemperature ? 0.7 : undefined;
+
+    console.log('Sending request to OpenAI via Edge Function with model:', selectedModel);
+
+    const result = await callOpenAIProxy({
       model: selectedModel,
-      messages: isO1Model
-        ? [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-        : [
-          {
-            role: 'system',
-            content: 'คุณเป็นผู้เชี่ยวชาญด้านการออกแบบ HTML/CSS ของบริษัท ICP Ladda Co., Ltd. สร้างหน้าเว็บที่สวยงาม ทันสมัย โดยใช้สีน้ำเงิน #004F9F เป็นสีหลักเสมอ ฟอนต์ Kanit สำหรับหัวข้อ และ Sarabun สำหรับเนื้อหา'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-    };
-
-    // เพิ่ม temperature เฉพาะ models ที่รองรับการปรับค่า
-    // o1 series: ไม่รองรับ temperature
-    // GPT-5 series: รองรับเฉพาะค่า default (1) เท่านั้น
-    if (supportsCustomTemperature) {
-      requestBody.temperature = 0.7;
-    }
-
-    // ใช้ max_completion_tokens สำหรับ models ใหม่, max_tokens สำหรับ models เก่า
-    // สำหรับ GPT-5 และ o1 ที่มี reasoning tokens ต้องเพิ่ม tokens ให้มากขึ้น
-    if (isNewModel) {
-      // GPT-5 และ o1 ใช้ reasoning tokens มาก ต้องเพิ่ม max_completion_tokens
-      requestBody.max_completion_tokens = 16000; // เพิ่มเป็น 16000 เพื่อให้มี tokens เหลือสำหรับ output
-    } else {
-      requestBody.max_tokens = 4000;
-    }
-
-    console.log('Sending request to OpenAI with model:', selectedModel);
-    console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(requestBody)
+      messages,
+      max_tokens: maxTokens,
+      temperature,
     });
 
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API Error Response:', errorText);
-
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error.error?.message || `API Error: ${response.status} - ${errorText}`);
-      } catch (parseError) {
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-    }
-
-    const result = await response.json();
     console.log('OpenAI API Response:', result);
-    console.log('Choices:', result.choices);
-    console.log('First choice:', result.choices?.[0]);
-    console.log('Message:', result.choices?.[0]?.message);
-    console.log('Content:', result.choices?.[0]?.message?.content);
 
     // ตรวจสอบว่ามี choices และ message
     if (!result.choices || !result.choices[0] || !result.choices[0].message) {
@@ -300,9 +242,7 @@ ${data.youtube_embed_url ? '9. ฝัง YouTube video แบบ responsive (16:
     // GPT-5 อาจส่ง content ในรูปแบบอื่น เช่น refusal หรือ text
     if (!html) {
       console.error('No content in message:', message);
-      console.error('Complete response:', JSON.stringify(result, null, 2));
 
-      // ตรวจสอบว่ามี refusal หรือไม่
       if (message.refusal) {
         throw new Error(`Model refused to generate: ${message.refusal}`);
       }
