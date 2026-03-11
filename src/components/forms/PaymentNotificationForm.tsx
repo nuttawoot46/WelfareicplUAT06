@@ -474,6 +474,7 @@ export function PaymentNotificationForm({ onBack }: PaymentNotificationFormProps
         paymentType: data.paymentType,
         documentNumbers: validDocs,
         team: employeeData.sales_zone || employeeData.Team || '',
+        attachmentUrls: files.length > 0 ? files : undefined,
       }).catch(() => {});
 
       toast({ title: 'สำเร็จ', description: 'แจ้งการชำระเงินเรียบร้อยแล้ว' });

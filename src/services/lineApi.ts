@@ -105,6 +105,7 @@ export async function sendLineNotification(params: {
   paymentType?: string;
   documentNumbers?: string[];
   team?: string;
+  attachmentUrls?: string[];
 }): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/line-notify`, {
     method: 'POST',

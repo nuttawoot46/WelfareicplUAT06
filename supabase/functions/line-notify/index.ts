@@ -360,7 +360,8 @@ function createPaymentNotificationFlexMessage(
   documentNumbers: string[],
   userName: string,
   _team: string,
-  _requestDate?: string
+  _requestDate?: string,
+  attachmentUrls?: string[]
 ) {
   const primaryBlue = "#004F9F"
   const successGreen = "#06C755"
@@ -603,6 +604,20 @@ function createPaymentNotificationFlexMessage(
         type: "box",
         layout: "vertical",
         contents: [
+          // Attachment buttons (up to 3)
+          ...(attachmentUrls && attachmentUrls.length > 0
+            ? attachmentUrls.slice(0, 3).map((url: string, idx: number) => ({
+                type: "button" as const,
+                action: {
+                  type: "uri" as const,
+                  label: `📎 เอกสารแนบ #${idx + 1}`,
+                  uri: url,
+                },
+                style: "secondary" as const,
+                height: "sm" as const,
+                margin: idx === 0 ? "none" as const : "sm" as const,
+              }))
+            : []),
           {
             type: "button",
             action: {
@@ -613,6 +628,7 @@ function createPaymentNotificationFlexMessage(
             style: "primary",
             color: primaryBlue,
             height: "sm",
+            margin: attachmentUrls && attachmentUrls.length > 0 ? "sm" : "none",
           },
           {
             type: "box",
@@ -646,6 +662,7 @@ serve(async (req) => {
       employeeEmail, type, status, amount, userName, remainingBudget, requestDate,
       // Payment notification fields
       customerName, paymentCondition, paymentType, documentNumbers, runNumber, team,
+      attachmentUrls,
     } = await req.json()
 
     if (!employeeEmail || !type) {
@@ -682,7 +699,8 @@ serve(async (req) => {
         documentNumbers || [],
         userName || "",
         team || "",
-        requestDate
+        requestDate,
+        attachmentUrls || []
       )
     } else {
       message = createFlexMessage(type, status, amount || 0, userName || "", remainingBudget, requestDate)
