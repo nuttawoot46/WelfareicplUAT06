@@ -374,47 +374,26 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
         const zoneCode = employeeData?.sales_zone || null;
         console.log('🔍 Fetching dealer list for zone:', zoneCode || 'ALL');
 
-        // Try RPC function first with zone filter
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_dealer_list' as any, {
-          p_zone_code: zoneCode
-        });
-
-        if (!rpcError && rpcData && isMounted) {
-          console.log('✅ Dealer list loaded via RPC:', rpcData.length, 'dealers for zone:', zoneCode || 'ALL');
-          setDealerList(rpcData.map((d: any) => ({
-            No: d['No.'] || d.No || '',
-            Name: d.Name || '',
-            City: d.City || '',
-            County: d.County || ''
-          })));
-          return;
-        }
-
-        if (rpcError) {
-          console.warn('⚠️ RPC function not available, trying direct query:', rpcError.message);
-        }
-
-        // Fallback: Direct query with zone filter
         let query = supabase
-          .from('data_dealer' as any)
-          .select('*');
+          .from('customer_active' as any)
+          .select('cus_name1, cus_city, county');
 
         if (zoneCode) {
-          query = query.eq('ZoneCode', zoneCode);
+          query = query.eq('zone_code', zoneCode);
         }
 
-        const { data, error } = await query.order('Name', { ascending: true });
+        const { data, error } = await query.order('cus_name1', { ascending: true });
 
         if (!error && data && isMounted) {
-          console.log('✅ Dealer list loaded via direct query:', data.length, 'dealers');
+          console.log('✅ Dealer list loaded:', data.length, 'dealers for zone:', zoneCode || 'ALL');
           setDealerList(data.map((d: any) => ({
-            No: d['No.'] || '',
-            Name: d.Name || '',
-            City: d.City || '',
-            County: d.County || ''
+            No: '',
+            Name: d.cus_name1 || '',
+            City: d.cus_city || '',
+            County: d.county || ''
           })));
         } else if (error) {
-          console.warn('⚠️ Dealer table not available:', error.message);
+          console.warn('⚠️ customer_active table not available:', error.message);
           if (isMounted) {
             setDealerList([]);
           }
@@ -1682,9 +1661,9 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-welfare-blue/10 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
-                    <td className="border border-gray-300 px-2 py-2 text-right">
+                  <tr className="font-semibold">
+                    <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50" colSpan={3}>รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 text-right bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1696,7 +1675,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-right">
+                    <td className="border border-gray-300 px-2 py-2 text-right bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1708,7 +1687,7 @@ export function AdvanceForm({ onBack, editId }: AdvanceFormProps) {
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
+                    <td className="border border-gray-300 px-2 py-2 bg-blue-50"></td>
                   </tr>
                 </tbody>
               </table>

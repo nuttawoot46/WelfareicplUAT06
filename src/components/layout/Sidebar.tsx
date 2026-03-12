@@ -9,8 +9,6 @@ import {
   CheckSquare,
   Bell,
   HomeIcon,
-  Menu,
-  X,
   Users,
   ShieldCheck,
   FileText,
@@ -19,7 +17,6 @@ import {
   ChevronRight,
   UserPlus,
   BarChart3,
-  Crown,
   Database,
   Shield,
   Activity,
@@ -30,34 +27,23 @@ import {
   Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { useNavContext } from "@/hooks/useNavContext";
 import { ProfilePictureUpload } from "@/components/profile/ProfilePictureUpload";
 
 export function Sidebar() {
-  const { user, profile, signOut } = useAuth();
+  const {
+    user, profile, signOut, userRole, isAdmin, isSuperAdmin,
+    isExecutive, hasSalesZone, displayName, email, department, position
+  } = useNavContext();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatar_url || null);
-  // Make role check case-insensitive
-  const userRole = profile?.role?.toLowerCase() || '';
-  const isAdmin = userRole === 'admin';
-  const isSuperAdmin = userRole === 'superadmin';
-  const [isExecutive, setIsExecutive] = useState(false);
-  const [hasSalesZone, setHasSalesZone] = useState(false);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
-
-  // Mobile responsive management
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Submenu states
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
-  };
-
-  const toggleMobileSidebar = () => {
-    setIsMobileOpen(!isMobileOpen);
   };
 
   const toggleSubmenu = (menuKey: string) => {
@@ -76,16 +62,6 @@ export function Sidebar() {
   // If not logged in, don't show sidebar
   if (!user) return null;
 
-  // Get user information with priority to profile data
-  const displayName = profile?.display_name ||
-    `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
-    user?.user_metadata?.full_name ||
-    user?.email?.split('@')[0] ||
-    "User";
-  const email = user?.email || '';
-  const department = profile?.department || '';
-  const position = profile?.position || '';
-
   // Sync avatar URL when profile changes
   useEffect(() => {
     if (profile?.avatar_url !== undefined) {
@@ -93,551 +69,426 @@ export function Sidebar() {
     }
   }, [profile?.avatar_url]);
 
-  // Check if user is an executive (has employees with executive_id pointing to them)
-  useEffect(() => {
-    const checkExecutiveStatus = async () => {
-      if (!profile?.employee_id) return;
-      try {
-        const { data, error } = await (supabase
-          .from('Employee')
-          .select('id') as any)
-          .eq('executive_id', profile.employee_id)
-          .limit(1);
-
-        if (!error && data && data.length > 0) {
-          setIsExecutive(true);
-        } else {
-          setIsExecutive(false);
-        }
-      } catch {
-        setIsExecutive(false);
-      }
-    };
-    checkExecutiveStatus();
-  }, [profile?.employee_id]);
-
-  // Check if user has sales_zone (sales team)
-  useEffect(() => {
-    const checkSalesZone = async () => {
-      if (!profile?.employee_id) return;
-      try {
-        const { data, error } = await (supabase
-          .from('Employee')
-          .select('sales_zone') as any)
-          .eq('id', profile.employee_id)
-          .single();
-
-        if (!error && data && data.sales_zone) {
-          setHasSalesZone(true);
-        } else {
-          setHasSalesZone(false);
-        }
-      } catch {
-        setHasSalesZone(false);
-      }
-    };
-    checkSalesZone();
-  }, [profile?.employee_id]);
-
   return (
-    <>
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleMobileSidebar}
-        className="fixed top-4 left-4 z-50 md:hidden bg-primary text-white rounded-full shadow-lg"
-      >
-        {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </Button>
-
-      {/* Sidebar container */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 bg-gradient-primary shadow-xl transition-all duration-300 flex flex-col",
-        isOpen ? "w-64" : "w-20",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        "fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transition-all duration-300 hidden xl:flex flex-col",
+        isOpen ? "w-64" : "w-20"
       )}>
         {/* Logo and title */}
-        <div className="p-4 border-b border-white/20 flex items-center justify-between">
-          <div className={cn(
-            "flex items-center gap-3 transition-all duration-300 overflow-hidden",
-            isOpen ? "w-auto" : "w-12"
+        <div className="flex items-center justify-between py-2 px-4 border-b border-gray-100">
+          <a href="/dashboard" className={cn(
+            "flex items-center gap-2 transition-all duration-300 overflow-hidden",
+            isOpen ? "w-auto" : "w-12 justify-center"
           )}>
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-white flex items-center justify-center">
-              <img
-                src="/Picture/logo-Photoroom.jpg"
-                alt="ICP Ladda Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <img
+              src="/Picture/logo-Photoroom.jpg"
+              alt="ICP Ladda"
+              width="71"
+              height="71"
+              className="object-contain flex-shrink-0"
+              style={{ width: '71px', height: '71px' }}
+            />
             {isOpen && (
-              <h1 className="text-white font-bold text-xl animate-fade-in">ICP Ladda</h1>
+              <>
+                <div className="h-5 w-px bg-gray-300 flex-shrink-0"></div>
+                <span className="text-lg font-bold tracking-tight text-[#004F9F]">Jinglebell</span>
+              </>
             )}
-          </div>
+          </a>
 
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="hidden md:flex text-white/80 hover:text-white hover:bg-white/20 h-8 w-8"
+            className="hidden xl:flex text-gray-400 hover:text-gray-600 hover:bg-gray-100 h-8 w-8"
           >
-            {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {/* Home Page */}
           <Link to="/dashboard" className={cn(
             "nav-link group",
-            isActive('/dashboard') ? "nav-link-active" : "text-white/90 hover:text-white"
+            isActive('/dashboard') ? "nav-link-active" : ""
           )}>
             <HomeIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">หน้าหลัก</span>
+              <span className="transition-all duration-300 text-gray-900 font-medium">หน้าหลัก</span>
             )}
           </Link>
 
-          {/* Dashboard Menu with Dropdown */}
+          {/* ═══════════ Section: HR ═══════════ */}
           <div className="relative">
             <div
               className={cn(
                 "nav-link group cursor-pointer",
-                isSubmenuActive(['/welfare-dashboard', '/accounting-dashboard']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                isSubmenuActive(['/welfare-dashboard', '/welfare-forms']) ? "nav-link-active" : ""
               )}
-              onClick={() => isOpen && toggleSubmenu('dashboard')}
-              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, dashboard: true }))}
-              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, dashboard: false }))}
+              onClick={() => isOpen && toggleSubmenu('sectionHR')}
+              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionHR: true }))}
+              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionHR: false }))}
             >
-              <ChartBar className="h-5 w-5 flex-shrink-0" />
+              <Users className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
                 <>
-                  <span className="transition-all duration-300 text-white font-medium">แดชบอร์ด</span>
+                  <span className="transition-all duration-300 text-gray-900 font-medium">HR</span>
                   <ChevronDown className={cn(
                     "h-4 w-4 ml-auto transition-transform duration-200",
-                    openSubmenus.dashboard && "rotate-180"
+                    openSubmenus.sectionHR && "rotate-180"
                   )} />
                 </>
               )}
             </div>
 
-            {/* Dashboard Submenu */}
-            {(openSubmenus.dashboard || !isOpen) && (
+            {(openSubmenus.sectionHR || !isOpen) && (
               <div className={cn(
-                isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                isOpen ? "mt-1 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
               )}>
                 <Link to="/welfare-dashboard" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
                   <BarChart3 className="h-4 w-4" />
                   <span>แดชบอร์ดสวัสดิการ</span>
                 </Link>
-                <Link to="/accounting-dashboard" className={cn(
+                <Link to="/welfare-forms" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
-                  <FileText className="h-4 w-4" />
-                  <span>แดชบอร์ดบัญชี</span>
+                  <File className="h-4 w-4" />
+                  <span>ฟอร์ม HR</span>
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Accounting Review Menu with Dropdown (for accounting role only) */}
-          {(userRole === 'accounting' || userRole === 'accountingandmanager') && (
-            <div className="relative">
-              <div
-                className={cn(
-                  "nav-link group cursor-pointer",
-                  isSubmenuActive(['/accounting-review', '/welfare-accounting-review', '/general-accounting-review']) ? "nav-link-active" : "text-white/90 hover:text-white"
-                )}
-                onClick={() => isOpen && toggleSubmenu('accounting')}
-                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, accounting: true }))}
-                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, accounting: false }))}
-              >
-                <FileText className="h-5 w-5 flex-shrink-0" />
-                {isOpen && (
-                  <>
-                    <span className="transition-all duration-300 text-white font-medium">รายการรอตรวจสอบ (บัญชี)</span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-200",
-                      openSubmenus.accounting && "rotate-180"
-                    )} />
-                  </>
-                )}
-              </div>
-
-              {/* Accounting Review Submenu */}
-              {(openSubmenus.accounting || !isOpen) && (
-                <div className={cn(
-                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-                )}>
-
-                  <Link to="/welfare-accounting-review" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <FileText className="h-4 w-4" />
-                    <span>ตรวจสอบสวัสดิการ</span>
-                  </Link>
-                  <Link to="/general-accounting-review" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <FileText className="h-4 w-4" />
-                    <span>ตรวจสอบบัญชีทั่วไป</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Forms Menu with Dropdown */}
+          {/* ═══════════ Section: บัญชี ═══════════ */}
           <div className="relative">
             <div
               className={cn(
                 "nav-link group cursor-pointer",
-                isSubmenuActive(['/forms', '/welfare-forms', '/accounting-forms']) ? "nav-link-active" : "text-white/90 hover:text-white"
+                isSubmenuActive(['/accounting-dashboard', '/accounting-forms', '/payment-notification', '/welfare-accounting-review', '/general-accounting-review']) ? "nav-link-active" : ""
               )}
-              onClick={() => isOpen && toggleSubmenu('forms')}
-              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, forms: true }))}
-              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, forms: false }))}
+              onClick={() => isOpen && toggleSubmenu('sectionAccounting')}
+              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionAccounting: true }))}
+              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionAccounting: false }))}
             >
-              <File className="h-5 w-5 flex-shrink-0" />
+              <Banknote className="h-5 w-5 flex-shrink-0" />
               {isOpen && (
                 <>
-                  <span className="transition-all duration-300 text-white font-medium">แบบฟอร์ม</span>
+                  <span className="transition-all duration-300 text-gray-900 font-medium">บัญชี</span>
                   <ChevronDown className={cn(
                     "h-4 w-4 ml-auto transition-transform duration-200",
-                    openSubmenus.forms && "rotate-180"
+                    openSubmenus.sectionAccounting && "rotate-180"
                   )} />
                 </>
               )}
             </div>
 
-            {/* Forms Submenu */}
-            {(openSubmenus.forms || !isOpen) && (
+            {(openSubmenus.sectionAccounting || !isOpen) && (
               <div className={cn(
-                isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                isOpen ? "mt-1 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
               )}>
-                <Link to="/welfare-forms" className={cn(
+                <Link to="/accounting-dashboard" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
-                  <File className="h-4 w-4" />
-                  <span>ฟอร์ม HR</span>
+                  <ChartBar className="h-4 w-4" />
+                  <span>แดชบอร์ดบัญชี</span>
                 </Link>
                 <Link to="/accounting-forms" className={cn(
                   "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                  isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}>
                   <FileText className="h-4 w-4" />
                   <span>ฟอร์ม บัญชี</span>
+                </Link>
+
+                {/* Payment Notification */}
+                {(hasSalesZone || userRole === 'accounting' || userRole === 'accountingandmanager' || userRole === 'admin' || isSuperAdmin) && (
+                  <>
+                    <Link to="/payment-notification" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Plus className="h-4 w-4" />
+                      <span>แจ้งชำระเงินใหม่</span>
+                    </Link>
+                    <Link to="/payment-notification-list" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <FileText className="h-4 w-4" />
+                      <span>รายการแจ้งชำระเงิน</span>
+                    </Link>
+                  </>
+                )}
+
+                {/* Accounting Review */}
+                {(userRole === 'accounting' || userRole === 'accountingandmanager') && (
+                  <>
+                    <Link to="/welfare-accounting-review" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <FileText className="h-4 w-4" />
+                      <span>ตรวจสอบสวัสดิการ</span>
+                    </Link>
+                    <Link to="/general-accounting-review" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <FileText className="h-4 w-4" />
+                      <span>ตรวจสอบบัญชีทั่วไป</span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ═══════════ Section: อนุมัติ ═══════════ */}
+          {(isExecutive || userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin' || userRole === 'hr' || user?.email === 'kanin.s@icpladda.com') && (
+            <div className="relative">
+              <div
+                className={cn(
+                  "nav-link group cursor-pointer",
+                  isSubmenuActive(['/executive-approve', '/approve', '/hr-approve', '/special-approve']) ? "nav-link-active" : ""
+                )}
+                onClick={() => isOpen && toggleSubmenu('sectionApproval')}
+                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionApproval: true }))}
+                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionApproval: false }))}
+              >
+                <CheckSquare className="h-5 w-5 flex-shrink-0" />
+                {isOpen && (
+                  <>
+                    <span className="transition-all duration-300 text-gray-900 font-medium">อนุมัติ</span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-200",
+                      openSubmenus.sectionApproval && "rotate-180"
+                    )} />
+                  </>
+                )}
+              </div>
+
+              {(openSubmenus.sectionApproval || !isOpen) && (
+                <div className={cn(
+                  isOpen ? "mt-1 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+                )}>
+                  {/* Executive Approval */}
+                  {isExecutive && (
+                    <Link to="/executive-approve" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <CheckSquare className="h-4 w-4" />
+                      <span>อนุมัติคำร้อง (หัวหน้า)</span>
+                    </Link>
+                  )}
+
+                  {/* Manager Approval */}
+                  {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (
+                    <Link to="/approve" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <CheckSquare className="h-4 w-4" />
+                      <span>อนุมัติคำร้อง (ผู้จัดการ)</span>
+                    </Link>
+                  )}
+
+                  {/* HR Approval */}
+                  {(userRole === 'admin' || userRole === 'hr') && (
+                    <Link to="/hr-approve" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Users className="h-4 w-4" />
+                      <span>อนุมัติคำร้อง (HR)</span>
+                    </Link>
+                  )}
+
+                  {/* Special Approval */}
+                  {(user?.email === 'kanin.s@icpladda.com' || userRole === 'admin') && (
+                    <Link to="/special-approve" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>อนุมัติโดย กก.ผจก.</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════ Section: ระบบ ═══════════ */}
+          <div className="relative">
+            <div
+              className={cn(
+                "nav-link group cursor-pointer",
+                isSubmenuActive(['/notifications', '/admin', '/superadmin', '/user-guide', '/support']) ? "nav-link-active" : ""
+              )}
+              onClick={() => isOpen && toggleSubmenu('sectionSystem')}
+              onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionSystem: true }))}
+              onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, sectionSystem: false }))}
+            >
+              <Settings className="h-5 w-5 flex-shrink-0" />
+              {isOpen && (
+                <>
+                  <span className="transition-all duration-300 text-gray-900 font-medium">ระบบ</span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 ml-auto transition-transform duration-200",
+                    openSubmenus.sectionSystem && "rotate-180"
+                  )} />
+                </>
+              )}
+            </div>
+
+            {(openSubmenus.sectionSystem || !isOpen) && (
+              <div className={cn(
+                isOpen ? "mt-1 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
+              )}>
+                {/* Notifications */}
+                <Link to="/notifications" className={cn(
+                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}>
+                  <Bell className="h-4 w-4" />
+                  <span>แจ้งเตือน / ประวัติ</span>
+                </Link>
+
+                {/* Admin */}
+                {profile?.role === 'admin' && (
+                  <>
+                    <Link to="/admin#users" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <UserPlus className="h-4 w-4" />
+                      <span>จัดการผู้ใช้</span>
+                    </Link>
+                    <Link to="/admin/support" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <HelpCircle className="h-4 w-4" />
+                      <span>จัดการ Support</span>
+                    </Link>
+                    <Link to="/admin/announcements" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Bell className="h-4 w-4" />
+                      <span>จัดการประกาศ</span>
+                    </Link>
+                    <Link to="/admin/forms" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Layout className="h-4 w-4" />
+                      <span>จัดการฟอร์ม</span>
+                    </Link>
+                    <Link to="/admin/pdf-templates" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <FileText className="h-4 w-4" />
+                      <span>จัดการเทมเพลต PDF</span>
+                    </Link>
+                    <Link to="/admin/report" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <BarChart3 className="h-4 w-4" />
+                      <span>รายงาน</span>
+                    </Link>
+                  </>
+                )}
+
+                {/* SuperAdmin */}
+                {isSuperAdmin && (
+                  <>
+                    <Link to="/superadmin/dashboard" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <ChartBar className="h-4 w-4" />
+                      <span>SA แดชบอร์ด</span>
+                    </Link>
+                    <Link to="/superadmin/users" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <UserPlus className="h-4 w-4" />
+                      <span>SA จัดการผู้ใช้</span>
+                    </Link>
+                    <Link to="/superadmin/system" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Settings className="h-4 w-4" />
+                      <span>SA ตั้งค่าระบบ</span>
+                    </Link>
+                    <Link to="/superadmin/database" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Database className="h-4 w-4" />
+                      <span>SA ฐานข้อมูล</span>
+                    </Link>
+                    <Link to="/superadmin/security" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Shield className="h-4 w-4" />
+                      <span>SA ความปลอดภัย</span>
+                    </Link>
+                    <Link to="/superadmin/audit" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <Activity className="h-4 w-4" />
+                      <span>SA บันทึกการใช้งาน</span>
+                    </Link>
+                    <Link to="/superadmin/report" className={cn(
+                      "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                      isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}>
+                      <BarChart3 className="h-4 w-4" />
+                      <span>SA รายงาน</span>
+                    </Link>
+                  </>
+                )}
+
+                {/* User Guide */}
+                <Link to="/user-guide" className={cn(
+                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}>
+                  <BookOpen className="h-4 w-4" />
+                  <span>คู่มือการใช้งาน</span>
+                </Link>
+
+                {/* Support/IT Contact */}
+                <Link to="/support" className={cn(
+                  "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
+                  isOpen ? "text-gray-500 hover:text-gray-900 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                )}>
+                  <HelpCircle className="h-4 w-4" />
+                  <span>ติดต่อฝ่าย IT</span>
                 </Link>
               </div>
             )}
           </div>
 
-
-
-          {/* Payment Notification - แจ้งการชำระเงินจากลูกค้า */}
-          {(hasSalesZone || userRole === 'accounting' || userRole === 'accountingandmanager' || userRole === 'admin' || isSuperAdmin) && (
-            <div className="relative">
-              <div
-                className={cn(
-                  "nav-link group cursor-pointer",
-                  isSubmenuActive(['/payment-notification']) ? "nav-link-active" : "text-white/90 hover:text-white"
-                )}
-                onClick={() => isOpen && toggleSubmenu('paymentNotification')}
-                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, paymentNotification: true }))}
-                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, paymentNotification: false }))}
-              >
-                <Banknote className="h-5 w-5 flex-shrink-0" />
-                {isOpen && (
-                  <>
-                    <span className="transition-all duration-300 text-white font-medium">แจ้งชำระเงิน</span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-200",
-                      openSubmenus.paymentNotification && "rotate-180"
-                    )} />
-                  </>
-                )}
-              </div>
-
-              {(openSubmenus.paymentNotification || !isOpen) && (
-                <div className={cn(
-                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-                )}>
-                  <Link to="/payment-notification" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Plus className="h-4 w-4" />
-                    <span>แจ้งชำระเงินใหม่</span>
-                  </Link>
-                  <Link to="/payment-notification-list" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <FileText className="h-4 w-4" />
-                    <span>รายการแจ้งชำระเงิน</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Approval Page */}
-          {(userRole === 'manager' || userRole === 'accountingandmanager' || userRole === 'admin') && (
-            <Link to="/approve" className={cn(
-              "nav-link group",
-              isActive('/approve') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <CheckSquare className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (ผู้จัดการ)</span>
-              )}
-            </Link>
-          )}
-
-          {/* Executive Approval Page - Position-based */}
-          {isExecutive && (
-            <Link to="/executive-approve" className={cn(
-              "nav-link group",
-              isActive('/executive-approve') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <CheckSquare className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง</span>
-              )}
-            </Link>
-          )}
-
-          {/* HR Approval Page - Admin only */}
-          {(userRole === 'admin' || userRole === 'hr') && (
-            <Link to="/hr-approve" className={cn(
-              "nav-link group",
-              isActive('/hr-approve') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <Users className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติคำร้อง (HR)</span>
-              )}
-            </Link>
-          )}
-
-          {/* Special Approval Page - For kanin.s@icpladda.com and Admin */}
-          {(user?.email === 'kanin.s@icpladda.com' || userRole === 'admin') && (
-            <Link to="/special-approve" className={cn(
-              "nav-link group",
-              isActive('/special-approve') ? "nav-link-active" : "text-white/90 hover:text-white"
-            )}>
-              <ShieldCheck className="h-5 w-5 flex-shrink-0" />
-              {isOpen && (
-                <span className="transition-all duration-300 text-white font-medium">อนุมัติโดย กรรมการผู้จัดการ</span>
-              )}
-            </Link>
-          )}
-
-          {/* Notifications & Activity History */}
-          <Link to="/notifications" className={cn(
-            "nav-link group",
-            isActive('/notifications') ? "nav-link-active" : "text-white/90 hover:text-white"
-          )}>
-            <Bell className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">แจ้งเตือน / ประวัติ</span>
-            )}
-          </Link>
-
-          {/* SuperAdmin */}
-          {isSuperAdmin && (
-            <div className="relative">
-              <div
-                className={cn(
-                  "nav-link group cursor-pointer",
-                  isSubmenuActive(['/superadmin']) ? "nav-link-active" : "text-white/90 hover:text-white"
-                )}
-                onClick={() => isOpen && toggleSubmenu('superadmin')}
-                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, superadmin: true }))}
-                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, superadmin: false }))}
-              >
-                <Crown className="h-5 w-5 flex-shrink-0" />
-                {isOpen && (
-                  <>
-                    <span className="transition-all duration-300 text-white font-medium">SuperAdmin</span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-200",
-                      openSubmenus.superadmin && "rotate-180"
-                    )} />
-                  </>
-                )}
-              </div>
-
-              {/* Submenu */}
-              {(openSubmenus.superadmin || !isOpen) && (
-                <div className={cn(
-                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-                )}>
-                  <Link to="/superadmin/dashboard" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <ChartBar className="h-4 w-4" />
-                    <span>แดชบอร์ด</span>
-                  </Link>
-                  <Link to="/superadmin/users" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <UserPlus className="h-4 w-4" />
-                    <span>จัดการผู้ใช้</span>
-                  </Link>
-                  <Link to="/superadmin/system" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Settings className="h-4 w-4" />
-                    <span>ตั้งค่าระบบ</span>
-                  </Link>
-                  <Link to="/superadmin/database" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Database className="h-4 w-4" />
-                    <span>ฐานข้อมูล</span>
-                  </Link>
-                  <Link to="/superadmin/security" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Shield className="h-4 w-4" />
-                    <span>ความปลอดภัย</span>
-                  </Link>
-                  <Link to="/superadmin/audit" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Activity className="h-4 w-4" />
-                    <span>บันทึกการใช้งาน</span>
-                  </Link>
-                  <Link to="/superadmin/report" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <BarChart3 className="h-4 w-4" />
-                    <span>รายงาน</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Admin */}
-          {profile?.role === 'admin' && (
-            <div className="relative">
-              <div
-                className={cn(
-                  "nav-link group cursor-pointer",
-                  isSubmenuActive(['/admin']) ? "nav-link-active" : "text-white/90 hover:text-white"
-                )}
-                onClick={() => isOpen && toggleSubmenu('admin')}
-                onMouseEnter={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, admin: true }))}
-                onMouseLeave={() => !isOpen && setOpenSubmenus(prev => ({ ...prev, admin: false }))}
-              >
-                <ShieldCheck className="h-5 w-5 flex-shrink-0" />
-                {isOpen && (
-                  <>
-                    <span className="transition-all duration-300 text-white font-medium">ผู้ดูแลระบบ</span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-200",
-                      openSubmenus.admin && "rotate-180"
-                    )} />
-                  </>
-                )}
-              </div>
-
-              {/* Submenu */}
-              {(openSubmenus.admin || !isOpen) && (
-                <div className={cn(
-                  isOpen ? "mt-2 ml-6 space-y-1" : "absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border z-50 p-2"
-                )}>
-                  <Link to="/admin#users" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <UserPlus className="h-4 w-4" />
-                    <span>จัดการผู้ใช้</span>
-                  </Link>
-                  <Link to="/admin/support" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <HelpCircle className="h-4 w-4" />
-                    <span>จัดการ Support</span>
-                  </Link>
-                  <Link to="/admin/announcements" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Bell className="h-4 w-4" />
-                    <span>จัดการประกาศ</span>
-                  </Link>
-                  <Link to="/admin/forms" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <Layout className="h-4 w-4" />
-                    <span>จัดการฟอร์ม</span>
-                  </Link>
-                  <Link to="/admin/pdf-templates" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <FileText className="h-4 w-4" />
-                    <span>จัดการเทมเพลต PDF</span>
-                  </Link>
-                  <Link to="/admin/report" className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors duration-200",
-                    isOpen ? "text-white/80 hover:text-white hover:bg-white/10" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  )}>
-                    <BarChart3 className="h-4 w-4" />
-                    <span>รายงาน</span>
-                  </Link>
-
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {/* User Guide */}
-          <Link to="/user-guide" className={cn(
-            "nav-link group",
-            isActive('/user-guide') ? "nav-link-active" : "text-white/90 hover:text-white"
-          )}>
-            <BookOpen className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">คู่มือการใช้งาน</span>
-            )}
-          </Link>
-
-          {/* Support/IT Contact */}
-          <Link to="/support" className={cn(
-            "nav-link group",
-            isActive('/support') ? "nav-link-active" : "text-white/90 hover:text-white"
-          )}>
-            <HelpCircle className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="transition-all duration-300 text-white font-medium">ติดต่อฝ่าย IT</span>
-            )}
-          </Link>
-
         </nav>
 
         {/* User profile & logout */}
-        <div className="p-4 border-t border-white/20 bg-white/5">
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50">
           <div className={cn(
             "flex items-center gap-3 mb-4 group relative",
             isOpen ? "justify-start" : "justify-center"
@@ -666,16 +517,11 @@ export function Sidebar() {
 
             {isOpen && (
               <div className="overflow-hidden">
-                <p className="text-base font-semibold text-white truncate">{displayName}</p>
+                <p className="text-base font-semibold text-gray-900 truncate">{displayName}</p>
                 <div className="mt-0.5 space-y-0.5">
-                  {email && <p className="text-xs text-white/80 truncate">{email}</p>}
-                  {(department || position) && (
-                    <div className="flex gap-2">
-                      {department && <p className="text-xs text-white/70 truncate">{department}</p>}
-                      {position && department && <span className="text-white/50">•</span>}
-                      {position && <p className="text-xs text-white/70 truncate">{position}</p>}
-                    </div>
-                  )}
+                  {email && <p className="text-xs text-gray-500 truncate">{email}</p>}
+                  {department && <p className="text-xs text-gray-400 truncate">{department}</p>}
+                  {position && <p className="text-xs text-gray-400 truncate">{position}</p>}
                 </div>
               </div>
             )}
@@ -696,7 +542,7 @@ export function Sidebar() {
               }, 100);
             }}
             className={cn(
-              "w-full text-white hover:bg-white/20 flex items-center gap-2 font-medium",
+              "w-full text-gray-600 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 font-medium",
               !isOpen && "justify-center"
             )}
           >
@@ -705,6 +551,5 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
-    </>
   );
 }

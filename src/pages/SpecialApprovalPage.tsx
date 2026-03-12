@@ -348,14 +348,6 @@ export default function SpecialApprovalPage() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <p className="text-sm font-medium mb-2">เหตุผลในการปฏิเสธ (หากมี):</p>
-                <Textarea 
-                  placeholder="กรุณาระบุเหตุผลในการปฏิเสธคำร้อง..." 
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button
@@ -367,9 +359,11 @@ export default function SpecialApprovalPage() {
                 {processingId === selectedRequest.id ? 'กำลังอนุมัติ...' : 'อนุมัติ'}
               </Button>
               <Button
-                variant="outline"
-                onClick={() => setIsRejectionModalOpen(true)}
-                className="border-red-300 text-red-600 hover:bg-red-50"
+                variant="destructive"
+                onClick={() => {
+                  setRejectReason('');
+                  setIsRejectionModalOpen(true);
+                }}
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 ปฏิเสธ
@@ -385,17 +379,21 @@ export default function SpecialApprovalPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>คุณแน่ใจหรือไม่ที่จะปฏิเสธคำร้องนี้?</p>
+          <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="เหตุผลการปฏิเสธ..."
+            rows={3}
+          />
           <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
             <Button
               variant="destructive"
               onClick={() => selectedRequest && handleReject(selectedRequest.id)}
               disabled={processingId === selectedRequest?.id || !rejectReason.trim()}
             >
               {processingId === selectedRequest?.id ? 'กำลังปฏิเสธ...' : 'ยืนยันปฏิเสธ'}
-            </Button>
-            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>
-              ยกเลิก
             </Button>
           </DialogFooter>
         </DialogContent>

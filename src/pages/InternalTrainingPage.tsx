@@ -46,9 +46,9 @@ const InternalTrainingPage = () => {
 
         {/* Information Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-l-4 border-l-blue-500">
+          <Card>
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-2">
                 <BookOpen className="h-6 w-6 text-blue-600" />
               </div>
               <CardTitle className="text-lg">รายละเอียดการอบรม</CardTitle>
@@ -60,9 +60,9 @@ const InternalTrainingPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-green-500">
+          <Card>
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-2">
                 <Users className="h-6 w-6 text-green-600" />
               </div>
               <CardTitle className="text-lg">ผู้เข้าร่วม</CardTitle>
@@ -74,9 +74,9 @@ const InternalTrainingPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-orange-500">
+          <Card>
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-2">
                 <Calculator className="h-6 w-6 text-orange-600" />
               </div>
               <CardTitle className="text-lg">งบประมาณ</CardTitle>
@@ -88,7 +88,7 @@ const InternalTrainingPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-purple-500">
+          <Card>
             <CardHeader className="pb-2">
               <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-2">
                 <FileText className="h-6 w-6 text-purple-600" />

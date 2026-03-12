@@ -1904,48 +1904,48 @@ export const ApprovalPage = () => {
 
                   {/* Status Summary Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="border-l-4 border-l-green-500">
+                    <Card className="shadow-soft hover:shadow-soft-md transition-shadow">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-gray-500 text-sm">อนุมัติแล้ว</p>
-                            <p className="text-2xl font-bold text-green-600">
+                            <p className="text-gray-500 text-xs font-medium">อนุมัติแล้ว</p>
+                            <p className="text-2xl font-bold text-gray-900">
                               {getTeamRequests().filter(req => ['approved', 'completed', 'pending_hr', 'pending_accounting'].includes(req.status)).length}
                             </p>
                           </div>
-                          <div className="text-green-500 bg-green-50 p-2 rounded-full">
+                          <div className="text-green-600 bg-green-100 p-2.5 rounded-xl">
                             <Check className="w-5 h-5" />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 border-l-yellow-500">
+                    <Card className="shadow-soft hover:shadow-soft-md transition-shadow">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-gray-500 text-sm">รอดำเนินการ</p>
-                            <p className="text-2xl font-bold text-yellow-600">
+                            <p className="text-gray-500 text-xs font-medium">รอดำเนินการ</p>
+                            <p className="text-2xl font-bold text-gray-900">
                               {getTeamRequests().filter(req => req.status.includes('pending')).length}
                             </p>
                           </div>
-                          <div className="text-yellow-500 bg-yellow-50 p-2 rounded-full">
+                          <div className="text-yellow-600 bg-yellow-100 p-2.5 rounded-xl">
                             <Clock className="w-5 h-5" />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 border-l-red-500">
+                    <Card className="shadow-soft hover:shadow-soft-md transition-shadow">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-gray-500 text-sm">ปฏิเสธ</p>
-                            <p className="text-2xl font-bold text-red-600">
+                            <p className="text-gray-500 text-xs font-medium">ปฏิเสธ</p>
+                            <p className="text-2xl font-bold text-gray-900">
                               {getTeamRequests().filter(req => req.status.includes('rejected')).length}
                             </p>
                           </div>
-                          <div className="text-red-500 bg-red-50 p-2 rounded-full">
+                          <div className="text-red-600 bg-red-100 p-2.5 rounded-xl">
                             <X className="w-5 h-5" />
                           </div>
                         </div>
@@ -2200,16 +2200,7 @@ export const ApprovalPage = () => {
             {/* Footer — ปุ่ม Action */}
             {selectedRequest.status === 'pending_manager' && (
               <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="กรุณาระบุเหตุผลการปฏิเสธ..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2">
                     <Button
                       onClick={() => handleApprove(selectedRequest.id)}
                       className="bg-green-600 hover:bg-green-700 px-6"
@@ -2220,8 +2211,12 @@ export const ApprovalPage = () => {
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                      disabled={isLoading || !rejectionReason}
+                      onClick={() => {
+                        setRejectionRequestId(selectedRequest.id);
+                        setRejectionReason('');
+                        setIsRejectionModalOpen(true);
+                      }}
+                      disabled={isLoading}
                       className="px-6"
                     >
                       <X className="h-4 w-4 mr-2" />
@@ -2239,7 +2234,6 @@ export const ApprovalPage = () => {
                       <FileWarning className="h-4 w-4 mr-2" />
                       ขอเอกสารเพิ่ม
                     </Button>
-                  </div>
                 </div>
               </div>
             )}
@@ -2252,15 +2246,16 @@ export const ApprovalPage = () => {
           <DialogHeader>
             <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
-          <Input
+          <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+          <Textarea
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             placeholder="เหตุผลการปฏิเสธ..."
+            rows={3}
           />
           <DialogFooter>
-            <Button onClick={confirmRejection} disabled={!rejectionReason}>ยืนยัน</Button>
             <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
+            <Button variant="destructive" onClick={confirmRejection} disabled={!rejectionReason || isLoading}>ยืนยันปฏิเสธ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -228,7 +228,7 @@ export function NotificationList() {
                 "bg-white shadow-sm border transition-all",
                 notification.read
                   ? "border-gray-100"
-                  : "border-l-4 border-l-welfare-blue shadow-md"
+                  : "border-l-2 border-l-primary shadow-soft"
               )}
             >
               <CardHeader className="pb-2 pt-4 px-4">

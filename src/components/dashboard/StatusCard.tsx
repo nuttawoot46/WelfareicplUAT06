@@ -11,6 +11,7 @@ interface StatusCardProps {
 export function StatusCard({ title, count, status, icon, description }: StatusCardProps) {
   const getColorsByStatus = () => {
     switch (status) {
+      case 'pending_executive':
       case 'pending_manager':
         return {
           border: 'border-t-yellow-400',
@@ -76,16 +77,18 @@ export function StatusCard({ title, count, status, icon, description }: StatusCa
   const colors = getColorsByStatus();
 
   return (
-    <Card className={`bg-white border-t-4 ${colors.border} shadow-sm hover:shadow-md transition-shadow`}>
-      <CardContent className="p-3 md:p-5 text-center">
-        <div className="flex items-center justify-center mb-2">
-          <div className={`${colors.iconBg} p-2 rounded-full`}>
+    <Card className="shadow-soft hover:shadow-soft-md transition-shadow">
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-gray-500 mb-1 truncate">{title}</p>
+            <p className="text-2xl md:text-3xl font-bold text-gray-900">{count}</p>
+            {description && <p className="text-xs text-gray-400 mt-1">{description}</p>}
+          </div>
+          <div className={`${colors.iconBg} p-2.5 rounded-xl flex-shrink-0 ml-3`}>
             {icon}
           </div>
         </div>
-        <p className={`${colors.title} text-xs font-semibold mb-1`}>{title}</p>
-        <p className={`${colors.count} text-2xl md:text-3xl font-bold mb-1`}>{count}</p>
-        <p className="text-xs text-muted-foreground">{description || 'รายการ'}</p>
       </CardContent>
     </Card>
   );

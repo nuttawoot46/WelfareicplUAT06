@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -1446,16 +1447,7 @@ export const HRApprovalPage = () => {
             {/* Footer — ปุ่ม Action */}
             {selectedRequest.status === 'pending_hr' && (
               <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="กรุณาระบุเหตุผลการปฏิเสธ..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2">
                     <Button
                       onClick={() => handleApprove(selectedRequest.id)}
                       className="bg-green-600 hover:bg-green-700 px-6"
@@ -1466,8 +1458,12 @@ export const HRApprovalPage = () => {
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
-                      disabled={isLoading || !rejectionReason}
+                      onClick={() => {
+                        setRejectionRequestId(selectedRequest.id);
+                        setRejectionReason('');
+                        setIsRejectionModalOpen(true);
+                      }}
+                      disabled={isLoading}
                       className="px-6"
                     >
                       <X className="h-4 w-4 mr-2" />
@@ -1485,7 +1481,6 @@ export const HRApprovalPage = () => {
                       <FileWarning className="h-4 w-4 mr-2" />
                       ขอเอกสารเพิ่ม
                     </Button>
-                  </div>
                 </div>
               </div>
             )}
@@ -1523,17 +1518,18 @@ export const HRApprovalPage = () => {
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ยืนยันการปฏิเสธคำร้อง</DialogTitle>
+            <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
-          <Input
+          <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+          <Textarea
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="เหตุผลในการปฏิเสธ..."
+            placeholder="เหตุผลการปฏิเสธ..."
+            rows={3}
           />
           <DialogFooter>
-            <Button onClick={confirmRejection} variant="destructive" disabled={!rejectionReason}>ยืนยันการปฏิเสธ</Button>
             <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
+            <Button variant="destructive" onClick={confirmRejection} disabled={!rejectionReason || isLoading}>ยืนยันปฏิเสธ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

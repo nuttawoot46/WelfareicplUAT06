@@ -63,7 +63,7 @@ function InsightsSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
       {[1, 2].map(i => (
-        <Card key={i} className="border-l-4 border-l-gray-200">
+        <Card key={i}>
           <CardHeader className="pb-2">
             <Skeleton className="h-5 w-36" />
           </CardHeader>
@@ -83,7 +83,7 @@ function InsightCard({ category }: { category: InsightCategory }) {
   const IconComponent = ICON_MAP[category.icon];
 
   return (
-    <Card className={`border-l-4 ${colors.border} hover:shadow-md transition-shadow`}>
+    <Card className="hover:shadow-soft-md transition-shadow">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <IconComponent className="h-4 w-4 flex-shrink-0" />

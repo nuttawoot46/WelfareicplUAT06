@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 210 30% 98%;
+    --background: 220 14% 96%;
     --foreground: 210 50% 10%;
 
     --card: 0 0% 100%;
@@ -23,7 +23,7 @@
     --secondary: 210 60% 45%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 96%;
+    --muted: 220 14% 96%;
     --muted-foreground: 210 15% 46%;
 
     --accent: 210 80% 50%;
@@ -32,21 +32,21 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 210 100% 31%;
 
     --radius: 0.75rem;
 
-    /* Sidebar - ICP Blue */
-    --sidebar-background: 210 100% 31%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 210 100% 31%;
-    --sidebar-accent: 210 80% 40%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 210 80% 40%;
-    --sidebar-ring: 0 0% 100%;
+    /* Sidebar - White with subtle border */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 210 100% 31%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 100% 97%;
+    --sidebar-accent-foreground: 210 100% 31%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 210 100% 31%;
   }
 
 
@@ -79,7 +79,7 @@
 /* Custom Classes */
 @layer components {
   .welfare-card {
-    @apply bg-white rounded-2xl p-5 shadow-lg border-l-4 border-welfare-blue hover:shadow-xl transition-all duration-300 hover:-translate-y-1;
+    @apply bg-white rounded-xl p-5 shadow-soft border border-gray-100 hover:shadow-soft-md transition-all duration-200;
   }
   
   .welfare-card-pending {
@@ -95,11 +95,11 @@
   }
   
   .nav-link {
-    @apply flex items-center gap-2 py-2 px-4 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all;
+    @apply flex items-center gap-2 py-2.5 px-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all text-sm font-medium;
   }
-  
+
   .nav-link-active {
-    @apply bg-white/20 text-white;
+    @apply bg-icp-blue-50 text-icp-blue font-semibold;
   }
   
   .btn-hover-effect {
@@ -115,7 +115,7 @@
   }
   
   .form-container {
-    @apply bg-white rounded-2xl p-6 shadow-lg border border-border animate-fade-in;
+    @apply bg-white rounded-xl p-6 shadow-soft border border-gray-100 animate-fade-in;
   }
   
   .form-input {
@@ -131,15 +131,15 @@
   }
 
   .java-card {
-    @apply relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl border border-gray-100 dark:border-dark-accent-1;
+    @apply relative overflow-hidden rounded-xl shadow-soft transition-all duration-200 hover:shadow-soft-md border border-gray-100 dark:border-dark-accent-1;
   }
 
   .java-card::before {
-    @apply content-[''] absolute -inset-1 bg-gradient-primary dark:bg-gradient-secondary opacity-30 blur transition-all duration-1000;
+    @apply content-[''] absolute -inset-1 bg-transparent opacity-0;
   }
 
   .java-card:hover::before {
-    @apply opacity-70;
+    @apply opacity-0;
   }
 
   .java-effect {

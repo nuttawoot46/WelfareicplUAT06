@@ -117,7 +117,6 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
   if (loading) {
     return (
       <div className="animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <Card key={index} className="animate-pulse">
@@ -156,7 +155,7 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
           <Card 
             key={option.id}
             className={cn(
-              "transition-all border-l-4 cursor-pointer hover:shadow-lg hover:-translate-y-1",
+              "transition-all border-l-2 cursor-pointer hover:shadow-soft-md hover:-translate-y-0.5",
               selected === option.id 
                 ? "ring-2 ring-primary ring-offset-2" 
                 : "",
@@ -195,8 +194,6 @@ export function AccountingFormSelector({ onSelect }: AccountingFormSelectorProps
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">เลือกประเภทฟอร์มบัญชี</h1>
-      
       <Tabs defaultValue="advance" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 border border-gray-200 p-1.5 rounded-xl h-auto">
           <TabsTrigger

@@ -379,7 +379,7 @@ export const ExecutiveApprovalPage = () => {
       case 'pending_executive':
         return (
           <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-200">
-            รอ Executive
+            รอหัวหน้า
           </Badge>
         );
       case 'pending_manager':
@@ -409,7 +409,7 @@ export const ExecutiveApprovalPage = () => {
       case 'rejected_executive':
         return (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            ปฏิเสธโดย Executive
+            ปฏิเสธโดยหัวหน้า
           </Badge>
         );
       case 'rejected_manager':
@@ -876,16 +876,7 @@ export const ExecutiveApprovalPage = () => {
             {/* Footer — ปุ่ม Action */}
             {selectedRequest.status === 'pending_executive' && (
               <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="ระบุเหตุผลการปฏิเสธ (ถ้ามี)..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="bg-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2">
                     <Button
                       onClick={() => handleApprove(selectedRequest.id)}
                       className="bg-green-600 hover:bg-green-700 px-6"
@@ -896,7 +887,11 @@ export const ExecutiveApprovalPage = () => {
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => handleReject(selectedRequest.id, rejectionReason)}
+                      onClick={() => {
+                        setRejectionRequestId(selectedRequest.id);
+                        setRejectionReason('');
+                        setIsRejectionModalOpen(true);
+                      }}
                       disabled={isLoading}
                       className="px-6"
                     >
@@ -915,7 +910,6 @@ export const ExecutiveApprovalPage = () => {
                       <FileWarning className="h-4 w-4 mr-2" />
                       ขอเอกสารเพิ่ม
                     </Button>
-                  </div>
                 </div>
               </div>
             )}
@@ -929,7 +923,7 @@ export const ExecutiveApprovalPage = () => {
           <DialogHeader>
             <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <p>กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+          <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
           <Textarea
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
@@ -937,16 +931,8 @@ export const ExecutiveApprovalPage = () => {
             rows={3}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={confirmRejection}
-              disabled={!rejectionReason || isLoading}
-              variant="destructive"
-            >
-              ยืนยันปฏิเสธ
-            </Button>
+            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
+            <Button variant="destructive" onClick={confirmRejection} disabled={!rejectionReason || isLoading}>ยืนยันปฏิเสธ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

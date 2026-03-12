@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -914,30 +915,18 @@ export const AccountingApprovalPage = () => {
       <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ปฏิเสธคำร้อง</DialogTitle>
+            <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">เหตุผลในการปฏิเสธ</label>
-              <Input
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="กรุณาระบุเหตุผลในการปฏิเสธ..."
-                className="mt-1"
-              />
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+          <Textarea
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="เหตุผลการปฏิเสธ..."
+            rows={3}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmRejection}
-              disabled={!rejectionReason || isLoading}
-            >
-              ยืนยันการปฏิเสธ
-            </Button>
+            <Button variant="outline" onClick={() => setIsRejectionModalOpen(false)}>ยกเลิก</Button>
+            <Button variant="destructive" onClick={confirmRejection} disabled={!rejectionReason || isLoading}>ยืนยันปฏิเสธ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

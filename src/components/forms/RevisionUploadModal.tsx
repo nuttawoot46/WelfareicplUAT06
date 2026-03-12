@@ -83,6 +83,7 @@ export function RevisionUploadModal({
 
   const getReturnStatus = () => {
     switch (revisionRequestedBy) {
+      case 'executive': return 'pending_executive';
       case 'manager': return 'pending_manager';
       case 'hr': return 'pending_hr';
       case 'accounting': return 'pending_accounting';
@@ -148,7 +149,8 @@ export function RevisionUploadModal({
 
   const getRequesterLabel = () => {
     switch (revisionRequestedBy) {
-      case 'manager': return 'หัวหน้า';
+      case 'executive': return 'หัวหน้า';
+      case 'manager': return 'ผู้จัดการ';
       case 'hr': return 'HR';
       case 'accounting': return 'บัญชี';
       default: return 'ผู้อนุมัติ';

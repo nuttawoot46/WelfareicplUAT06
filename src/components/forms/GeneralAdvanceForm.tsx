@@ -1221,9 +1221,9 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                     </tr>
                   ))}
                   {/* Row รวม */}
-                  <tr className="bg-welfare-blue/10 font-semibold">
-                    <td className="border border-gray-300 px-2 py-2 text-center" colSpan={3}>รวม</td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                  <tr className="font-semibold">
+                    <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50" colSpan={3}>รวม</td>
+                    <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1235,7 +1235,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-center">
+                    <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1247,7 +1247,7 @@ export function GeneralAdvanceForm({ onBack, editId }: GeneralAdvanceFormProps) 
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
+                    <td className="border border-gray-300 px-2 py-2 bg-blue-50"></td>
                   </tr>
                 </tbody>
               </table>

@@ -1173,7 +1173,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-welfare-blue/10 font-semibold">
+                  <tr className="font-semibold">
                     <td className="border border-gray-300 px-2 py-2 text-center sticky left-0 z-10 bg-blue-50" colSpan={2} style={{minWidth: 250}}>รวม</td>
                     <td className="border border-gray-300 px-2 py-2 sticky z-10 bg-blue-50" style={{left: 250}}></td>
                     <td className="border border-gray-300 px-2 py-2 text-left sticky z-10 bg-blue-50" style={{left: 330, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)'}}>
@@ -1188,7 +1188,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-left bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1200,7 +1200,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-left bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1212,7 +1212,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-left bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1224,7 +1224,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-left bg-blue-50">
                       {(() => {
                         const expenseItems = watchedExpenseItems || [];
                         const total = expenseItems.reduce((sum, item) => {
@@ -1236,7 +1236,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         return formatNumberWithCommas(total);
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2 text-left">
+                    <td className="border border-gray-300 px-2 py-2 text-left bg-blue-50">
                       {(() => {
                         const total = calculateTotalRefund();
                         const isNegative = total < 0;
@@ -1247,7 +1247,7 @@ export function GeneralExpenseClearingForm({ onBack }: GeneralExpenseClearingFor
                         );
                       })()}
                     </td>
-                    <td className="border border-gray-300 px-2 py-2"></td>
+                    <td className="border border-gray-300 px-2 py-2 bg-blue-50"></td>
                   </tr>
                 </tbody>
               </table>

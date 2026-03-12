@@ -89,6 +89,7 @@ export function PaymentNotificationForm({ onBack }: PaymentNotificationFormProps
   });
 
   const paymentType = watch('paymentType');
+  const paymentCondition = watch('paymentCondition');
 
   // Fetch employee data
   useEffect(() => {
@@ -918,7 +919,8 @@ export function PaymentNotificationForm({ onBack }: PaymentNotificationFormProps
           </div>
         </div>
 
-        {/* Section 6: Document Numbers (from customer_ar) */}
+        {/* Section 6: Document Numbers (from customer_ar) - ซ่อนเมื่อ โอนเงิน + โอนก่อนส่งของ */}
+        {!(paymentType === 'โอนเงิน' && paymentCondition === 'โอนก่อนส่งของ') && (
         <div className="bg-white rounded-xl border p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-4 text-gray-700">เลขที่เอกสาร</h3>
 
@@ -966,6 +968,7 @@ export function PaymentNotificationForm({ onBack }: PaymentNotificationFormProps
             </>
           )}
         </div>
+        )}
 
         {/* Section 7: Notes */}
         <div className="bg-white rounded-xl border p-6 shadow-sm">

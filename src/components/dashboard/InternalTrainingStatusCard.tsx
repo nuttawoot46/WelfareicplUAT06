@@ -45,7 +45,7 @@ export function InternalTrainingStatusCard() {
   };
 
   return (
-    <Card className="border-l-4 border-l-blue-500">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-blue-600" />

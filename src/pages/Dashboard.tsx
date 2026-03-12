@@ -64,9 +64,9 @@ const Dashboard = () => {
           <div className="space-y-4 md:space-y-6">
             {/* Company Announcements */}
             <div>
-              <div className="bg-[#004F9F] text-white rounded-lg px-4 py-3 mb-4 flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">ประกาศจากบริษัท</h2>
+              <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2 shadow-soft">
+                <Bell className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold text-gray-900">ประกาศจากบริษัท</h2>
               </div>
               <div className="space-y-3">
                 {loading ? (

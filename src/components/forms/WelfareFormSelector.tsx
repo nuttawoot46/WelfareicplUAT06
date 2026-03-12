@@ -437,10 +437,10 @@ export function WelfareFormSelector({ onSelect }: WelfareFormSelectorProps) {
             <Card 
               key={option.id}
               className={cn(
-                "transition-all border-l-4",
-                isDisabled 
-                  ? "opacity-50 cursor-not-allowed" 
-                  : "cursor-pointer hover:shadow-lg",
+                "transition-all border-l-2",
+                isDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer hover:shadow-soft-md",
                 selected === option.id 
                   ? "ring-2 ring-primary ring-offset-2" 
                   : !isDisabled && "hover:-translate-y-1",
