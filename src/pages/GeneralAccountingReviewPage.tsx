@@ -1268,22 +1268,6 @@ const GeneralAccountingReviewPage: React.FC = () => {
                          r.status}
                       </span>
                     </div>
-                    {/* Revision completed badge */}
-                    {r.revision_completed && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
-                        แนบเอกสารเรียบร้อย
-                      </span>
-                    )}
-                    {/* Approval trail */}
-                    {(r.status === 'pending_revision' || r.status === 'pending_accounting' && r.revision_completed) && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {getApprovalTrail(r).map((stage, idx) => (
-                          <span key={idx} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                            {stage.done ? '✓' : '○'} {stage.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                     <div className="flex items-center justify-between text-xs">
                       <Badge variant="outline" className="text-[10px]">{getRequestTypeLabel(r.request_type)}</Badge>
                       <span className="font-bold text-blue-700">
@@ -1409,20 +1393,6 @@ const GeneralAccountingReviewPage: React.FC = () => {
                           <div className="text-xs text-gray-600 mt-1" title={r.accounting_notes}>
                             หมายเหตุ: {r.accounting_notes.length > 20 ?
                               r.accounting_notes.substring(0, 20) + '...' : r.accounting_notes}
-                          </div>
-                        )}
-                        {r.revision_completed && (
-                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
-                            แนบเอกสารเรียบร้อย
-                          </span>
-                        )}
-                        {(r.status === 'pending_revision' || (r.status === 'pending_accounting' && r.revision_completed)) && (
-                          <div className="flex items-center gap-1 mt-1 flex-wrap">
-                            {getApprovalTrail(r).map((stage, idx) => (
-                              <span key={idx} className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                                {stage.done ? '✓' : '○'} {stage.label}
-                              </span>
-                            ))}
                           </div>
                         )}
                       </TableCell>
@@ -1597,17 +1567,6 @@ const GeneralAccountingReviewPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-                {/* Approval trail */}
-                {(selectedRequest.status === 'pending_revision' || selectedRequest.status === 'pending_accounting' && selectedRequest.revision_completed) && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-muted-foreground">ผ่านขั้นตอน:</span>
-                    {getApprovalTrail(selectedRequest).map((stage, idx) => (
-                      <span key={idx} className={`px-2 py-0.5 rounded text-xs font-medium ${stage.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                        {stage.done ? '✓' : '○'} {stage.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
                   <span>แผนก: <strong className="text-foreground">{selectedRequest.department_request || '-'}</strong></span>
                   <span>วันที่ยื่น: <strong className="text-foreground">{format(new Date(selectedRequest.created_at), 'dd/MM/yyyy')}</strong></span>

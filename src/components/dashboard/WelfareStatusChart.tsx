@@ -441,14 +441,14 @@ const WelfareStatusChart: React.FC = React.memo(() => {
           </TableHeader>
           <TableBody>
             {filteredRequests.map((request) => {
-              // Determine which PDF URL to show based on status
+              // Determine which PDF URL to show - prioritize latest version
               let pdfUrl = null;
-              if (request.status === 'pending_manager' && request.pdf_url) {
-                pdfUrl = request.pdf_url;
-              } else if (request.status === 'pending_hr' && request.pdf_request_manager) {
+              if (request.pdf_request_hr) {
+                pdfUrl = request.pdf_request_hr;
+              } else if (request.pdf_request_manager) {
                 pdfUrl = request.pdf_request_manager;
-              } else if ((request.status === 'pending_accounting' || request.status === 'completed') && (request.pdf_request_hr || request.pdf_request_manager)) {
-                pdfUrl = request.pdf_request_hr || request.pdf_request_manager;
+              } else if (request.pdf_url) {
+                pdfUrl = request.pdf_url;
               }
 
               return (
