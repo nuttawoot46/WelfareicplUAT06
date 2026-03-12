@@ -446,15 +446,15 @@ export const ExecutiveApprovalPage = () => {
     let pdfUrl: string | null | undefined = null;
     let pdfTitle = 'ดู PDF เอกสาร';
 
-    if (request.pdfUrl || request.pdf_url) {
-      pdfUrl = request.pdfUrl || request.pdf_url;
-      pdfTitle = 'ดู PDF เอกสาร';
+    if (request.pdf_request_hr) {
+      pdfUrl = request.pdf_request_hr;
+      pdfTitle = 'ดู PDF ที่ HR อนุมัติแล้ว';
     } else if (request.pdf_request_manager) {
       pdfUrl = request.pdf_request_manager;
       pdfTitle = 'ดู PDF ที่ Manager อนุมัติแล้ว';
-    } else if (request.pdf_request_hr) {
-      pdfUrl = request.pdf_request_hr;
-      pdfTitle = 'ดู PDF ที่ HR อนุมัติแล้ว';
+    } else if (request.pdfUrl || request.pdf_url) {
+      pdfUrl = request.pdfUrl || request.pdf_url;
+      pdfTitle = 'ดู PDF เอกสาร';
     }
 
     if (pdfUrl) {

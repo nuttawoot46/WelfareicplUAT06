@@ -98,6 +98,9 @@ const GeneralAccountingReviewPage: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<GeneralRequestItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+  const [rejectionRequestId, setRejectionRequestId] = useState<number | null>(null);
+  const [rejectionTableSource, setRejectionTableSource] = useState<string>('');
   const [filter, setFilter] = useState<FilterState>(initialFilter);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'checklist' | 'history' | 'report'>('pending');
@@ -468,6 +471,14 @@ const GeneralAccountingReviewPage: React.FC = () => {
     fetchRequests();
     fetchCounts();
     closeDetails();
+  };
+
+  const confirmRejection = async () => {
+    if (!rejectionRequestId || !rejectReason || !rejectionTableSource) return;
+    await handleReject(rejectionRequestId, rejectionTableSource);
+    setIsRejectionModalOpen(false);
+    setRejectionRequestId(null);
+    setRejectionTableSource('');
   };
 
   const handleBulkApprove = async () => {
@@ -1662,44 +1673,38 @@ const GeneralAccountingReviewPage: React.FC = () => {
               {/* Footer — ปุ่ม Action */}
               {activeTab === 'pending' && selectedRequest.status === 'pending_accounting' && (
                 <div className="px-6 py-3 border-t bg-gray-50/80 rounded-b-lg flex-shrink-0">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="ระบุเหตุผลการไม่อนุมัติ (ถ้ามี)..."
-                        value={rejectReason}
-                        onChange={e => setRejectReason(e.target.value)}
-                        className="bg-white"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button
-                        onClick={() => {
-                          setRevisionRequestId(selectedRequest.id);
-                          setRevisionNote('');
-                          setIsRevisionDialogOpen(true);
-                        }}
-                        className="bg-amber-500 hover:bg-amber-600 px-4"
-                      >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        ขอเอกสารเพิ่ม
-                      </Button>
-                      <Button
-                        onClick={() => handleApprove(selectedRequest.id, (selectedRequest as any).table_source)}
-                        className="bg-green-600 hover:bg-green-700 px-6"
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        อนุมัติ
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleReject(selectedRequest.id, (selectedRequest as any).table_source)}
-                        disabled={!rejectReason}
-                        className="px-6"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        ไม่อนุมัติ
-                      </Button>
-                    </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      onClick={() => handleApprove(selectedRequest.id, (selectedRequest as any).table_source)}
+                      className="bg-green-600 hover:bg-green-700 px-6"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      อนุมัติ
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setRejectionRequestId(selectedRequest.id);
+                        setRejectionTableSource((selectedRequest as any).table_source);
+                        setRejectReason('');
+                        setIsRejectionModalOpen(true);
+                      }}
+                      className="px-6"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      ปฏิเสธ
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setRevisionRequestId(selectedRequest.id);
+                        setRevisionNote('');
+                        setIsRevisionDialogOpen(true);
+                      }}
+                      className="bg-amber-500 hover:bg-amber-600 px-4"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      ขอเอกสารเพิ่ม
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1742,6 +1747,34 @@ const GeneralAccountingReviewPage: React.FC = () => {
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 ส่งคำขอ
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rejection Dialog */}
+        <Dialog open={isRejectionModalOpen} onOpenChange={(open) => {
+          setIsRejectionModalOpen(open);
+          if (!open) {
+            setRejectReason('');
+            setRejectionRequestId(null);
+            setRejectionTableSource('');
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>ยืนยันการปฏิเสธ</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">กรุณาระบุเหตุผลในการปฏิเสธคำร้อง</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="เหตุผลการปฏิเสธ..."
+              className="w-full border rounded-md p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-red-500"
+              rows={3}
+            />
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => { setIsRejectionModalOpen(false); setRejectReason(''); }}>ยกเลิก</Button>
+              <Button variant="destructive" onClick={confirmRejection} disabled={!rejectReason}>ยืนยันปฏิเสธ</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
