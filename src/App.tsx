@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { WelfareProvider } from "@/context/WelfareContext";
 import { InternalTrainingProvider } from "@/context/InternalTrainingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { SidebarProvider } from "@/context/SidebarContext";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { Toaster as HotToast } from 'react-hot-toast';
 import MainLayout from "@/components/layout/MainLayout";
@@ -90,6 +91,7 @@ const App = () => (
             <WelfareProvider>
               <InternalTrainingProvider>
                 <NotificationProvider>
+                <SidebarProvider>
                 <Toaster />
                 <Sonner />
                 <HotToast position="top-right" />
@@ -300,6 +302,7 @@ const App = () => (
                   {/* Catch-all Route สำหรับหน้า 404 */}
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
+                </SidebarProvider>
                 </NotificationProvider>
               </InternalTrainingProvider>
             </WelfareProvider>
