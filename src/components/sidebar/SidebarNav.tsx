@@ -22,7 +22,7 @@ import { SidebarSection } from './SidebarSection';
 import { SidebarCustomGroup } from './SidebarCustomGroup';
 import { useSidebar } from '@/context/SidebarContext';
 import { useNavContext } from '@/hooks/useNavContext';
-import { MENU_SECTIONS, MENU_ITEMS, getItemsBySection } from '@/config/menuRegistry';
+import { MENU_SECTIONS, getItemsBySection, getItemById } from '@/config/menuRegistry';
 import { getVisibleSections, getVisibleItems } from '@/lib/menuVisibility';
 import type { NavContextData, CustomGroup } from '@/types/sidebar';
 
@@ -56,15 +56,31 @@ export function SidebarNav({ isExpanded, onCreateGroup, onEditGroup }: SidebarNa
     });
   }, [navCtx, preferences.sectionOrder]);
 
-  // Visible items per section
+  // Visible items per section, respecting custom order from preferences
   const sectionItems = useMemo(() => {
     const map: Record<string, ReturnType<typeof getVisibleItems>> = {};
     for (const section of visibleSections) {
       const items = getItemsBySection(section.id);
-      map[section.id] = getVisibleItems(items, navCtx);
+      const visible = getVisibleItems(items, navCtx);
+
+      // Apply custom item order if exists
+      const customOrder = preferences.itemOrder[section.id];
+      if (customOrder && customOrder.length > 0) {
+        const orderMap = new Map(customOrder.map((id, idx) => [id, idx]));
+        visible.sort((a, b) => {
+          const aIdx = orderMap.get(a.id);
+          const bIdx = orderMap.get(b.id);
+          if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+          if (aIdx !== undefined) return -1;
+          if (bIdx !== undefined) return 1;
+          return a.order - b.order;
+        });
+      }
+
+      map[section.id] = visible;
     }
     return map;
-  }, [visibleSections, navCtx]);
+  }, [visibleSections, navCtx, preferences.itemOrder]);
 
   const sectionSortableIds = useMemo(
     () => visibleSections.map(s => `section_${s.id}`),
@@ -102,17 +118,36 @@ export function SidebarNav({ isExpanded, onCreateGroup, onEditGroup }: SidebarNa
       return;
     }
 
-    // Item dropped on group
+    // Item dropped on group drop zone
     const overData = over.data?.current;
     if (overData?.type === 'group' && overData.groupId) {
-      // Extract real item ID from potentially prefixed IDs
       let itemId = activeId;
       if (itemId.startsWith('fav_')) itemId = itemId.replace('fav_', '');
       if (itemId.match(/^grp_[^_]+_/)) itemId = itemId.replace(/^grp_[^_]+_/, '');
-
       moveItemToGroup(itemId, overData.groupId);
+      return;
     }
-  }, [preferences.sectionOrder, visibleSections, dispatch, moveItemToGroup]);
+
+    // Item reorder within same section
+    const activeItem = getItemById(activeId);
+    const overItem = getItemById(overId);
+    if (activeItem && overItem && activeItem.sectionId === overItem.sectionId) {
+      const sectionId = activeItem.sectionId;
+      const currentItems = sectionItems[sectionId] || [];
+      const currentIds = currentItems.map(i => i.id);
+      const oldIndex = currentIds.indexOf(activeId);
+      const newIndex = currentIds.indexOf(overId);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        dispatch({
+          type: 'REORDER_ITEMS',
+          payload: {
+            sectionId,
+            itemIds: arrayMove(currentIds, oldIndex, newIndex),
+          },
+        });
+      }
+    }
+  }, [preferences.sectionOrder, visibleSections, sectionItems, dispatch, moveItemToGroup]);
 
   return (
     <ScrollArea className="flex-1">

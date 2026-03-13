@@ -62,6 +62,7 @@ export interface RecentVisit {
 export interface SidebarPreferences {
   favoriteIds: string[];
   sectionOrder: string[];
+  itemOrder: Record<string, string[]>; // sectionId -> ordered item IDs
   collapsedSections: string[];
   customGroups: CustomGroup[];
   sidebarExpanded: boolean;
@@ -71,6 +72,7 @@ export interface SidebarPreferences {
 export const DEFAULT_SIDEBAR_PREFERENCES: SidebarPreferences = {
   favoriteIds: [],
   sectionOrder: ['home', 'hr', 'accounting', 'approval', 'system'],
+  itemOrder: {},
   collapsedSections: [],
   customGroups: [],
   sidebarExpanded: true,

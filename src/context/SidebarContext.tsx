@@ -9,6 +9,7 @@ type SidebarAction =
   | { type: 'SET_PREFERENCES'; payload: SidebarPreferences }
   | { type: 'TOGGLE_FAVORITE'; payload: string }
   | { type: 'REORDER_SECTIONS'; payload: string[] }
+  | { type: 'REORDER_ITEMS'; payload: { sectionId: string; itemIds: string[] } }
   | { type: 'TOGGLE_SECTION_COLLAPSED'; payload: string }
   | { type: 'CREATE_GROUP'; payload: CustomGroup }
   | { type: 'UPDATE_GROUP'; payload: { id: string; label?: string; color?: string } }
@@ -38,6 +39,14 @@ function sidebarReducer(state: SidebarPreferences, action: SidebarAction): Sideb
 
     case 'REORDER_SECTIONS':
       return { ...state, sectionOrder: action.payload };
+
+    case 'REORDER_ITEMS': {
+      const { sectionId, itemIds } = action.payload;
+      return {
+        ...state,
+        itemOrder: { ...state.itemOrder, [sectionId]: itemIds },
+      };
+    }
 
     case 'TOGGLE_SECTION_COLLAPSED': {
       const sectionId = action.payload;
