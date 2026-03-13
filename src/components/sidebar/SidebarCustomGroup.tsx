@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { SidebarMenuItem } from './SidebarMenuItem';
 import { useSidebar } from '@/context/SidebarContext';
@@ -28,8 +27,6 @@ export function SidebarCustomGroup({ group, isExpanded, onEdit }: SidebarCustomG
       .map(id => getItemById(id))
       .filter((item): item is MenuItemDef => item !== undefined);
   }, [group.itemIds]);
-
-  const itemIds = useMemo(() => groupItems.map(i => `grp_${group.id}_${i.id}`), [groupItems, group.id]);
 
   if (!isExpanded) return null;
 
@@ -88,15 +85,16 @@ export function SidebarCustomGroup({ group, isExpanded, onEdit }: SidebarCustomG
               ลากเมนูมาวางที่นี่
             </p>
           ) : (
-            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+            <>
               {groupItems.map(item => (
                 <SidebarMenuItem
                   key={`grp_${group.id}_${item.id}`}
                   item={item}
                   isExpanded={isExpanded}
+                  isDraggable={false}
                 />
               ))}
-            </SortableContext>
+            </>
           )}
         </div>
       )}

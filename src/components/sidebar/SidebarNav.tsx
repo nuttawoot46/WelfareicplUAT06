@@ -1,12 +1,14 @@
-import { useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
-  closestCenter,
+  pointerWithin,
   PointerSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -93,7 +95,15 @@ export function SidebarNav({ isExpanded, onCreateGroup, onEditGroup }: SidebarNa
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Track active drag for DragOverlay
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(String(event.active.id));
+  }, []);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -152,7 +162,7 @@ export function SidebarNav({ isExpanded, onCreateGroup, onEditGroup }: SidebarNa
   return (
     <ScrollArea className="flex-1">
       <nav className="p-4 space-y-1">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {/* Favorites */}
           <SidebarFavoritesSection isExpanded={isExpanded} />
 
@@ -196,6 +206,22 @@ export function SidebarNav({ isExpanded, onCreateGroup, onEditGroup }: SidebarNa
               <span>สร้างกลุ่มใหม่</span>
             </button>
           )}
+          {/* Drag overlay — renders dragged item outside DOM tree to prevent jank */}
+          <DragOverlay dropAnimation={null}>
+            {activeDragId && (() => {
+              const item = getItemById(activeDragId);
+              if (item) {
+                const Icon = item.icon;
+                return (
+                  <div className="flex items-center gap-3 px-4 py-2 text-sm rounded-lg bg-white shadow-lg border border-gray-200 opacity-90">
+                    <Icon className="h-4 w-4 text-gray-600" />
+                    <span className="text-gray-700">{item.label}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </DragOverlay>
         </DndContext>
       </nav>
     </ScrollArea>
